@@ -19,7 +19,8 @@ node_modules
 *.md
 Dockerfile*
 docker-compose*.yml
-deploy/
+deploy/nginx/
+deploy/docker/
 *.html
 Cart*.html
 Catalog*.html
