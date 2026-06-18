@@ -26,7 +26,7 @@ sleep 8
 
 HEALTHY=0
 for i in $(seq 1 15); do
-    if curl -sf http://127.0.0.1/healthz/ > /dev/null; then
+    if curl -sfL http://127.0.0.1/healthz/ > /dev/null || curl -sfk https://127.0.0.1/healthz/ > /dev/null; then
         echo "==> Healthcheck OK"
         HEALTHY=1
         break
