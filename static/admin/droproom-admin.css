@@ -1,0 +1,33 @@
+/* DropRoom — дрібні доповнення до django-unfold (без !important) */
+
+:root {
+  --font-admin: "Archivo", system-ui, sans-serif;
+}
+
+body {
+  font-family: var(--font-admin);
+}
+
+/* Компактніші підказки у fieldsets */
+fieldset.module h2 {
+  letter-spacing: 0.02em;
+}
+
+/* Превʼю зображень у формі */
+.field-image_preview img,
+.field-logo_preview img,
+.field-cover_preview img,
+.field-photo_preview img {
+  max-width: 320px;
+  height: auto;
+}
+
+/* Кольоровий зразок у списку кольорів */
+.admin-color-swatch {
+  display: inline-block;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  vertical-align: middle;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}

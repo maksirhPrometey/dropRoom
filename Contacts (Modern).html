@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DROPROOM — Контакти</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f3f1ec; --bg-2:#e9e6df; --paper:#fbfaf6;
+    --ink:#0a0a0a; --ink-2:#605d58;
+    --line:#d6d2c8;
+    --accent:oklch(0.68 0.19 35);
+    --ease:cubic-bezier(.2,.7,.2,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--ink);font-family:'Archivo',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  body{overflow-x:hidden}
+  a{color:inherit;text-decoration:none}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+
+  .mono{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+  .eyebrow{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2)}
+
+  .util{background:var(--ink);color:var(--bg);display:flex;align-items:center;height:30px;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase}
+  .util-track{display:flex;gap:36px;padding-left:36px;animation:scroll 42s linear infinite;white-space:nowrap}
+  .util-track span{display:inline-flex;align-items:center;gap:36px}
+  .util-track span::after{content:"●";color:var(--accent);font-size:7px}
+  @keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+  header{position:sticky;top:0;z-index:50;background:rgba(243,241,236,.86);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+  .nav{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:16px 28px;gap:24px}
+  .nav-left,.nav-right{display:flex;align-items:center;gap:24px}
+  .nav-right{justify-content:flex-end}
+  .nav a.link{font-size:12.5px;font-weight:600;letter-spacing:.02em;position:relative;padding:6px 0;text-transform:uppercase}
+  .nav a.link::after{content:"";position:absolute;left:0;right:0;bottom:2px;height:1px;background:var(--ink);transform:scaleX(0);transform-origin:left;transition:transform .4s var(--ease)}
+  .nav a.link:hover::after,.nav a.link.active::after{transform:scaleX(1)}
+  .wordmark{font-family:'Archivo',sans-serif;font-weight:900;font-size:22px;letter-spacing:-.04em;text-transform:uppercase;display:flex;align-items:center;gap:6px}
+  .wordmark .dot{width:8px;height:8px;background:var(--accent);border-radius:50%}
+  .icon-btn{display:inline-flex;align-items:center;gap:6px;font-size:12px;text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+  .cart-pill{display:inline-flex;align-items:center;gap:10px;padding:9px 14px;background:var(--ink);color:var(--bg);font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;transition:background .25s,color .25s}
+  .cart-pill:hover{background:var(--accent);color:var(--ink)}
+  .cart-pill .n{font-family:'JetBrains Mono',monospace;font-size:10.5px}
+
+  .crumbs{padding:24px 28px 0;display:flex;gap:10px;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+  .crumbs .here{color:var(--ink)}
+  .crumbs .sep{opacity:.4}
+
+  /* Hero */
+  .hero{padding:48px 28px 56px;border-bottom:1px solid var(--line)}
+  .hero h1{font-family:'Archivo',sans-serif;font-weight:900;font-size:clamp(64px,12vw,200px);letter-spacing:-.045em;line-height:.86;text-transform:uppercase;margin-bottom:32px}
+  .hero h1 .accent{color:var(--accent)}
+  .hero h1 em{font-style:italic;font-weight:500}
+  .hero-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:48px;align-items:end}
+  .hero-lead{font-size:18px;line-height:1.5;max-width:48ch;font-weight:500}
+  .hero-actions{display:flex;gap:10px;justify-self:end;flex-wrap:wrap}
+  .btn-primary{display:inline-flex;align-items:center;gap:12px;padding:14px 18px;background:var(--ink);color:var(--bg);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;transition:background .35s var(--ease)}
+  .btn-primary:hover{background:var(--accent);color:var(--ink)}
+  .btn-ghost{display:inline-flex;align-items:center;gap:10px;padding:14px 18px;border:1px solid var(--ink);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;transition:background .25s,color .25s}
+  .btn-ghost:hover{background:var(--ink);color:var(--bg)}
+
+  /* Live status */
+  .live{display:flex;align-items:center;gap:10px;font-family:'JetBrains Mono',monospace;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);margin-bottom:24px}
+  .live .dot{width:8px;height:8px;background:#1c8551;border-radius:50%;animation:pulse 2s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+  /* Stores grid */
+  .stores{padding:80px 28px;border-bottom:1px solid var(--line)}
+  .stores-head{display:grid;grid-template-columns:1fr auto;gap:48px;margin-bottom:48px;align-items:end}
+  .stores-head h2{font-family:'Archivo',sans-serif;font-weight:900;font-size:clamp(40px,6vw,84px);text-transform:uppercase;letter-spacing:-.035em;line-height:.92}
+  .stores-head h2 .accent{color:var(--accent)}
+  .stores-head .num{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);padding-bottom:12px}
+
+  .stores-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+  .store{background:var(--paper);border:1px solid var(--line);overflow:hidden;display:flex;flex-direction:column;position:relative;transition:transform .4s var(--ease)}
+  .store:hover{transform:translateY(-4px)}
+  .store .map{aspect-ratio:1.4;background:var(--bg-2);position:relative;overflow:hidden;border-bottom:1px solid var(--line)}
+  .store .map svg{position:absolute;inset:0;width:100%;height:100%}
+  .store .map .pin{position:absolute;top:50%;left:50%;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;gap:4px;z-index:2}
+  .store .map .pin .marker{width:18px;height:18px;border-radius:50%;background:var(--accent);border:3px solid var(--ink);box-shadow:0 4px 12px rgba(0,0,0,.18)}
+  .store .map .pin .marker.closed{background:var(--ink-2)}
+  .store .map .pin .needle{width:1px;height:8px;background:var(--ink)}
+  .store .map .stamp{position:absolute;top:12px;left:12px;font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;background:var(--paper);padding:5px 8px;border:1px solid var(--line);color:var(--ink);z-index:3}
+  .store .map .coords{position:absolute;bottom:10px;right:10px;font-family:'JetBrains Mono',monospace;font-size:9.5px;color:rgba(0,0,0,.55);background:rgba(251,250,246,.75);padding:4px 6px;z-index:3}
+  .store .body{padding:24px 24px 28px;display:flex;flex-direction:column;gap:14px;flex:1}
+  .store h3{font-family:'Archivo',sans-serif;font-weight:800;font-size:32px;line-height:1;letter-spacing:-.025em;text-transform:uppercase}
+  .store h3 .accent{color:var(--accent)}
+  .store .addr{font-size:14.5px;color:var(--ink-2);line-height:1.55}
+  .store .row{display:grid;grid-template-columns:auto 1fr;gap:12px;font-size:13px;align-items:start;padding:6px 0;border-bottom:1px solid var(--line)}
+  .store .row:last-of-type{border-bottom:0}
+  .store .row .k{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);padding-top:2px}
+  .store .row .v{color:var(--ink);font-weight:500}
+  .store .row .v.hours .open{color:#1c8551;font-family:'JetBrains Mono',monospace;font-size:11px;display:inline-flex;align-items:center;gap:6px}
+  .store .row .v.hours .open::before{content:"";width:6px;height:6px;background:#1c8551;border-radius:50%;display:inline-block}
+  .store .row .v.hours .closed{color:var(--ink-2);font-family:'JetBrains Mono',monospace;font-size:11px}
+  .store .acts{display:flex;gap:8px;margin-top:auto;padding-top:8px}
+  .store .acts a{flex:1;text-align:center;padding:11px 0;background:var(--ink);color:var(--bg);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;transition:background .3s}
+  .store .acts a.alt{background:var(--paper);color:var(--ink);border:1px solid var(--ink)}
+  .store .acts a:hover{background:var(--accent);color:var(--ink)}
+  .store .acts a.alt:hover{background:var(--ink);color:var(--bg)}
+
+  /* Channels */
+  .channels{padding:80px 28px;background:var(--paper);border-bottom:1px solid var(--line)}
+  .channels-head{margin-bottom:48px;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:end}
+  .channels-head h2{font-family:'Archivo',sans-serif;font-weight:900;font-size:clamp(40px,6vw,84px);text-transform:uppercase;letter-spacing:-.035em;line-height:.92}
+  .channels-head h2 .accent{color:var(--accent)}
+  .channels-head p{color:var(--ink-2);font-size:14.5px;line-height:1.65;max-width:42ch;justify-self:end;text-align:right}
+  .chs{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .ch{background:var(--bg);border:1px solid var(--line);padding:24px 22px;display:flex;flex-direction:column;gap:14px;min-height:180px;justify-content:space-between;transition:background .3s,color .3s;cursor:pointer}
+  .ch:hover{background:var(--ink);color:var(--bg)}
+  .ch:hover .k{color:rgba(255,255,255,.5)}
+  .ch:hover .meta{color:rgba(255,255,255,.6)}
+  .ch .k{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+  .ch .v{font-family:'Archivo',sans-serif;font-weight:700;font-size:22px;line-height:1.15;letter-spacing:-.015em;word-break:break-word}
+  .ch .v .accent{color:var(--accent)}
+  .ch .meta{font-size:12px;color:var(--ink-2);line-height:1.5}
+
+  /* Form */
+  .form-section{padding:100px 28px;border-bottom:1px solid var(--line)}
+  .form-grid{display:grid;grid-template-columns:1fr 1.2fr;gap:64px;align-items:start}
+  .form-aside h2{font-family:'Archivo',sans-serif;font-weight:900;font-size:clamp(40px,5.6vw,80px);text-transform:uppercase;letter-spacing:-.035em;line-height:.92;margin-bottom:20px}
+  .form-aside h2 .accent{color:var(--accent)}
+  .form-aside p{font-size:15px;color:var(--ink-2);line-height:1.65;max-width:38ch;margin-bottom:32px}
+  .form-aside .answers{display:flex;flex-direction:column;gap:16px;border-top:1px solid var(--line);padding-top:20px}
+  .form-aside .answers .row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;border-bottom:1px solid var(--line);padding-bottom:12px}
+  .form-aside .answers .k{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+  .form-aside .answers .v{font-family:'Archivo',sans-serif;font-weight:700;font-size:14px}
+  .form-aside .answers .v .accent{color:var(--accent)}
+
+  form{display:flex;flex-direction:column;gap:18px;background:var(--paper);border:1px solid var(--line);padding:32px}
+  form .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+  .field input,.field textarea,.field select{font:inherit;font-size:14px;border:0;border-bottom:1px solid var(--line);background:none;padding:10px 0;color:var(--ink);outline:none;transition:border-color .25s}
+  .field input:focus,.field textarea:focus,.field select:focus{border-bottom-color:var(--accent)}
+  .field textarea{min-height:120px;resize:vertical;font-family:inherit}
+  .chip-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+  .chip-row label{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;background:var(--bg);font-weight:500;transition:all .2s}
+  .chip-row label:has(input:checked){background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .chip-row input{display:none}
+  form .submit{display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:18px;border-top:1px solid var(--line)}
+  form .submit .note{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2)}
+  form .submit button{display:inline-flex;align-items:center;gap:12px;padding:14px 22px;background:var(--ink);color:var(--bg);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;transition:background .25s}
+  form .submit button:hover{background:var(--accent);color:var(--ink)}
+
+  /* FAQ */
+  .faq{padding:100px 28px;background:var(--paper);border-bottom:1px solid var(--line)}
+  .faq-head{margin-bottom:40px;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:end}
+  .faq-head h2{font-family:'Archivo',sans-serif;font-weight:900;font-size:clamp(40px,6vw,84px);text-transform:uppercase;letter-spacing:-.035em;line-height:.92}
+  .faq-head h2 .accent{color:var(--accent)}
+  .faq-head p{color:var(--ink-2);font-size:14.5px;line-height:1.65;max-width:42ch;justify-self:end;text-align:right}
+  .qs{display:flex;flex-direction:column}
+  .q{padding:24px 0;border-top:1px solid var(--line);cursor:pointer;display:grid;grid-template-columns:80px 1fr auto;gap:32px;align-items:start;transition:background .25s}
+  .q:last-child{border-bottom:1px solid var(--line)}
+  .q:hover{background:rgba(0,0,0,.02)}
+  .q .num{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);padding-top:4px}
+  .q .body h4{font-family:'Archivo',sans-serif;font-weight:700;font-size:20px;line-height:1.25;letter-spacing:-.01em}
+  .q .body p{font-size:14px;color:var(--ink-2);line-height:1.65;margin-top:0;max-width:64ch;max-height:0;overflow:hidden;transition:max-height .4s var(--ease),margin-top .4s var(--ease)}
+  .q.open .body p{max-height:200px;margin-top:14px}
+  .q .toggle{width:24px;height:24px;position:relative;transition:transform .4s var(--ease)}
+  .q .toggle::before,.q .toggle::after{content:"";position:absolute;background:var(--ink);left:50%;top:50%}
+  .q .toggle::before{width:14px;height:1.5px;transform:translate(-50%,-50%)}
+  .q .toggle::after{width:1.5px;height:14px;transform:translate(-50%,-50%);transition:transform .4s var(--ease)}
+  .q.open .toggle::after{transform:translate(-50%,-50%) rotate(90deg)}
+
+  /* Footer */
+  footer{background:var(--ink);color:var(--bg);padding:80px 28px 24px}
+  .foot-top{display:grid;grid-template-columns:1.8fr 1fr 1fr 1fr;gap:48px;padding-bottom:56px;border-bottom:1px solid rgba(255,255,255,.12)}
+  .foot-brand{font-family:'Archivo',sans-serif;font-weight:900;font-size:56px;letter-spacing:-.045em;text-transform:uppercase;line-height:1;display:flex;align-items:center;gap:10px;margin-bottom:20px}
+  .foot-brand .dot{width:14px;height:14px;background:var(--accent);border-radius:50%}
+  .foot-desc{font-size:13.5px;color:rgba(255,255,255,.62);line-height:1.65;max-width:38ch;margin-bottom:24px}
+  .foot-top h5{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:18px}
+  .foot-top ul{list-style:none;display:flex;flex-direction:column;gap:10px}
+  .foot-top a{font-size:13.5px;opacity:.86;transition:color .25s,opacity .25s}
+  .foot-top a:hover{opacity:1;color:var(--accent)}
+  .foot-bottom{display:flex;justify-content:space-between;align-items:center;padding-top:24px;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.45)}
+  .foot-bottom .l{display:flex;gap:24px}
+
+  @media (max-width:1100px){
+    .stores-grid,.chs{grid-template-columns:1fr 1fr;gap:18px}
+    .chs{grid-template-columns:1fr 1fr}
+    .form-grid,.faq-head,.channels-head,.stores-head{grid-template-columns:1fr;gap:32px}
+    .faq-head p,.channels-head p{text-align:left;justify-self:start}
+    .foot-top{grid-template-columns:1fr 1fr}
+    .hero-grid{grid-template-columns:1fr;gap:24px}
+    .hero-actions{justify-self:start}
+  }
+  @media (max-width:640px){
+    .nav-left{display:none}
+    .nav{grid-template-columns:auto 1fr auto;padding:12px 18px}
+    .stores-grid,.chs{grid-template-columns:1fr}
+    form .row2{grid-template-columns:1fr}
+    .q{grid-template-columns:50px 1fr auto;gap:14px}
+    .foot-top{grid-template-columns:1fr 1fr;gap:32px}
+  }
+</style>
+</head>
+<body>
+
+<div class="util">
+  <div class="util-track">
+    <span>Зараз працюємо · Київ 14:22</span>
+    <span>Drop 047 — 24 травня · 19:00</span>
+    <span>Безкоштовна доставка від 3 000 ₴</span>
+    <span>Зараз працюємо · Київ 14:22</span>
+    <span>Drop 047 — 24 травня · 19:00</span>
+    <span>Безкоштовна доставка від 3 000 ₴</span>
+  </div>
+</div>
+
+<header>
+  <nav class="nav">
+    <div class="nav-left">
+      <a href="Home (Modern).html" class="link">Магазин</a>
+      <a href="Catalog (Modern).html" class="link">Каталог</a>
+      <a href="#" class="link">Бренди</a>
+      <a href="Story (Modern).html" class="link">Про нас</a>
+    </div>
+    <a href="Home (Modern).html" class="wordmark">DROP<span class="dot"></span>ROOM</a>
+    <div class="nav-right">
+      <a href="#" class="icon-btn">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="6" cy="6" r="4.5"/><path d="M9.5 9.5l3 3"/></svg>
+        Пошук
+      </a>
+      <a href="#" class="icon-btn">UA · ₴</a>
+      <a href="Cart (Modern).html" class="cart-pill">Кошик <span class="n">02</span></a>
+    </div>
+  </nav>
+</header>
+
+<div class="crumbs">
+  <a href="Home (Modern).html">DropRoom</a>
+  <span class="sep">/</span>
+  <span class="here">Контакти</span>
+</div>
+
+<section class="hero">
+  <div class="live"><span class="dot"></span> Live · Зараз працюємо · Київ 14:22</div>
+  <h1>Заходьте /<br/><em>дзвоніть</em> /<br/><span class="accent">пишіть.</span></h1>
+  <div class="hero-grid">
+    <p class="hero-lead">
+      Три бутіки в Україні, відкриті щодня з 11 до 22. Або один онлайн-чат, відповідаємо за 4 хвилини. Або підпис на дроп — щоб бути першим у новій колекції.
+    </p>
+    <div class="hero-actions">
+      <a href="#stores" class="btn-primary">
+        Знайти бутік
+        <span>→</span>
+      </a>
+      <a href="#form" class="btn-ghost">Написати нам</a>
+    </div>
+  </div>
+</section>
+
+<!-- Stores -->
+<section class="stores" id="stores">
+  <div class="stores-head">
+    <h2>Три бутіки /<br/><span class="accent">щодня 11—22</span></h2>
+    <span class="num">— Київ · Львів · Дніпро</span>
+  </div>
+  <div class="stores-grid">
+
+    <div class="store">
+      <div class="map">
+        <span class="stamp">Київ · Flagship</span>
+        <span class="coords">50.4501 N · 30.5234 E</span>
+        <svg viewBox="0 0 300 200" preserveAspectRatio="xMidYMid slice">
+          <rect width="300" height="200" fill="#e9e6df"/>
+          <path d="M0 80 L300 60 M0 120 L300 110 M0 160 L300 150" stroke="#cdc4b4" stroke-width="1" fill="none"/>
+          <path d="M60 0 L80 200 M150 0 L160 200 M240 0 L230 200" stroke="#cdc4b4" stroke-width="1" fill="none"/>
+          <rect x="100" y="60" width="48" height="40" fill="#d6d2c8"/>
+          <rect x="170" y="50" width="60" height="50" fill="#d6d2c8"/>
+          <rect x="40" y="120" width="60" height="40" fill="#d6d2c8"/>
+          <rect x="180" y="120" width="40" height="50" fill="#d6d2c8"/>
+        </svg>
+        <div class="pin">
+          <div class="marker"></div>
+          <div class="needle"></div>
+        </div>
+      </div>
+      <div class="body">
+        <h3>Київ /<br/><span class="accent">Хрещатик</span></h3>
+        <div class="addr">вул. Хрещатик 22, 2-й поверх</div>
+        <div class="row"><span class="k">Години</span><span class="v hours"><span class="open">Зараз відкрито</span><br/>Щодня 11:00 — 22:00</span></div>
+        <div class="row"><span class="k">Тел.</span><span class="v">+380 44 555 04 22</span></div>
+        <div class="row"><span class="k">Telegram</span><span class="v">@droproom_kyiv</span></div>
+        <div class="row"><span class="k">Pickup</span><span class="v">Доступний · за 2 год</span></div>
+        <div class="acts">
+          <a href="#">Маршрут →</a>
+          <a href="#" class="alt">Подзвонити</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="store">
+      <div class="map">
+        <span class="stamp">Львів · Boutique</span>
+        <span class="coords">49.8419 N · 24.0315 E</span>
+        <svg viewBox="0 0 300 200" preserveAspectRatio="xMidYMid slice">
+          <rect width="300" height="200" fill="#e9e6df"/>
+          <circle cx="150" cy="100" r="56" fill="none" stroke="#cdc4b4" stroke-width="1"/>
+          <circle cx="150" cy="100" r="36" fill="none" stroke="#cdc4b4" stroke-width="1"/>
+          <path d="M0 100 L300 100 M150 0 L150 200" stroke="#cdc4b4" stroke-width="1"/>
+          <path d="M80 80 L120 100 L100 140 Z" fill="#d6d2c8"/>
+          <path d="M180 60 L220 80 L200 120 Z" fill="#d6d2c8"/>
+        </svg>
+        <div class="pin">
+          <div class="marker"></div>
+          <div class="needle"></div>
+        </div>
+      </div>
+      <div class="body">
+        <h3>Львів /<br/><span class="accent">Ринок</span></h3>
+        <div class="addr">пл. Ринок 12, історичний будинок 1908</div>
+        <div class="row"><span class="k">Години</span><span class="v hours"><span class="open">Зараз відкрито</span><br/>Щодня 11:00 — 22:00</span></div>
+        <div class="row"><span class="k">Тел.</span><span class="v">+380 32 555 04 22</span></div>
+        <div class="row"><span class="k">Telegram</span><span class="v">@droproom_lviv</span></div>
+        <div class="row"><span class="k">Pickup</span><span class="v">Доступний · за 4 год</span></div>
+        <div class="acts">
+          <a href="#">Маршрут →</a>
+          <a href="#" class="alt">Подзвонити</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="store">
+      <div class="map">
+        <span class="stamp">Дніпро · New</span>
+        <span class="coords">48.4647 N · 35.0462 E</span>
+        <svg viewBox="0 0 300 200" preserveAspectRatio="xMidYMid slice">
+          <rect width="300" height="200" fill="#e9e6df"/>
+          <path d="M0 110 Q 80 80, 160 110 T 300 100 L 300 200 L 0 200 Z" fill="#d6d2c8"/>
+          <path d="M0 130 L300 120" stroke="#cdc4b4" stroke-width="1" fill="none"/>
+          <path d="M70 0 L80 100 M180 0 L185 105 M250 0 L240 110" stroke="#cdc4b4" stroke-width="1"/>
+          <rect x="40" y="40" width="34" height="50" fill="#d6d2c8"/>
+          <rect x="120" y="30" width="44" height="60" fill="#d6d2c8"/>
+          <rect x="200" y="50" width="40" height="40" fill="#d6d2c8"/>
+        </svg>
+        <div class="pin">
+          <div class="marker"></div>
+          <div class="needle"></div>
+        </div>
+      </div>
+      <div class="body">
+        <h3>Дніпро /<br/><span class="accent">New</span></h3>
+        <div class="addr">пр. Дмитра Яворницького 50, ТРЦ «Lavina»</div>
+        <div class="row"><span class="k">Години</span><span class="v hours"><span class="open">Зараз відкрито</span><br/>Щодня 10:00 — 22:00</span></div>
+        <div class="row"><span class="k">Тел.</span><span class="v">+380 56 555 04 22</span></div>
+        <div class="row"><span class="k">Telegram</span><span class="v">@droproom_dnipro</span></div>
+        <div class="row"><span class="k">Pickup</span><span class="v">Доступний · за 6 год</span></div>
+        <div class="acts">
+          <a href="#">Маршрут →</a>
+          <a href="#" class="alt">Подзвонити</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- Channels -->
+<section class="channels">
+  <div class="channels-head">
+    <h2>Канали /<br/>обирай <span class="accent">свій</span></h2>
+    <p>Не любимо «контактні форми». Відповідаємо там, де вам зручно — у Telegram за 4 хвилини, у пошті за дві години, телефоном — одразу.</p>
+  </div>
+  <div class="chs">
+    <a href="#" class="ch">
+      <span class="k">— No. 01 · найшвидше</span>
+      <span class="v">@droproom_<br/>support</span>
+      <span class="meta">Telegram · відповідаємо за <b>4 хв</b> у робочі години</span>
+    </a>
+    <a href="#" class="ch">
+      <span class="k">— No. 02</span>
+      <span class="v">+380 44<br/>555 04 22</span>
+      <span class="meta">Гаряча лінія · щодня 09:00–23:00</span>
+    </a>
+    <a href="#" class="ch">
+      <span class="k">— No. 03</span>
+      <span class="v">hello@<br/>droproom.ua</span>
+      <span class="meta">Email · відповідь у межах <b>2 годин</b></span>
+    </a>
+    <a href="#" class="ch">
+      <span class="k">— No. 04 · преса</span>
+      <span class="v">press@<br/>droproom.ua</span>
+      <span class="meta">Для медіа, колаборацій та преси</span>
+    </a>
+  </div>
+</section>
+
+<!-- Form -->
+<section class="form-section" id="form">
+  <div class="form-grid">
+    <div class="form-aside">
+      <h2>Напиши<br/>нам /<br/><span class="accent">не форма</span></h2>
+      <p>Звичайна форма зворотнього зв’язку. Ми її все одно прочитаємо у Telegram. Але якщо вам так зручніше — пишіть тут.</p>
+      <div class="answers">
+        <div class="row"><span class="k">Відповідь</span><span class="v">У межах <span class="accent">2 годин</span></span></div>
+        <div class="row"><span class="k">Графік</span><span class="v">09:00 — 23:00, щодня</span></div>
+        <div class="row"><span class="k">Мова</span><span class="v">UA · EN</span></div>
+        <div class="row"><span class="k">Без</span><span class="v">Авто-відповідей</span></div>
+      </div>
+    </div>
+    <form>
+      <div class="row2">
+        <div class="field">
+          <label>Ім’я</label>
+          <input type="text" placeholder="Олена Кравець" value="" />
+        </div>
+        <div class="field">
+          <label>Телефон або email</label>
+          <input type="text" placeholder="+380 / @ / email" value="" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Тема</label>
+        <div class="chip-row">
+          <label><input type="radio" name="topic" /><span>Замовлення</span></label>
+          <label><input type="radio" name="topic" checked /><span>Підбір</span></label>
+          <label><input type="radio" name="topic" /><span>Доставка</span></label>
+          <label><input type="radio" name="topic" /><span>Повернення</span></label>
+          <label><input type="radio" name="topic" /><span>Колаборація</span></label>
+          <label><input type="radio" name="topic" /><span>Інше</span></label>
+        </div>
+      </div>
+      <div class="field">
+        <label>Бренд (опціонально)</label>
+        <select>
+          <option>Без вибору</option>
+          <option>Acne Studios</option><option>Adidas</option><option>Alo</option>
+          <option>Armani</option><option>Birkenstock</option><option>Boss</option>
+          <option>Coach</option><option>COS</option><option>Crocs</option>
+          <option>Karl Lagerfeld</option><option>Lacoste</option><option>Love Moschino</option>
+          <option>Massimo Dutti</option><option>Max Mara</option><option>Michael Kors</option>
+          <option>Nike</option><option>On Running</option><option>Pinko</option>
+          <option>Polo Ralph Lauren</option><option>Skims</option><option>Tom Ford</option>
+          <option>Tommy Hilfiger</option><option>Tory Burch</option><option>UGG</option><option>Zara</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Повідомлення</label>
+        <textarea placeholder="Що шукаєте? Який стиль? Який бюджет? Розповідайте."></textarea>
+      </div>
+      <div class="submit">
+        <span class="note">Без авто-відповідей. Відпишемо у межах 2 годин.</span>
+        <button type="submit">
+          Надіслати
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 6h8M6 2l4 4-4 4"/></svg>
+        </button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq">
+  <div class="faq-head">
+    <h2>Часті /<br/><span class="accent">питання</span></h2>
+    <p>Найкоротші відповіді на найчастіші запитання. Якщо немає вашого — напишіть, додамо.</p>
+  </div>
+  <div class="qs">
+    <div class="q open">
+      <span class="num">— 01</span>
+      <div class="body">
+        <h4>Чи всі товари оригінальні?</h4>
+        <p>Так, без винятків. Усі позиції приходять напряму від офіційних дистриб’юторів брендів. Кожен товар супроводжується сертифікатом автентичності DropRoom — у паперовій та цифровій формах.</p>
+      </div>
+      <span class="toggle"></span>
+    </div>
+    <div class="q">
+      <span class="num">— 02</span>
+      <div class="body">
+        <h4>Чи доставляєте по всій Україні?</h4>
+        <p>Так. Нова Пошта, УкрПошта, Meest. Безкоштовна доставка від 3 000 ₴. Відправляємо в день замовлення, якщо замовлення оформлене до 18:00.</p>
+      </div>
+      <span class="toggle"></span>
+    </div>
+    <div class="q">
+      <span class="num">— 03</span>
+      <div class="body">
+        <h4>Чи можна повернути товар?</h4>
+        <p>Так, протягом 14 днів. Без пояснення причин, без знижок «через примірку». Товар має бути в оригінальному стані з біркою.</p>
+      </div>
+      <span class="toggle"></span>
+    </div>
+    <div class="q">
+      <span class="num">— 04</span>
+      <div class="body">
+        <h4>Чи можна замовити річ, якої немає на сайті?</h4>
+        <p>Так. Якщо це бренд, з яким ми працюємо — напишіть у Telegram, спробуємо привезти. Зазвичай це 2–4 тижні. Передоплата 50%.</p>
+      </div>
+      <span class="toggle"></span>
+    </div>
+    <div class="q">
+      <span class="num">— 05</span>
+      <div class="body">
+        <h4>Як підписатись на наступний дроп?</h4>
+        <p>Або поштою (форма внизу головної), або в Telegram-каналі @droproom_drops. За 24 години до кожного дропу ми відправляємо превʼю — підписники отримують першими.</p>
+      </div>
+      <span class="toggle"></span>
+    </div>
+    <div class="q">
+      <span class="num">— 06</span>
+      <div class="body">
+        <h4>Чи можна забронювати річ для примірки в бутіку?</h4>
+        <p>Так. Резервуємо до 24 годин — пишіть у Telegram бутіку, у який зручно зайти.</p>
+      </div>
+      <span class="toggle"></span>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="foot-top">
+    <div>
+      <div class="foot-brand">DROP<span class="dot"></span>ROOM</div>
+      <p class="foot-desc">Мульти-брендовий концепт-стор. Київ, Львів, Дніпро. Щодня 11:00–22:00.</p>
+      <div class="mono" style="opacity:.5">© 2019 — 2026 · DropRoom</div>
+    </div>
+    <div><h5>Магазин</h5><ul>
+      <li><a href="Catalog (Modern).html">Каталог</a></li>
+      <li><a href="#">Жінки</a></li><li><a href="#">Чоловіки</a></li>
+      <li><a href="#">Sneakers</a></li><li><a href="#">Архів</a></li></ul></div>
+    <div><h5>Допомога</h5><ul>
+      <li><a href="#">Доставка</a></li><li><a href="#">Розмірна сітка</a></li>
+      <li><a href="#">Повернення</a></li><li><a href="Contacts (Modern).html">Контакти</a></li></ul></div>
+    <div><h5>DropRoom</h5><ul>
+      <li><a href="Story (Modern).html">Про нас</a></li><li><a href="#">Бренди</a></li>
+      <li><a href="#">Журнал</a></li><li><a href="#">Instagram</a></li></ul></div>
+  </div>
+  <div class="foot-bottom">
+    <div class="l"><span>Privacy</span><span>Terms</span><span>Cookies</span></div>
+    <span>UA · ₴ UAH</span>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.q').forEach(q=>{
+    q.addEventListener('click',()=>q.classList.toggle('open'));
+  });
+</script>
+</body>
+</html>

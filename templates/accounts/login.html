@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Вхід{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-box">
+    <div class="auth-logo">DROP<span class="dot"></span>ROOM</div>
+    <h1>Вхід</h1>
+    <p class="auth-sub">Немає акаунту? <a href="{% url 'accounts:register' %}">Зареєструватись</a></p>
+
+    {% if form.errors %}
+      <div class="message message--error">Невірний логін або пароль.</div>
+    {% endif %}
+
+    <form method="post" action="{% url 'accounts:login' %}">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next }}">
+      <div class="field">
+        <label for="id_username">Логін</label>
+        {{ form.username }}
+      </div>
+      <div class="field">
+        <label for="id_password">Пароль</label>
+        {{ form.password }}
+      </div>
+      <button type="submit" class="btn-primary">
+        Увійти
+        <span class="arrow">→</span>
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

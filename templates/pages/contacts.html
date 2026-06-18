@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Контакти{% endblock %}
+{% block description %}Знайди бутік DropRoom у Києві, Львові чи Дніпрі. Зв'яжись з нами через Telegram, телефон або форму.{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/pages/contacts.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="crumbs">
+  <a href="/">DropRoom</a>
+  <span class="sep">/</span>
+  <span class="here">Контакти</span>
+</div>
+
+<section class="hero">
+  <div class="live"><span class="dot"></span> Live · Зараз працюємо</div>
+  <h1>Заходьте /<br><em>дзвоніть</em> /<br><span class="accent">пишіть.</span></h1>
+  <div class="hero-grid">
+    <p class="hero-lead">
+      {% if contacts_page and contacts_page.intro_text %}
+        {{ contacts_page.intro_text }}
+      {% else %}
+        Три бутіки в Україні, відкриті щодня з 11 до 22. Або один онлайн-чат, відповідаємо за 4 хвилини. Або підпис на дроп — щоб бути першим у новій колекції.
+      {% endif %}
+    </p>
+    <div class="hero-actions">
+      <a href="#stores" class="btn-primary">
+        Знайти бутік <span>→</span>
+      </a>
+      <a href="#form" class="btn-ghost">Написати нам</a>
+    </div>
+  </div>
+</section>
+
+<!-- Stores -->
+<section class="stores" id="stores">
+  <div class="stores-head">
+    <h2>{% if stores %}{{ stores|length }} бутіки /<br>{% endif %}<span class="accent">щодня 11—22</span></h2>
+    <span class="num">— Київ · Львів · Дніпро</span>
+  </div>
+  <div class="stores-grid">
+    {% for store in stores %}
+      <div class="store">
+        <div class="map">
+          <span class="stamp">{{ store.city }} · {{ store.tag|default:"Boutique" }}</span>
+          {% if store.coords %}<span class="coords">{{ store.coords }}</span>{% endif %}
+          <svg viewBox="0 0 300 200" preserveAspectRatio="xMidYMid slice">
+            <rect width="300" height="200" fill="#e9e6df"/>
+            <path d="M0 80 L300 60 M0 120 L300 110" stroke="#cdc4b4" stroke-width="1" fill="none"/>
+            <path d="M60 0 L80 200 M150 0 L160 200" stroke="#cdc4b4" stroke-width="1" fill="none"/>
+            <rect x="100" y="60" width="48" height="40" fill="#d6d2c8"/>
+            <rect x="170" y="50" width="60" height="50" fill="#d6d2c8"/>
+          </svg>
+          <div class="pin"><div class="marker"></div><div class="needle"></div></div>
+        </div>
+        <div class="body">
+          <h3>{{ store.city }} /<br><span class="accent">{{ store.area|default:"" }}</span></h3>
+          <div class="addr">{{ store.address }}</div>
+          <div class="row"><span class="k">Години</span><span class="v hours">{% if store.is_open %}<span class="open">Зараз відкрито</span><br>{% endif %}{{ store.hours }}</span></div>
+          {% if store.phone %}<div class="row"><span class="k">Тел.</span><span class="v">{{ store.phone }}</span></div>{% endif %}
+          {% if store.telegram %}<div class="row"><span class="k">Telegram</span><span class="v">{{ store.telegram }}</span></div>{% endif %}
+          <div class="acts">
+            {% if store.map_link %}<a href="{{ store.map_link }}" target="_blank" rel="noopener">Маршрут →</a>{% endif %}
+            {% if store.phone %}<a href="tel:{{ store.phone }}" class="alt">Подзвонити</a>{% endif %}
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <div class="store">
+        <div class="map">
+          <span class="stamp">Київ · Flagship</span>
+          <svg viewBox="0 0 300 200" preserveAspectRatio="xMidYMid slice">
+            <rect width="300" height="200" fill="#e9e6df"/>
+            <path d="M0 80 L300 60 M0 120 L300 110" stroke="#cdc4b4" stroke-width="1" fill="none"/>
+          </svg>
+          <div class="pin"><div class="marker"></div><div class="needle"></div></div>
+        </div>
+        <div class="body">
+          <h3>Київ /<br><span class="accent">Хрещатик</span></h3>
+          <div class="addr">вул. Хрещатик 22, 2-й поверх</div>
+          <div class="row"><span class="k">Години</span><span class="v">Щодня 11:00 — 22:00</span></div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- Channels -->
+<section class="channels">
+  <div class="channels-head">
+    <h2>Канали /<br>обирай <span class="accent">свій</span></h2>
+    <p>Не любимо «контактні форми». Відповідаємо там, де вам зручно — у Telegram за 4 хвилини, у пошті за дві години, телефоном — одразу.</p>
+  </div>
+  <div class="chs">
+    {% if contact_channels %}
+      {% for channel in contact_channels %}
+        <a href="{{ channel.url|default:'#' }}" class="ch">
+          <span class="k">— No. {{ forloop.counter|stringformat:"02d" }}{% if forloop.first %} · найшвидше{% endif %}</span>
+          <span class="v">{{ channel.handle }}</span>
+          <span class="meta">{{ channel.description }}</span>
+        </a>
+      {% endfor %}
+    {% else %}
+      <a href="#" class="ch">
+        <span class="k">— No. 01 · найшвидше</span>
+        <span class="v">@droproom_<br>support</span>
+        <span class="meta">Telegram · відповідаємо за <b>4 хв</b> у робочі години</span>
+      </a>
+      <a href="tel:+380445550422" class="ch">
+        <span class="k">— No. 02</span>
+        <span class="v">+380 44<br>555 04 22</span>
+        <span class="meta">Гаряча лінія · щодня 09:00–23:00</span>
+      </a>
+      <a href="mailto:hello@droproom.ua" class="ch">
+        <span class="k">— No. 03</span>
+        <span class="v">hello@<br>droproom.ua</span>
+        <span class="meta">Email · відповідь у межах <b>2 годин</b></span>
+      </a>
+    {% endif %}
+  </div>
+</section>
+
+<!-- Form -->
+<section class="form-section" id="form">
+  <div class="form-grid">
+    <div class="form-aside">
+      <h2>Напиши<br>нам /<br><span class="accent">не форма</span></h2>
+      <p>Звичайна форма зворотнього зв'язку. Ми її все одно прочитаємо у Telegram. Але якщо вам так зручніше — пишіть тут.</p>
+      <div class="answers">
+        <div class="row"><span class="k">Відповідь</span><span class="v">У межах <span class="accent">2 годин</span></span></div>
+        <div class="row"><span class="k">Графік</span><span class="v">09:00 — 23:00, щодня</span></div>
+        <div class="row"><span class="k">Мова</span><span class="v">UA · EN</span></div>
+        <div class="row"><span class="k">Без</span><span class="v">Авто-відповідей</span></div>
+      </div>
+    </div>
+
+    {% if form_success %}
+      <div class="form-success">
+        <div class="eyebrow">— Відправлено</div>
+        <h3>Дякуємо! Відповімо у межах 2 годин.</h3>
+        <a href="{% url 'pages:contacts' %}" class="btn-ghost">Написати ще раз</a>
+      </div>
+    {% else %}
+      <form method="post" action="{% url 'pages:contacts_message' %}"
+            hx-post="{% url 'pages:contacts_message' %}" hx-swap="outerHTML" hx-target="closest .form-grid">
+        {% csrf_token %}
+
+        <div class="row2">
+          <div class="field{% if form.name.errors %} has-error{% endif %}">
+            <label for="id_name">Ім'я</label>
+            {{ form.name }}
+            {% if form.name.errors %}<span class="field-error">{{ form.name.errors.0 }}</span>{% endif %}
+          </div>
+          <div class="field{% if form.contact.errors %} has-error{% endif %}">
+            <label for="id_contact">Телефон або email</label>
+            {{ form.contact }}
+            {% if form.contact.errors %}<span class="field-error">{{ form.contact.errors.0 }}</span>{% endif %}
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Тема</label>
+          <div class="chip-row">
+            {% for choice in form.topic %}
+              <label>{{ choice.tag }}<span>{{ choice.choice_label }}</span></label>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="id_brand">Бренд (опціонально)</label>
+          {{ form.brand }}
+        </div>
+
+        <div class="field{% if form.message.errors %} has-error{% endif %}">
+          <label for="id_message">Повідомлення</label>
+          {{ form.message }}
+          {% if form.message.errors %}<span class="field-error">{{ form.message.errors.0 }}</span>{% endif %}
+        </div>
+
+        {{ form.website }}
+
+        <div class="submit">
+          <span class="note">Без авто-відповідей. Відпишемо у межах 2 годин.</span>
+          <button type="submit">
+            Надіслати
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 6h8M6 2l4 4-4 4"/></svg>
+          </button>
+        </div>
+      </form>
+    {% endif %}
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq">
+  <div class="faq-head">
+    <h2>Часті /<br><span class="accent">питання</span></h2>
+    <p>Найкоротші відповіді на найчастіші запитання. Якщо немає вашого — напишіть, додамо.</p>
+  </div>
+  <div class="qs">
+    {% if faq_items %}
+      {% for item in faq_items %}
+        <div class="q {% if forloop.first %}open{% endif %}">
+          <span class="num">— {{ forloop.counter|stringformat:"02d" }}</span>
+          <div class="body">
+            <h4>{{ item.question }}</h4>
+            <p>{{ item.answer }}</p>
+          </div>
+          <span class="toggle"></span>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="q open">
+        <span class="num">— 01</span>
+        <div class="body">
+          <h4>Чи всі товари оригінальні?</h4>
+          <p>Так, без винятків. Усі позиції приходять напряму від офіційних дистриб'юторів брендів. Кожен товар супроводжується сертифікатом автентичності DropRoom.</p>
+        </div>
+        <span class="toggle"></span>
+      </div>
+      <div class="q">
+        <span class="num">— 02</span>
+        <div class="body">
+          <h4>Чи доставляєте по всій Україні?</h4>
+          <p>Так. Нова Пошта, УкрПошта, Meest. Безкоштовна доставка від 3 000 ₴. Відправляємо в день замовлення, якщо замовлення оформлене до 18:00.</p>
+        </div>
+        <span class="toggle"></span>
+      </div>
+      <div class="q">
+        <span class="num">— 03</span>
+        <div class="body">
+          <h4>Чи можна повернути товар?</h4>
+          <p>Так, протягом 14 днів. Без пояснення причин. Товар має бути в оригінальному стані з біркою.</p>
+        </div>
+        <span class="toggle"></span>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+{% endblock %}

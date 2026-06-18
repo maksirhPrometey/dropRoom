@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Реєстрація{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-box">
+    <div class="auth-logo">DROP<span class="dot"></span>ROOM</div>
+    <h1>Реєстрація</h1>
+    <p class="auth-sub">Вже є акаунт? <a href="{% url 'accounts:login' %}">Увійти</a></p>
+
+    <form method="post" action="{% url 'accounts:register' %}">
+      {% csrf_token %}
+      {% for field in form %}
+        <div class="field {% if field.errors %}has-error{% endif %}">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.errors %}<span class="field-error">{{ field.errors.0 }}</span>{% endif %}
+        </div>
+      {% endfor %}
+      <button type="submit" class="btn-primary">
+        Створити акаунт
+        <span class="arrow">→</span>
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

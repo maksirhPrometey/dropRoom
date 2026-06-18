@@ -1,0 +1,69 @@
+<footer>
+  <div class="foot-top">
+    <div>
+      <div class="foot-brand">DROP<span class="dot"></span>ROOM</div>
+      <p class="foot-desc">
+        {% if site_settings and site_settings.footer_desc %}
+          {{ site_settings.footer_desc }}
+        {% else %}
+          Мульти-брендовий концепт-стор. Київ, вул. Хрещатик 22. Щодня 11:00–22:00. Бутік · онлайн · pickup.
+        {% endif %}
+      </p>
+      <div class="mono foot-copy">© 2019 — 2026 · DropRoom Concept Store</div>
+    </div>
+    <div>
+      <h5>Магазин</h5>
+      <ul>
+        <li><a href="{% url 'catalog:list' %}">Каталог</a></li>
+        <li><a href="{% url 'catalog:list' %}?gender=W">Жінки</a></li>
+        <li><a href="{% url 'catalog:list' %}?gender=M">Чоловіки</a></li>
+        <li><a href="{% url 'catalog:list' %}?category=sneakers">Sneakers</a></li>
+        <li><a href="{% url 'catalog:list' %}?drops=true">Архів дропів</a></li>
+      </ul>
+    </div>
+    <div>
+      <h5>Допомога</h5>
+      <ul>
+        <li><a href="#">Доставка</a></li>
+        <li><a href="#">Розмірна сітка</a></li>
+        <li><a href="#">Повернення</a></li>
+        <li><a href="#">Автентичність</a></li>
+        <li><a href="{% url 'pages:contacts' %}">Контакти</a></li>
+        {% if site_settings and site_settings.telegram_support %}
+          <li>
+            <a href="https://t.me/{{ site_settings.telegram_support|cut:'@' }}"
+               class="foot-tg-link" target="_blank" rel="noopener noreferrer">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z"/>
+              </svg>
+              {{ site_settings.telegram_support }}
+            </a>
+          </li>
+        {% endif %}
+      </ul>
+    </div>
+    <div>
+      <h5>DropRoom</h5>
+      <ul>
+        <li><a href="{% url 'pages:story' %}">Наша історія</a></li>
+        <li><a href="{% url 'catalog:list' %}?brands=true">Бренди-партнери</a></li>
+        <li><a href="#">Журнал</a></li>
+        {% if site_settings and site_settings.instagram_url %}
+          <li><a href="{{ site_settings.instagram_url }}" target="_blank" rel="noopener">Instagram</a></li>
+        {% endif %}
+        {% if site_settings and site_settings.telegram_channel %}
+          <li>
+            <a href="https://t.me/{{ site_settings.telegram_channel|cut:'@' }}"
+               target="_blank" rel="noopener">
+              Telegram-канал
+            </a>
+          </li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+  <div class="foot-bottom">
+    <div class="l"><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Cookies</a></div>
+    <span>UA · ₴ UAH</span>
+  </div>
+</footer>

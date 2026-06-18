@@ -1,0 +1,28 @@
+<aside class="profile-sidebar">
+  <div class="profile-card">
+    <div class="profile-avatar" aria-hidden="true">
+      {% if user.first_name %}{{ user.first_name|slice:":1"|upper }}{% else %}{{ user.username|slice:":1"|upper }}{% endif %}{% if user.last_name %}{{ user.last_name|slice:":1"|upper }}{% endif %}
+    </div>
+    <div class="profile-name">{{ user.get_full_name|default:user.username }}</div>
+    <div class="profile-email">{{ user.email }}</div>
+    {% if profile and profile.phone %}
+      <div class="profile-phone">{{ profile.phone }}</div>
+    {% endif %}
+    <span class="profile-since">з {{ user.date_joined|date:"Y" }}</span>
+  </div>
+  <nav class="profile-nav" aria-label="Навігація профілю">
+    <a href="{% url 'accounts:profile' %}"
+       class="profile-nav__link{% if request.resolver_match.url_name == 'profile' %} is-active{% endif %}">
+      <span class="profile-nav__label">Замовлення</span>
+      <span class="profile-nav__meta">{{ orders_count }}</span>
+    </a>
+    <a href="{% url 'accounts:wishlist' %}"
+       class="profile-nav__link{% if request.resolver_match.url_name == 'wishlist' %} is-active{% endif %}">
+      <span class="profile-nav__label">Обране</span>
+      <span class="profile-nav__meta">{{ wishlist_count }}</span>
+    </a>
+    <a href="{% url 'accounts:logout' %}" class="profile-nav__link profile-nav__link--logout">
+      <span class="profile-nav__label">Вийти</span>
+    </a>
+  </nav>
+</aside>

@@ -1,0 +1,21 @@
+<div class="util" aria-label="Announcements">
+  <div class="util-track">
+    {% if utility_bar_items %}
+      {% for item in utility_bar_items %}
+        <span>{{ item.text }}</span>
+      {% endfor %}
+      {% for item in utility_bar_items %}
+        <span>{{ item.text }}</span>
+      {% endfor %}
+    {% else %}
+      <span>Безкоштовна доставка від 3 000 ₴</span>
+      <span>Київ · Львів · Дніпро · Одеса</span>
+      <span>14 днів на повернення</span>
+      <span>Оригінальний товар · гарантія бутіку</span>
+      <span>Безкоштовна доставка від 3 000 ₴</span>
+      <span>Київ · Львів · Дніпро · Одеса</span>
+      <span>14 днів на повернення</span>
+      <span>Оригінальний товар · гарантія бутіку</span>
+    {% endif %}
+  </div>
+</div>

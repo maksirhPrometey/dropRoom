@@ -1,0 +1,36 @@
+{% load static %}<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{% block title %}{% if site_settings %}{{ site_settings.site_name }}{% else %}DROPROOM{% endif %}{% endblock %} — Multi-brand drops, weekly</title>
+<meta name="description" content="{% block description %}{% if site_settings %}{{ site_settings.tagline }}{% else %}Мульти-брендовий концепт-стор. Дроп кожні два тижні.{% endif %}{% endblock %}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Archivo+Narrow:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/tokens.css' %}">
+<link rel="stylesheet" href="{% static 'css/base.css' %}">
+<link rel="stylesheet" href="{% static 'css/components/header.css' %}">
+<link rel="stylesheet" href="{% static 'css/components/footer.css' %}">
+<link rel="stylesheet" href="{% static 'css/components/product-card.css' %}">
+{% block extra_css %}{% endblock %}
+<script src="{% static 'js/htmx.min.js' %}" defer></script>
+<script type="module" src="{% static 'js/main.js' %}" defer></script>
+{% block extra_js_head %}{% endblock %}
+</head>
+<body>
+
+{% include "partials/util_bar.html" %}
+{% include "partials/header.html" %}
+
+{% include "partials/messages.html" %}
+
+<main id="main">
+  {% block content %}{% endblock %}
+</main>
+
+{% include "partials/footer.html" %}
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

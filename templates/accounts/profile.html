@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Профіль — {{ user.get_full_name|default:user.username }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/pages/profile.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="profile-page">
+  <div class="crumbs-wrap">
+    <div class="crumbs">
+      <a href="/">DropRoom</a>
+      <span class="sep">/</span>
+      <span class="here">Профіль</span>
+    </div>
+  </div>
+
+  <header class="profile-hero">
+    <p class="eyebrow">Акаунт</p>
+    <h1 class="profile-hero__title">Профіль /<br><em>{{ user.first_name|default:user.username }}</em></h1>
+  </header>
+
+  <div class="profile-layout">
+    {% include "accounts/_profile_nav.html" %}
+
+    <main class="profile-main">
+      <header class="profile-section-head">
+        <h2>Мої замовлення</h2>
+        <p class="profile-section-head__meta">{% if orders_count %}всього {{ orders_count }}{% else %}поки немає{% endif %}</p>
+      </header>
+
+      {% if orders %}
+        <div class="profile-orders">
+          {% for order in orders %}
+            <article class="order-card">
+              <header class="order-card__head">
+                <div class="order-card__id">
+                  <span class="order-card__eyebrow">Замовлення</span>
+                  <span class="order-card__num">#{{ order.pk }}</span>
+                </div>
+                <time class="order-card__date" datetime="{{ order.created_at|date:'Y-m-d' }}">{{ order.created_at|date:"d.m.Y" }}</time>
+                <span class="order-card__status status-{{ order.status|lower }}">{{ order.get_status_display }}</span>
+                <span class="order-card__total">{{ order.total|floatformat:"0" }} ₴</span>
+              </header>
+              <ul class="order-card__items">
+                {% for item in order.items.all %}
+                  <li class="order-card__item">
+                    <span class="order-card__item-name">{{ item.brand_snapshot }} {{ item.name_snapshot }}</span>
+                    <span class="order-card__item-qty">× {{ item.quantity }}</span>
+                    <span class="order-card__item-price">{{ item.line_total|floatformat:"0" }} ₴</span>
+                  </li>
+                {% endfor %}
+              </ul>
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="profile-empty">
+          <p>У вас ще немає замовлень. Перегляньте каталог — новий дроп чекає.</p>
+          <a href="{% url 'catalog:list' %}" class="btn-primary">Перейти до каталогу →</a>
+        </div>
+      {% endif %}
+    </main>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DROPROOM — Про нас</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f3f1ec; --bg-2:#e9e6df; --paper:#fbfaf6;
+    --ink:#0a0a0a; --ink-2:#605d58;
+    --line:#d6d2c8;
+    --accent:oklch(0.68 0.19 35);
+    --ease:cubic-bezier(.2,.7,.2,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--ink);font-family:'Archivo',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  body{overflow-x:hidden}
+  a{color:inherit;text-decoration:none}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+
+  .mono{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+  .eyebrow{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2)}
+
+  .util{background:var(--ink);color:var(--bg);display:flex;align-items:center;height:30px;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase}
+  .util-track{display:flex;gap:36px;padding-left:36px;animation:scroll 42s linear infinite;white-space:nowrap}
+  .util-track span{display:inline-flex;align-items:center;gap:36px}
+  .util-track span::after{content:"●";color:var(--accent);font-size:7px}
+  @keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+  header{position:sticky;top:0;z-index:50;background:rgba(243,241,236,.86);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+  .nav{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:16px 28px;gap:24px}
+  .nav-left,.nav-right{display:flex;align-items:center;gap:24px}
+  .nav-right{justify-content:flex-end}
+  .nav a.link{font-size:12.5px;font-weight:600;letter-spacing:.02em;position:relative;padding:6px 0;text-transform:uppercase}
+  .nav a.link::after{content:"";position:absolute;left:0;right:0;bottom:2px;height:1px;background:var(--ink);transform:scaleX(0);transform-origin:left;transition:transform .4s var(--ease)}
+  .nav a.link:hover::after,.nav a.link.active::after{transform:scaleX(1)}
+  .wordmark{font-family:'Archivo',sans-serif;font-weight:900;font-size:22px;letter-spacing:-.04em;text-transform:uppercase;display:flex;align-items:center;gap:6px}
+  .wordmark .dot{width:8px;height:8px;background:var(--accent);border-radius:50%}
+  .icon-btn{display:inline-flex;align-items:center;gap:6px;font-size:12px;text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+  .cart-pill{display:inline-flex;align-items:center;gap:10px;padding:9px 14px;background:var(--ink);color:var(--bg);font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;transition:background .25s,color .25s}
+  .cart-pill:hover{background:var(--accent);color:var(--ink)}
+  .cart-pill .n{font-family:'JetBrains Mono',monospace;font-size:10.5px}
+
+  /* ── Hero ───────────────────────────────────────── */
+  .crumbs{padding:24px 28px 0;display:flex;gap:10px;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+  .crumbs .here{color:var(--ink)}
+  .crumbs .sep{opacity:.4}
+
+  .hero{padding:48px 28px 80px;border-bottom:1px solid var(--line)}
+  .hero h1{font-family:'Archivo',sans-serif;font-weight:900;font-size:clamp(72px,13vw,220px);letter-spacing:-.045em;line-height:.86;text-transform:uppercase;margin-bottom:48px}
+  .hero h1 .accent{color:var(--accent)}
+  .hero h1 em{font-style:italic;font-weight:500}
+  .hero-meta{display:grid;grid-template-columns:1.4fr 1fr;gap:48px;align-items:start}
+  .hero-lead{font-size:22px;line-height:1.4;max-width:48ch;font-weight:500}
+  .hero-lead b{font-weight:800}
+  .hero-side{display:flex;flex-direction:column;gap:18px;padding-top:6px}
+  .hero-side .row{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:12px}
+  .hero-side .k{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+  .hero-side .v{font-family:'Archivo',sans-serif;font-weight:700;font-size:16px;letter-spacing:-.005em}
+  .hero-side .v .accent{color:var(--accent)}
+
+  /* ── Big editorial number ───────────────────────── */
+  .pillars{padding:120px 28px;border-bottom:1px solid var(--line);background:var(--paper)}
+  .pillars-head{display:grid;grid-template-columns:1fr auto;gap:48px;margin-bottom:60px;align-items:end}
+  .pillars-head h2{font-family:'Archivo',sans-serif;font-weight:900;font-size:clamp(40px,6vw,84px);text-transform:uppercase;letter-spacing:-.035em;line-height:.92}
+  .pillars-head h2 .accent{color:var(--accent)}
+  .pillars-head .num{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);padding-bottom:14px}
+
+  .pillars-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+  .pillar{background:var(--bg);padding:36px 28px;border:1px solid var(--line);display:flex;flex-direction:column;gap:18px;min-height:380px;position:relative;overflow:hidden;transition:background .4s var(--ease),color .4s var(--ease)}
+  .pillar:hover{background:var(--ink);color:var(--bg)}
+  .pillar:hover .num-big{color:var(--accent)}
+  .pillar:hover .k{color:rgba(255,255,255,.5)}
+  .pillar .num-big{font-family:'Archivo',sans-serif;font-weight:900;font-size:96px;line-height:1;letter-spacing:-.045em;color:var(--ink-2)}
+  .pillar h3{font-family:'Archivo',sans-serif;font-weight:800;font-size:28px;line-height:1.05;letter-spacing:-.02em;text-transform:uppercase;margin-top:auto}
+  .pillar p{font-size:14px;line-height:1.6;opacity:.85}
+  .pillar .k{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+
+  /* ── Timeline ───────────────────────────────────── */
+  .timeline{padding:120px 28px;border-bottom:1px solid var(--line)}
+  .timeline-head{margin-bottom:60px;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:end}
+  .timeline-head h2{font-family:'Archivo',sans-serif;font-weight:900;font-size:clamp(40px,6vw,84px);text-transform:uppercase;letter-spacing:-.035em;line-height:.92}
+  .timeline-head h2 .accent{color:var(--accent)}
+  .timeline-head p{color:var(--ink-2);font-size:14.5px;line-height:1.65;max-width:42ch;justify-self:end;text-align:right}
+
+  .events{display:flex;flex-direction:column}
+  .event{display:grid;grid-template-columns:120px 1fr 1fr 90px;gap:48px;padding:28px 0;border-top:1px solid var(--line);align-items:start;transition:background .25s}
+  .event:last-child{border-bottom:1px solid var(--line)}
+  .event:hover{background:rgba(0,0,0,.02)}
+  .event .year{font-family:'Archivo',sans-serif;font-weight:800;font-size:36px;line-height:1;letter-spacing:-.02em}
+  .event .year .accent{color:var(--accent)}
+  .event h4{font-family:'Archivo',sans-serif;font-weight:700;font-size:20px;line-height:1.2;letter-spacing:-.01em}
+  .event p{font-size:13.5px;line-height:1.55;color:var(--ink-2)}
+  .event .tag{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);text-align:right;padding-top:4px}
+
+  /* ── Big quote ──────────────────────────────────── */
+  .quote{padding:140px 28px;background:var(--ink);color:var(--bg);text-align:center;border-bottom:1px solid var(--ink);position:relative;overflow:hidden}
+  .quote::before{content:"”";position:absolute;font-family:'Archivo',sans-serif;font-weight:900;font-size:600px;color:rgba(255,255,255,.04);top:-100px;left:50%;transform:translateX(-50%);line-height:1;pointer-events:none}
+  .quote .eyebrow{color:var(--accent);position:relative}
+  .quote blockquote{font-family:'Archivo',sans-serif;font-weight:500;font-style:italic;font-size:clamp(32px,5vw,72px);line-height:1.05;letter-spacing:-.025em;max-width:22ch;margin:24px auto 36px;position:relative}
+  .quote blockquote b{font-style:normal;font-weight:800}
+  .quote blockquote .accent{color:var(--accent)}
+  .quote .cite{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.55);position:relative}
+
+  /* ── Brand partners section ─────────────────────── */
+  .partners{padding:120px 28px;border-bottom:1px solid var(--line)}
+  .partners-head{display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-bottom:60px;align-items:end}
+  .partners-head h2{font-family:'Archivo',sans-serif;font-weight:900;font-size:clamp(40px,6vw,84px);text-transform:uppercase;letter-spacing:-.035em;line-height:.92}
+  .partners-head h2 .accent{color:var(--accent)}
+  .partners-head p{color:var(--ink-2);font-size:14.5px;line-height:1.65;max-width:44ch;justify-self:end}
+
+  .partners-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-top:1px solid var(--line);border-left:1px solid var(--line)}
+  .partner{padding:28px 20px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);min-height:128px;display:flex;flex-direction:column;justify-content:space-between;background:var(--paper);transition:background .3s,color .3s;cursor:pointer}
+  .partner:hover{background:var(--ink);color:var(--bg)}
+  .partner:hover .pc{color:rgba(255,255,255,.5)}
+  .partner:hover .accent{color:var(--accent)}
+  .partner .pn{font-family:'Archivo',sans-serif;font-weight:800;font-size:18px;line-height:1.05;letter-spacing:-.015em;text-transform:uppercase}
+  .partner .pc{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;color:var(--ink-2);text-transform:uppercase}
+
+  /* ── Team ───────────────────────────────────────── */
+  .team{padding:120px 28px;background:var(--paper);border-bottom:1px solid var(--line)}
+  .team-head{margin-bottom:56px}
+  .team-head h2{font-family:'Archivo',sans-serif;font-weight:900;font-size:clamp(40px,6vw,84px);text-transform:uppercase;letter-spacing:-.035em;line-height:.92}
+  .team-head h2 .accent{color:var(--accent)}
+  .team-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px}
+  .member{display:flex;flex-direction:column;gap:12px}
+  .member .ph{aspect-ratio:.9;background:var(--bg-2);position:relative;overflow:hidden;border:1px solid var(--line)}
+  .member .ph::after{content:attr(data-label);position:absolute;left:12px;bottom:10px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:rgba(0,0,0,.4);text-transform:uppercase}
+  .m-1 .ph{background:linear-gradient(160deg,#bcbdb0,#7e8478)}
+  .m-2 .ph{background:linear-gradient(160deg,#d8c5a4,#a08763)}
+  .m-3 .ph{background:linear-gradient(160deg,#2c2a26,#0a0a0a)}
+  .m-4 .ph{background:linear-gradient(160deg,#c43a2a,#5c1c14)}
+  .member h4{font-family:'Archivo',sans-serif;font-weight:700;font-size:20px;line-height:1.15;letter-spacing:-.005em;margin-top:8px}
+  .member .role{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;color:var(--ink-2);text-transform:uppercase}
+  .member p{font-size:13px;color:var(--ink-2);line-height:1.55}
+
+  /* ── CTA ────────────────────────────────────────── */
+  .cta{padding:120px 28px;background:var(--accent);color:var(--ink);border-bottom:1px solid var(--ink);text-align:center;position:relative;overflow:hidden}
+  .cta h2{font-family:'Archivo',sans-serif;font-weight:900;font-size:clamp(48px,8vw,140px);text-transform:uppercase;letter-spacing:-.04em;line-height:.88;max-width:14ch;margin:0 auto 32px}
+  .cta h2 em{font-style:italic;font-weight:500}
+  .cta-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  .btn-primary{display:inline-flex;align-items:center;gap:12px;padding:16px 22px;background:var(--ink);color:var(--bg);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;transition:transform .35s var(--ease)}
+  .btn-primary:hover{transform:translateX(2px)}
+  .btn-ghost{display:inline-flex;align-items:center;gap:10px;padding:16px 20px;border:1px solid var(--ink);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;transition:background .25s,color .25s}
+  .btn-ghost:hover{background:var(--ink);color:var(--bg)}
+
+  /* Footer */
+  footer{background:var(--ink);color:var(--bg);padding:80px 28px 24px}
+  .foot-top{display:grid;grid-template-columns:1.8fr 1fr 1fr 1fr;gap:48px;padding-bottom:56px;border-bottom:1px solid rgba(255,255,255,.12)}
+  .foot-brand{font-family:'Archivo',sans-serif;font-weight:900;font-size:56px;letter-spacing:-.045em;text-transform:uppercase;line-height:1;display:flex;align-items:center;gap:10px;margin-bottom:20px}
+  .foot-brand .dot{width:14px;height:14px;background:var(--accent);border-radius:50%}
+  .foot-desc{font-size:13.5px;color:rgba(255,255,255,.62);line-height:1.65;max-width:38ch;margin-bottom:24px}
+  .foot-top h5{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:18px}
+  .foot-top ul{list-style:none;display:flex;flex-direction:column;gap:10px}
+  .foot-top a{font-size:13.5px;opacity:.86;transition:color .25s,opacity .25s}
+  .foot-top a:hover{opacity:1;color:var(--accent)}
+  .foot-bottom{display:flex;justify-content:space-between;align-items:center;padding-top:24px;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.45)}
+  .foot-bottom .l{display:flex;gap:24px}
+
+  /* Reveal */
+  .reveal{opacity:0;transform:translateY(24px);transition:opacity .9s var(--ease),transform .9s var(--ease)}
+  .reveal.in{opacity:1;transform:none}
+
+  @media (max-width:1100px){
+    .hero-meta,.timeline-head,.partners-head,.pillars-head{grid-template-columns:1fr;gap:24px}
+    .timeline-head p,.partners-head p{justify-self:start;text-align:left}
+    .pillars-grid{grid-template-columns:1fr 1fr}
+    .partners-grid{grid-template-columns:repeat(3,1fr)}
+    .team-grid{grid-template-columns:repeat(2,1fr)}
+    .event{grid-template-columns:80px 1fr;gap:24px}
+    .event .tag,.event h4 + p{grid-column:2}
+    .foot-top{grid-template-columns:1fr 1fr}
+  }
+  @media (max-width:640px){
+    .nav-left{display:none}
+    .nav{grid-template-columns:auto 1fr auto;padding:12px 18px}
+    .pillars-grid,.partners-grid,.team-grid{grid-template-columns:1fr 1fr}
+    .partner{padding:18px 14px;min-height:108px}
+    .partner .pn{font-size:14px}
+    .foot-top{grid-template-columns:1fr 1fr;gap:32px}
+  }
+</style>
+</head>
+<body>
+
+<div class="util">
+  <div class="util-track">
+    <span>Drop 047 — 24 травня · 19:00</span>
+    <span>Безкоштовна доставка від 3 000 ₴</span>
+    <span>Бутік Київ · Хрещатик 22</span>
+    <span>Drop 047 — 24 травня · 19:00</span>
+    <span>Безкоштовна доставка від 3 000 ₴</span>
+    <span>Бутік Київ · Хрещатик 22</span>
+  </div>
+</div>
+
+<header>
+  <nav class="nav">
+    <div class="nav-left">
+      <a href="Home (Modern).html" class="link">Магазин</a>
+      <a href="Catalog (Modern).html" class="link">Каталог</a>
+      <a href="#" class="link">Бренди</a>
+      <a href="Story (Modern).html" class="link active">Про нас</a>
+    </div>
+    <a href="Home (Modern).html" class="wordmark">DROP<span class="dot"></span>ROOM</a>
+    <div class="nav-right">
+      <a href="#" class="icon-btn">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="6" cy="6" r="4.5"/><path d="M9.5 9.5l3 3"/></svg>
+        Пошук
+      </a>
+      <a href="#" class="icon-btn">UA · ₴</a>
+      <a href="Cart (Modern).html" class="cart-pill">Кошик <span class="n">02</span></a>
+    </div>
+  </nav>
+</header>
+
+<div class="crumbs">
+  <a href="Home (Modern).html">DropRoom</a>
+  <span class="sep">/</span>
+  <span class="here">Про нас</span>
+</div>
+
+<!-- Hero -->
+<section class="hero">
+  <h1>One room. /<br/>Twenty-five<br/><span class="accent">brands.</span></h1>
+  <div class="hero-meta">
+    <p class="hero-lead">
+      <b>DropRoom</b> — мульти-брендовий концепт-стор у самому центрі Києва. Ми не намагаємось бути найбільшим магазином в Україні. Ми намагаємось бути найкращим — з найжорсткіше відібраним асортиментом і людьми, які знають товар на дотик.
+    </p>
+    <div class="hero-side">
+      <div class="row"><span class="k">Засновано</span><span class="v">2019</span></div>
+      <div class="row"><span class="k">Бренди</span><span class="v"><span class="accent">25</span> партнерів</span></div>
+      <div class="row"><span class="k">Дропи</span><span class="v">047 / два тижні</span></div>
+      <div class="row"><span class="k">SKU в наявності</span><span class="v">1 248</span></div>
+      <div class="row"><span class="k">Команда</span><span class="v">22 люди</span></div>
+      <div class="row"><span class="k">Бутіки</span><span class="v">Київ · Львів · Дніпро</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- Pillars -->
+<section class="pillars">
+  <div class="pillars-head reveal">
+    <h2>Три речі, що <span class="accent">тримають</span><br/>DropRoom разом</h2>
+    <span class="num">— Принципи 001 — 003</span>
+  </div>
+  <div class="pillars-grid">
+    <div class="pillar reveal">
+      <span class="k">— No. 001</span>
+      <div class="num-big">01</div>
+      <h3>Прямі<br/>контракти</h3>
+      <p>Усі 25 брендів — це прямі контракти з офіційними дистриб’юторами. Без перекупників, без сірих каналів, без «знайомих з Європи». Кожен товар приходить у заводській упаковці.</p>
+    </div>
+    <div class="pillar reveal">
+      <span class="k">— No. 002</span>
+      <div class="num-big">02</div>
+      <h3>Дропи<br/>замість сезонів</h3>
+      <p>Раз на два тижні — новий дроп. 80–150 позицій, зібраних навколо однієї ідеї. Не намагаємось викласти весь склад одразу. Тримаємо ритм, який не виснажує ні нас, ні вас.</p>
+    </div>
+    <div class="pillar reveal">
+      <span class="k">— No. 003</span>
+      <div class="num-big">03</div>
+      <h3>Стилісти, не<br/>продавці</h3>
+      <p>Кожна людина в бутіку — стиліст з 3+ роками досвіду. Ми не «продаємо», ми допомагаємо зібрати образ. Безкоштовна примірка, безкоштовна консультація, без тиску.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Timeline -->
+<section class="timeline">
+  <div class="timeline-head reveal">
+    <h2>Як ми<br/>сюди<br/><span class="accent">прийшли</span></h2>
+    <p>Шість років, два бутіки, одна криза і пандемія. Ми починали з трьох брендів у студії на Подолі. Зараз — 25 партнерів і 22 людини в команді.</p>
+  </div>
+  <div class="events">
+    <div class="event reveal">
+      <div class="year">2019</div>
+      <h4>Перша студія на Подолі</h4>
+      <p>40 м², три бренди (Acne, COS, Nike), одна вішалка. Drop 001 — 28 позицій. Продали за дев’ять днів.</p>
+      <span class="tag">— Drop 001</span>
+    </div>
+    <div class="event reveal">
+      <div class="year">2020</div>
+      <h4>Перехід в онлайн під час локдауну</h4>
+      <p>Запустили сайт за 11 днів. Перші 100 замовлень доставили самі, на велосипедах. Команда — 6 людей.</p>
+      <span class="tag">— Drop 022</span>
+    </div>
+    <div class="event reveal">
+      <div class="year">2022</div>
+      <h4>Релокація і повернення</h4>
+      <p>З лютого по червень — пауза. У серпні відкрили бутік на Хрещатику. Перший дроп після паузи — 47 позицій, 12 брендів.</p>
+      <span class="tag">— Drop 028</span>
+    </div>
+    <div class="event reveal">
+      <div class="year">2024</div>
+      <h4>Відкриття бутіку у Львові</h4>
+      <p>Другий бутік, 120 м², у будинку 1908 року на Ринку. Той самий асортимент, що в Києві, той самий ритм дропів.</p>
+      <span class="tag">— Drop 038</span>
+    </div>
+    <div class="event reveal">
+      <div class="year"><span class="accent">2026</span></div>
+      <h4>25 брендів, 047-й дроп</h4>
+      <p>Підписали Tom Ford і Max Mara. Запускаємо третій бутік у Дніпрі. 38 000 клієнтів. І сертифікат автентичності на кожній позиції.</p>
+      <span class="tag">— Drop 047</span>
+    </div>
+  </div>
+</section>
+
+<!-- Quote -->
+<section class="quote">
+  <div class="eyebrow">— Засновники</div>
+  <blockquote>
+    Наша робота — не <b>продати</b>. Наша робота — <span class="accent">зрозуміти</span>, що людині пасує. Решта — це питання чесності.
+  </blockquote>
+  <div class="cite">— Олександра Кравець & Антон Мельник · Co-founders</div>
+</section>
+
+<!-- Partners -->
+<section class="partners">
+  <div class="partners-head reveal">
+    <h2>25 <span class="accent">партнерів</span> /<br/>один room</h2>
+    <p>Усі бренди, з якими ми працюємо напряму. Від ритейл-гігантів до нішевих ательє. Кожен партнер пройшов через нашу команду закупників — і кожен з них поставляє товар з власних офіційних складів.</p>
+  </div>
+  <div class="partners-grid" id="partners"></div>
+</section>
+
+<!-- Team -->
+<section class="team">
+  <div class="team-head reveal">
+    <h2>Команда /<br/><span class="accent">22 людини</span></h2>
+  </div>
+  <div class="team-grid">
+    <div class="member m-1 reveal">
+      <div class="ph" data-label="portrait · studio · soft"></div>
+      <h4>Олександра Кравець</h4>
+      <span class="role">Co-founder · Buying</span>
+      <p>11 років у ритейлі. Колишня закупник Sanahunt. Веде всі контракти з брендами.</p>
+    </div>
+    <div class="member m-2 reveal">
+      <div class="ph" data-label="portrait · window · warm"></div>
+      <h4>Антон Мельник</h4>
+      <span class="role">Co-founder · Operations</span>
+      <p>Інженер за освітою. Будує логістику і склад. Без нього не їде ні одна посилка.</p>
+    </div>
+    <div class="member m-3 reveal">
+      <div class="ph" data-label="portrait · dark · profile"></div>
+      <h4>Дарина Лісовська</h4>
+      <span class="role">Head Stylist · Bouttique</span>
+      <p>6 років стилістом. Працювала з командою Vogue UA. Веде стилістичні консультації.</p>
+    </div>
+    <div class="member m-4 reveal">
+      <div class="ph" data-label="portrait · color · 3/4"></div>
+      <h4>Назар Опанасенко</h4>
+      <span class="role">Creative Director</span>
+      <p>Креативний директор з 2022. Відповідає за зйомки дропів і візуальну ідентичність.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <h2>Заходь<br/>у <em>DropRoom</em></h2>
+  <div class="cta-row">
+    <a href="Catalog (Modern).html" class="btn-primary">
+      Дивитися Drop 047
+      <span class="arrow">→</span>
+    </a>
+    <a href="Contacts (Modern).html" class="btn-ghost">Завітати в бутік</a>
+  </div>
+</section>
+
+<footer>
+  <div class="foot-top">
+    <div>
+      <div class="foot-brand">DROP<span class="dot"></span>ROOM</div>
+      <p class="foot-desc">Мульти-брендовий концепт-стор. Київ, вул. Хрещатик 22. Щодня 11:00–22:00.</p>
+      <div class="mono" style="opacity:.5">© 2019 — 2026 · DropRoom</div>
+    </div>
+    <div><h5>Магазин</h5><ul>
+      <li><a href="Catalog (Modern).html">Каталог</a></li>
+      <li><a href="#">Жінки</a></li><li><a href="#">Чоловіки</a></li>
+      <li><a href="#">Sneakers</a></li><li><a href="#">Архів</a></li></ul></div>
+    <div><h5>Допомога</h5><ul>
+      <li><a href="#">Доставка</a></li><li><a href="#">Розмірна сітка</a></li>
+      <li><a href="#">Повернення</a></li><li><a href="Contacts (Modern).html">Контакти</a></li></ul></div>
+    <div><h5>DropRoom</h5><ul>
+      <li><a href="Story (Modern).html">Про нас</a></li><li><a href="#">Бренди</a></li>
+      <li><a href="#">Журнал</a></li><li><a href="#">Instagram</a></li></ul></div>
+  </div>
+  <div class="foot-bottom">
+    <div class="l"><span>Privacy</span><span>Terms</span><span>Cookies</span></div>
+    <span>UA · ₴ UAH</span>
+  </div>
+</footer>
+
+<script>
+  const brands = [
+    {n:"Acne Studios", c:"24 позиції"},{n:"Adidas", c:"86 позицій"},{n:"Alo", c:"32 позиції"},
+    {n:"Armani", c:"28 позицій"},{n:"Birkenstock", c:"18 позицій"},{n:"Boss", c:"34 позиції"},
+    {n:"Coach", c:"22 позиції"},{n:"COS", c:"58 позицій"},{n:"Crocs", c:"14 позицій"},
+    {n:"Karl Lagerfeld", c:"26 позицій"},{n:"Lacoste", c:"42 позиції"},{n:"Love Moschino", c:"19 позицій"},
+    {n:"Massimo Dutti", c:"48 позицій"},{n:"Max Mara", c:"22 позиції"},{n:"Michael Kors", c:"36 позицій"},
+    {n:"Nike", c:"94 позиції"},{n:"On Running", c:"38 позицій"},{n:"Pinko", c:"24 позиції"},
+    {n:"Polo Ralph Lauren", c:"56 позицій"},{n:"Skims", c:"28 позицій"},{n:"Tom Ford", c:"12 позицій"},
+    {n:"Tommy Hilfiger", c:"44 позиції"},{n:"Tory Burch", c:"21 позиція"},{n:"UGG", c:"16 позицій"},
+    {n:"Zara", c:"112 позицій"}
+  ];
+  const grid = document.getElementById('partners');
+  brands.forEach(b=>{
+    const el = document.createElement('a');
+    el.className='partner';
+    el.href='#';
+    el.innerHTML = `<span class="pn">${b.n}</span><span class="pc">${b.c}</span>`;
+    grid.appendChild(el);
+  });
+
+  const io = new IntersectionObserver(es=>{
+    es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }});
+  },{threshold:.12});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>

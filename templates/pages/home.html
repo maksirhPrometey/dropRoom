@@ -1,0 +1,293 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if home_page %}{{ home_page.hero_title|striptags }}{% else %}DROPROOM{% endif %}{% endblock %}
+
+{% block nav_home %}active{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/pages/home.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-meta">
+    {% if latest_drop %}
+      <div><b>Drop {{ latest_drop.number }}</b> · {{ latest_drop.season }}</div>
+      <div>{{ brands_count }} нових брендів · {{ products_count }} позицій</div>
+    {% else %}
+      <div><b>DropRoom</b> · Концепт-стор</div>
+      <div>25 брендів-партнерів</div>
+    {% endif %}
+    {% if site_settings and site_settings.address %}<div>{{ site_settings.address }}</div>{% else %}<div>Київ, вул. Хрещатик 22 · щодня 11–22</div>{% endif %}
+    <div>50.4501° N · 30.5234° E · Live</div>
+  </div>
+
+  <div class="hero-stack">
+    <div class="hero-line">
+      <h1><span class="row"><span>One Room.</span></span></h1>
+    </div>
+    <div class="hero-line">
+      <h1><span class="row"><span><em>Twenty-five</em> brands.</span></span></h1>
+      <span class="marker">{% if latest_drop %}— No. {{ latest_drop.number }} · {{ latest_drop.season }}{% else %}— Multi-brand drops{% endif %}</span>
+    </div>
+    <div class="hero-line">
+      <h1><span class="row"><span><span class="accent">Zero</span> noise.</span></span></h1>
+    </div>
+  </div>
+
+  <div class="hero-bottom">
+    <p class="hero-blurb">
+      <b>DropRoom</b> — мульти-брендовий концепт-стор у самому центрі Києва. Кожні два тижні — новий дроп: ретельно відібрані позиції від Tom Ford до On Running. Усі речі — оригінальні, з гарантією бутіку.
+    </p>
+    <div class="hero-actions">
+      <a href="{% url 'catalog:list' %}" class="btn-primary">
+        Дивитися каталог
+        <span class="arrow">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5h6M6 2l3 3-3 3"/></svg>
+        </span>
+      </a>
+      <a href="{% url 'catalog:list' %}?drops=true" class="btn-ghost">Архів дропів</a>
+    </div>
+  </div>
+
+  <div class="hero-strip">
+    {% for card in hero_cards %}
+      {% if card.layout == "drop" %}
+        {% if card.get_link %}
+        <a href="{{ card.get_link }}" class="hs-card dark tall">
+        {% else %}
+        <div class="hs-card dark tall">
+        {% endif %}
+          {% if card.image %}
+            <div class="hs-img hs-img--photo">
+              <img src="{{ card.image.url }}" alt="" width="800" height="1000">
+            </div>
+          {% else %}
+            <div class="hs-img"></div>
+          {% endif %}
+          <div class="center">
+            <div class="drop-lbl">{{ card.drop_label }}</div>
+            {% if card.use_live_drop and latest_drop %}
+              <div class="drop-num">{{ latest_drop.number }}</div>
+              <div class="drop-sub">
+                {% if latest_drop.scheduled_at %}
+                  {{ latest_drop.scheduled_at|date:"d / m / 'y" }} · {{ latest_drop.scheduled_at|time:"H:i" }}
+                {% endif %}
+              </div>
+            {% else %}
+              <div class="drop-num">—</div>
+              <div class="drop-sub">Скоро</div>
+            {% endif %}
+          </div>
+        {% if card.get_link %}</a>{% else %}</div>{% endif %}
+      {% else %}
+        {% if card.get_link %}
+        <a href="{{ card.get_link }}" class="hs-card">
+        {% else %}
+        <div class="hs-card">
+        {% endif %}
+          {% if card.image %}
+            <div class="hs-img hs-img--photo">
+              <img src="{{ card.image.url }}" alt="" width="800" height="1000">
+            </div>
+          {% else %}
+            <div class="hs-img"></div>
+          {% endif %}
+          {% if card.label %}<span class="hs-label">{{ card.label }}</span>{% endif %}
+          <div class="hs-foot">
+            <span class="ttl">{{ card.title|safe }}</span>
+            {% if card.meta %}<span class="meta">{{ card.meta|linebreaksbr }}</span>{% endif %}
+          </div>
+        {% if card.get_link %}</a>{% else %}</div>{% endif %}
+      {% endif %}
+    {% empty %}
+      <div class="hs-card">
+        <div class="hs-img"></div>
+        <span class="hs-label">Додайте картки в адмінці → Головна</span>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- Brands strip -->
+<section class="brands">
+  <div class="brands-head">
+    <h2>Бренди, з якими ми <span class="accent">працюємо</span> /<br>{{ brands|length }} partners, weekly drops</h2>
+    <div class="right">
+      Від ритейл-гігантів до нішевих ательє. Усі позиції замовляються напряму в офіційних дистриб'юторів — кожен товар має сертифікат автентичності DropRoom.
+    </div>
+  </div>
+  <div class="brand-list" id="brandList">
+    {% for brand in brands %}
+      <a href="{% url 'catalog:list' %}?brand={{ brand.slug }}" class="b">{{ brand.name }}</a>
+      {% if not forloop.last %}<span class="sep">✦</span>{% endif %}
+    {% empty %}
+      <span class="b">Завантаження...</span>
+    {% endfor %}
+  </div>
+  <div class="brands-foot">
+    <span>{{ brands|length }} брендів · {{ products_count }} SKU · в наявності</span>
+    <a href="{% url 'catalog:list' %}">Усі бренди →</a>
+  </div>
+</section>
+
+<!-- Big wordmark -->
+<div class="big-mark">
+  <div class="word">
+    <span class="tiny">Multi-brand<br>concept store<br>Kyiv · since 2019</span>
+    <span>DROP<span class="em">ROOM</span></span>
+    <span class="tiny">{% if latest_drop %}Drop No.<br>{{ latest_drop.number }} / {{ latest_drop.season }}{% else %}New drops<br>every two weeks{% endif %}</span>
+  </div>
+</div>
+
+<!-- Categories -->
+<section class="row">
+  <div class="row-head reveal">
+    <h2>Категорії /<br><span class="accent">сезону</span></h2>
+    <div class="num">— {{ home_categories_count }} напрямів<br>{{ products_count }} SKU</div>
+    <a href="{% url 'catalog:list' %}" class="all">Усі категорії →</a>
+  </div>
+  <div class="cats reveal">
+    {% for cat in categories %}
+      <a href="{% url 'catalog:list' %}?category={{ cat.slug }}"
+         class="cat{% if cat.home_layout == 'big' %} big{% elif cat.home_layout == 'wide' %} wide{% endif %}{% if cat.home_variant == 'dark' %} cat--dark{% endif %}">
+        {% if cat.home_tag %}<span class="cat-tag">{{ cat.home_tag }}</span>{% endif %}
+        <div class="cat-img">
+          {% if cat.image %}
+            <img src="{{ cat.image.url }}" alt="{{ cat.name }}" width="800" height="600">
+          {% endif %}
+        </div>
+        <span class="cat-arrow">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 12L12 2M4 2h8v8"/></svg>
+        </span>
+        <div class="cat-meta">
+          <span class="cat-name">{{ cat.name }}</span>
+          <span class="cat-num">{{ forloop.counter|stringformat:"02d" }} · {{ cat.product_count }} артикулів</span>
+        </div>
+      </a>
+    {% empty %}
+      <p class="cats-empty">Додайте категорії в адмінці: Каталог → Категорії → увімкніть «Показувати на головній».</p>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- Drop counter banner -->
+{% if latest_drop %}
+<section class="drop-banner" {% if latest_drop.scheduled_at %}data-countdown="{{ latest_drop.scheduled_at|date:'c' }}"{% endif %}>
+  <div class="eyebrow">— Next drop / {% if latest_drop.scheduled_at %}{{ latest_drop.scheduled_at|date:"d F · H:i" }} київ{% endif %}</div>
+  <h2>Drop {{ latest_drop.number }} — <span class="accent">/ {{ latest_drop.title }} /</span></h2>
+  <div class="countdown">
+    <div class="unit"><div class="v" data-cd-days>00</div><div class="l">Днів</div></div>
+    <div class="unit"><div class="v" data-cd-hours>00</div><div class="l">Годин</div></div>
+    <div class="unit"><div class="v" data-cd-mins>00</div><div class="l">Хвилин</div></div>
+    <div class="unit"><div class="v" data-cd-secs>00</div><div class="l">Секунд</div></div>
+  </div>
+  <div class="actions">
+    <a href="#newsletter" class="btn-primary">
+      Нагадати про дроп
+      <span class="arrow">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5h6M6 2l3 3-3 3"/></svg>
+      </span>
+    </a>
+    <a href="{% url 'catalog:list' %}" class="btn-ghost">Що буде в дропі</a>
+  </div>
+</section>
+{% endif %}
+
+<!-- Featured products -->
+<section class="row">
+  <div class="row-head reveal">
+    <h2>Зараз у дропі /<br><span class="accent">staff picks</span></h2>
+    <div class="num">— Підбір редакції<br>оновлено сьогодні</div>
+    <a href="{% url 'catalog:list' %}" class="all">Усі {{ products_count }} позицій →</a>
+  </div>
+  <div class="products">
+    {% for product in featured_products %}
+      <article class="product">
+        <a href="{% url 'catalog:detail' product.slug %}" class="product-media">
+          {% if product.badge_new %}<div class="badge"><span class="new">New</span></div>{% endif %}
+          {% if product.badge_drop %}<div class="badge"><span class="drop">Drop</span></div>{% endif %}
+          <button class="wishlist" aria-label="Додати до обраного"
+                  hx-post="{% url 'accounts:wishlist_toggle' product.pk %}"
+                  hx-swap="outerHTML"
+                  {% csrf_token %}>
+            <svg viewBox="0 0 14 14" width="14" height="14" stroke="currentColor" fill="none" stroke-width="1.3"><path d="M7 12.2S1.5 8.6 1.5 5a3 3 0 015.5-1.7A3 3 0 0112.5 5c0 3.6-5.5 7.2-5.5 7.2z"/></svg>
+          </button>
+          {% if product.primary_image %}
+            <img src="{{ product.primary_image.image.url }}" alt="{{ product.name }}" class="product-img a" loading="lazy">
+          {% else %}
+            <div class="product-img a"></div>
+          {% endif %}
+        </a>
+        <div class="p-brand">{{ product.brand.name }}</div>
+        <div class="p-info">
+          <div>
+            <div class="p-name">{{ product.name }}</div>
+            <div class="p-sub">{{ product.subtitle|default:"" }}</div>
+          </div>
+          <div class="p-price">
+            {% if product.compare_price %}<s>{{ product.compare_price|floatformat:"0" }} ₴</s>{% endif %}
+            <b>{{ product.base_price|floatformat:"0" }} ₴</b>
+          </div>
+        </div>
+      </article>
+    {% empty %}
+      <p class="empty-state">Товари незабаром з'являться</p>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- Stats ribbon -->
+<section class="stats">
+  {% if stat_blocks %}
+    {% for stat in stat_blocks %}
+      <div class="stat">
+        <span class="k">{{ stat.label }}</span>
+        <span class="v">{{ stat.value|safe }}</span>
+        <span class="desc">{{ stat.description }}</span>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="stat">
+      <span class="k">Брендів-партнерів</span>
+      <span class="v"><span class="accent">25</span></span>
+      <span class="desc">Прямі контракти, без перекупників.</span>
+    </div>
+    <div class="stat">
+      <span class="k">SKU в наявності</span>
+      <span class="v">{{ products_count }}</span>
+      <span class="desc">Усе на київському складі, відправляємо в день замовлення.</span>
+    </div>
+    <div class="stat">
+      <span class="k">Клієнтів</span>
+      <span class="v">38 <span class="accent">k</span></span>
+      <span class="desc">У 24 містах України та 6 країнах ЄС.</span>
+    </div>
+  {% endif %}
+</section>
+
+<!-- Newsletter -->
+<section class="nl" id="newsletter">
+  <div class="nl-grid reveal">
+    <h2>Будь першим<br><em>у наступному</em><br>дропі.</h2>
+    <div class="nl-form">
+      <p>Один лист щодва тижні — за 24 години до дропу. Передпродаж для підписників, ексклюзивні позиції, без спаму.</p>
+      <form hx-post="{% url 'marketing:subscribe' %}" hx-swap="outerHTML" hx-target="closest .nl-form">
+        {% csrf_token %}
+        <div class="nl-row">
+          <input type="email" name="email" placeholder="ваш@email.com" required autocomplete="email">
+          <button type="submit">Підписатися
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 7h10M8 3l4 4-4 4"/></svg>
+          </button>
+        </div>
+        <input type="text" name="website" tabindex="-1" aria-hidden="true" class="visually-hidden">
+        <span class="nl-note">{{ subscriber_count|default:"26 482" }} підписники · 0% спаму</span>
+      </form>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

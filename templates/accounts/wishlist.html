@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Обране{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/pages/profile.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="profile-page">
+  <div class="crumbs-wrap">
+    <div class="crumbs">
+      <a href="/">DropRoom</a>
+      <span class="sep">/</span>
+      <a href="{% url 'accounts:profile' %}">Профіль</a>
+      <span class="sep">/</span>
+      <span class="here">Обране</span>
+    </div>
+  </div>
+
+  <header class="profile-hero">
+    <p class="eyebrow">Акаунт</p>
+    <h1 class="profile-hero__title">Обране /<br><em>{{ wishlist_count }} позиції</em></h1>
+  </header>
+
+  <div class="profile-layout">
+    {% include "accounts/_profile_nav.html" %}
+
+    <main class="profile-main">
+      <header class="profile-section-head">
+        <h2>Список бажань</h2>
+        <p class="profile-section-head__meta">збережено {{ wishlist_count }}</p>
+      </header>
+
+      <div class="profile-wishlist-grid products">
+        {% for item in wishlist_items %}
+          <article class="product">
+            <a href="{% url 'catalog:detail' item.product.slug %}" class="product-media">
+              {% if item.product.primary_image %}
+                <img src="{{ item.product.primary_image.image.url }}" alt="{{ item.product.name }}" class="product-img a" loading="lazy">
+              {% else %}
+                <div class="product-img a"></div>
+              {% endif %}
+              <button class="wishlist is-active" aria-label="Видалити з обраного"
+                      hx-post="{% url 'accounts:wishlist_toggle' item.product.pk %}"
+                      hx-swap="closest .product" hx-target="outerHTML">
+                {% csrf_token %}
+                <svg viewBox="0 0 14 14" width="14" height="14" stroke="currentColor" fill="var(--ink)" stroke-width="1.3">
+                  <path d="M7 12.2S1.5 8.6 1.5 5a3 3 0 015.5-1.7A3 3 0 0112.5 5c0 3.6-5.5 7.2-5.5 7.2z"/>
+                </svg>
+              </button>
+            </a>
+            <div class="p-brand">{{ item.product.brand.name }}</div>
+            <div class="p-info">
+              <div>
+                <div class="p-name">{{ item.product.name }}</div>
+                <div class="p-sub">{{ item.product.subtitle|default:"" }}</div>
+              </div>
+              <div class="p-price">{{ item.product.base_price|floatformat:"0" }} ₴</div>
+            </div>
+          </article>
+        {% empty %}
+          <div class="profile-empty">
+            <p>У вашому списку бажань поки немає товарів.</p>
+            <a href="{% url 'catalog:list' %}" class="btn-primary">Перейти до каталогу →</a>
+          </div>
+        {% endfor %}
+      </div>
+    </main>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Каталог{% if active_brand %} · {{ active_brand.name }}{% endif %}{% if active_category %} · {{ active_category.name }}{% endif %}{% endblock %}
+
+{% block nav_catalog %}active{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/pages/catalog.css' %}">
+{% endblock %}
+
+{% block extra_js %}
+<script type="module" src="{% static 'js/catalog.js' %}" defer></script>
+<script type="module" src="{% static 'js/cart.js' %}" defer></script>
+{% endblock %}
+
+{% block content %}
+
+<section class="page-hero">
+  <div class="crumbs">
+    <a href="/">DropRoom</a>
+    <span class="sep">/</span>
+    <span class="here">Каталог</span>
+    {% if active_category %}<span class="sep">/</span><span class="here">{{ active_category.name }}</span>{% endif %}
+  </div>
+  <div class="ph-inner">
+    <div>
+      <h1>Каталог /<br><span class="accent">{% if active_brand %}{{ active_brand.name }}{% elif active_category %}{{ active_category.name }}{% else %}Drop {% if latest_drop %}{{ latest_drop.number }}{% endif %}{% endif %}</span></h1>
+    </div>
+    <div class="ph-stats">
+      <div class="stat"><div class="k">Позицій</div><div class="v">{{ page_obj.paginator.count }}</div></div>
+      <div class="stat"><div class="k">Брендів</div><div class="v"><span class="accent">{{ brands|length }}</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- Brand chip bar -->
+<div class="brandbar">
+  <div class="brandbar-inner">
+    <a href="{% url 'catalog:list' %}" class="b-chip {% if not active_brand and not request.GET.drops %}active{% endif %}">
+      Усі <span class="n">{{ page_obj.paginator.count }}</span>
+    </a>
+    {% for brand in brands %}
+      <a href="{% url 'catalog:list' %}?brand={{ brand.slug }}"
+         class="b-chip {% if active_brand and active_brand.slug == brand.slug %}active{% endif %}">
+        {{ brand.name }} <span class="n">{{ brand.product_count|default:"0" }}</span>
+      </a>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Layout: filters + grid -->
+<div class="layout catalog-page">
+  <aside class="filters">
+    <form method="get" id="filter-form">
+
+      {% if request.GET.brand %}<input type="hidden" name="brand" value="{{ request.GET.brand }}">{% endif %}
+
+      <div class="filter-block is-open">
+        <div class="filter-head"><h4>Категорія</h4><span class="cross"></span></div>
+        <div class="filter-body">
+          {% for cat in categories %}
+            <label class="opt">
+              <input type="checkbox" name="category" value="{{ cat.slug }}"
+                     {% if cat.slug in active_categories %}checked{% endif %} form="filter-form">
+              <span>{{ cat.name }}</span>
+              <span class="count">{{ cat.product_count|default:"0" }}</span>
+            </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="filter-block is-open">
+        <div class="filter-head"><h4>Стать</h4><span class="cross"></span></div>
+        <div class="filter-body">
+          <label class="opt">
+            <input type="checkbox" name="gender" value="W" {% if 'W' in active_genders %}checked{% endif %} form="filter-form">
+            <span>Жінки</span>
+          </label>
+          <label class="opt">
+            <input type="checkbox" name="gender" value="M" {% if 'M' in active_genders %}checked{% endif %} form="filter-form">
+            <span>Чоловіки</span>
+          </label>
+          <label class="opt">
+            <input type="checkbox" name="gender" value="U" {% if 'U' in active_genders %}checked{% endif %} form="filter-form">
+            <span>Unisex</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="filter-block is-open">
+        <div class="filter-head"><h4>Ціна, ₴</h4><span class="cross"></span></div>
+        <div class="filter-body">
+          <div class="price-inputs">
+            <input type="number" name="price_min" value="{{ request.GET.price_min }}" placeholder="Від" min="0" form="filter-form">
+            <input type="number" name="price_max" value="{{ request.GET.price_max }}" placeholder="До" min="0" form="filter-form">
+          </div>
+        </div>
+      </div>
+
+      <div class="filter-block is-open">
+        <div class="filter-head"><h4>Бренд</h4><span class="cross"></span></div>
+        <div class="filter-body filter-brands" data-brand-filter-list data-brand-filter-visible="{{ brand_filter_initial }}">
+          {% for brand in brands %}
+            <label class="opt{% if forloop.counter > brand_filter_initial %} is-brand-extra{% endif %}">
+              <input type="checkbox" name="brand_filter" value="{{ brand.slug }}"
+                     {% if brand.slug in active_brand_filters %}checked{% endif %} form="filter-form">
+              <span>{{ brand.name }}</span>
+              <span class="count">{{ brand.product_count|default:"0" }}</span>
+            </label>
+          {% endfor %}
+          {% if brands|length > brand_filter_initial %}
+            <button type="button" class="filter-more-btn" data-brand-filter-toggle aria-expanded="false">
+              <span data-label-more>Більше (ще {{ brands_extra_count }})</span>
+              <span data-label-less>Менше</span>
+            </button>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="filter-actions">
+        <button type="submit" class="btn-primary">Застосувати</button>
+        <a href="{% url 'catalog:list' %}" class="btn-ghost">Скинути</a>
+      </div>
+    </form>
+  </aside>
+
+  <section class="col">
+    <div class="toolbar">
+      <div class="results">
+        Показано <b>{{ page_obj.start_index }} — {{ page_obj.end_index }}</b> з <b>{{ page_obj.paginator.count }}</b> позицій
+      </div>
+      <div class="toolbar-right">
+        <select name="sort" form="filter-form" onchange="document.getElementById('filter-form').submit()">
+          <option value="-created_at" {% if request.GET.sort == '-created_at' or not request.GET.sort %}selected{% endif %}>Нові спочатку</option>
+          <option value="price" {% if request.GET.sort == 'price' %}selected{% endif %}>Ціна ↑</option>
+          <option value="-price" {% if request.GET.sort == '-price' %}selected{% endif %}>Ціна ↓</option>
+          <option value="name" {% if request.GET.sort == 'name' %}selected{% endif %}>Назва А–Я</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="products" id="products">
+      {% for product in page_obj %}
+        {% if forloop.counter == 7 %}
+          <div class="grid-banner">
+            <div>
+              <h3>Sneaker floor / <span class="accent">8 брендів</span></h3>
+              <p>Nike · On Running · Adidas · Crocs · Birkenstock · UGG. Відправляємо в день замовлення.</p>
+            </div>
+            <a href="{% url 'catalog:list' %}?category=sneakers">Дивитися всі →</a>
+          </div>
+        {% endif %}
+        <article class="product">
+          <a href="{% url 'catalog:detail' product.slug %}" class="product-media">
+            {% if product.compare_price %}
+              <div class="badge">
+                <span class="sale">-{{ product.discount_pct }}%</span>
+                {% if product.badge_new %}<span class="new">New</span>{% endif %}
+              </div>
+            {% elif product.badge_new %}
+              <div class="badge"><span class="new">New</span></div>
+            {% endif %}
+            <button class="wishlist" aria-label="Додати до обраного"
+                    hx-post="{% url 'accounts:wishlist_toggle' product.pk %}"
+                    hx-swap="outerHTML">
+              {% csrf_token %}
+              <svg viewBox="0 0 14 14" width="14" height="14" stroke="currentColor" fill="{% if product.in_wishlist %}var(--ink){% else %}none{% endif %}" stroke-width="1.3">
+                <path d="M7 12.2S1.5 8.6 1.5 5a3 3 0 015.5-1.7A3 3 0 0112.5 5c0 3.6-5.5 7.2-5.5 7.2z"/>
+              </svg>
+            </button>
+            {% if product.primary_image %}
+              <img src="{{ product.primary_image.image.url }}" alt="{{ product.name }}" class="product-img a" loading="lazy">
+            {% else %}
+              <div class="product-img a"></div>
+            {% endif %}
+            <div class="quick-add">
+              <div class="sizes">
+                {% for v in product.available_variants_preview %}
+                  <span class="{% if not v.in_stock %}oos{% endif %}">{{ v.size_display }}</span>
+                {% endfor %}
+              </div>
+              <span class="add">+ Кошик</span>
+            </div>
+          </a>
+          <div class="p-brand">{{ product.brand.name }}</div>
+          <div class="p-info">
+            <div>
+              <div class="p-name">{{ product.name }}</div>
+              <div class="p-sub">{{ product.subtitle|default:"" }}</div>
+            </div>
+            <div class="p-price">
+              {% if product.compare_price %}
+                <s>{{ product.compare_price|floatformat:"0" }} ₴</s>
+                <b>{{ product.base_price|floatformat:"0" }} ₴</b>
+              {% else %}
+                {{ product.base_price|floatformat:"0" }} ₴
+              {% endif %}
+            </div>
+          </div>
+          {% if product.is_low_stock %}
+            <div class="p-low-stock" aria-label="Обмежена кількість">Товар закінчується</div>
+          {% elif product.is_under_order %}
+            <div class="p-preorder">Під замовлення</div>
+          {% endif %}
+        </article>
+      {% empty %}
+        <div class="empty-state">
+          <p>За вашим запитом нічого не знайдено.</p>
+          <a href="{% url 'catalog:list' %}" class="btn-ghost">Скинути фільтри</a>
+        </div>
+      {% endfor %}
+    </div>
+
+    {% if page_obj.has_other_pages %}
+      <nav class="pagination" aria-label="Пагінація">
+        <div class="info">Сторінка {{ page_obj.number }} з {{ page_obj.paginator.num_pages }} · {{ page_obj.start_index }}/{{ page_obj.paginator.count }}</div>
+        <div class="pages">
+          {% if page_obj.has_previous %}
+            <a href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.previous_page_number }}" class="arrow">←</a>
+          {% else %}
+            <span class="arrow disabled">←</span>
+          {% endif %}
+
+          {% for num in page_obj.paginator.page_range %}
+            {% if num == page_obj.number %}
+              <span class="on">{{ num|stringformat:"02d" }}</span>
+            {% elif num <= 3 or num >= page_obj.paginator.num_pages|add:"-2" or num == page_obj.number|add:"-1" or num == page_obj.number|add:"1" %}
+              <a href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ num }}">{{ num|stringformat:"02d" }}</a>
+            {% elif num == 4 or num == page_obj.paginator.num_pages|add:"-3" %}
+              <span>…</span>
+            {% endif %}
+          {% endfor %}
+
+          {% if page_obj.has_next %}
+            <a href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.next_page_number }}" class="arrow">→</a>
+          {% else %}
+            <span class="arrow disabled">→</span>
+          {% endif %}
+        </div>
+      </nav>
+    {% endif %}
+  </section>
+</div>
+
+{% endblock %}

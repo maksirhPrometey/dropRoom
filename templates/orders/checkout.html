@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Оформлення замовлення{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/pages/cart.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="checkout-page">
+  <div class="checkout-page__crumbs">
+    <div class="crumbs">
+      <a href="/">DropRoom</a>
+      <span class="sep">/</span>
+      <a href="{% url 'orders:cart' %}">Кошик</a>
+      <span class="sep">/</span>
+      <span class="here">Оформлення</span>
+    </div>
+  </div>
+
+  <section class="stepbar checkout-stepbar">
+    <h1 class="title">Оформлення /<br><span class="accent">замовлення</span></h1>
+    <div class="steps" aria-label="Кроки оформлення">
+      <span class="step done"><span class="n">01</span> <span class="step-label">Кошик</span></span>
+      <span class="arrow" aria-hidden="true">→</span>
+      <span class="step on"><span class="n">02</span> <span class="step-label">Доставка</span></span>
+      <span class="arrow" aria-hidden="true">→</span>
+      <span class="step"><span class="n">03</span> <span class="step-label">Оплата</span></span>
+      <span class="arrow" aria-hidden="true">→</span>
+      <span class="step"><span class="n">04</span> <span class="step-label">Готово</span></span>
+    </div>
+  </section>
+
+  <div class="checkout-layout">
+    <div class="checkout-main">
+      <form method="post" action="{% url 'orders:checkout' %}" id="checkout-form" class="checkout-form" novalidate>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="checkout-alert" role="alert">
+            {% for error in form.non_field_errors %}
+              <p>{{ error }}</p>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <section class="checkout-section" aria-labelledby="checkout-contacts">
+          <h3 id="checkout-contacts"><span class="checkout-section__n">01</span> Контактні дані</h3>
+          <div class="form-grid-2">
+            <div class="field{% if form.first_name.errors %} has-error{% endif %}">
+              <label for="id_first_name">Ім'я</label>
+              {{ form.first_name }}
+              {% if form.first_name.errors %}<span class="field-error">{{ form.first_name.errors.0 }}</span>{% endif %}
+            </div>
+            <div class="field{% if form.last_name.errors %} has-error{% endif %}">
+              <label for="id_last_name">Прізвище</label>
+              {{ form.last_name }}
+              {% if form.last_name.errors %}<span class="field-error">{{ form.last_name.errors.0 }}</span>{% endif %}
+            </div>
+            <div class="field{% if form.email.errors %} has-error{% endif %}">
+              <label for="id_email">Email</label>
+              {{ form.email }}
+              {% if form.email.errors %}<span class="field-error">{{ form.email.errors.0 }}</span>{% endif %}
+            </div>
+            <div class="field{% if form.phone.errors %} has-error{% endif %}">
+              <label for="id_phone">Телефон</label>
+              {{ form.phone }}
+              {% if form.phone.errors %}<span class="field-error">{{ form.phone.errors.0 }}</span>{% endif %}
+            </div>
+          </div>
+        </section>
+
+        <section class="checkout-section" aria-labelledby="checkout-delivery">
+          <h3 id="checkout-delivery"><span class="checkout-section__n">02</span> Доставка</h3>
+          <div class="delivery-opts">
+            {% for value, label in form.fields.delivery_method.choices %}
+              <label class="delivery-opt">
+                <input type="radio" name="delivery_method" value="{{ value }}"
+                       {% if form.delivery_method.value|default:form.fields.delivery_method.initial == value %}checked{% endif %}>
+                <span class="opt-label">
+                  <span class="opt-name">{{ label }}</span>
+                  {% if value == "nova_poshta" %}
+                    <span class="opt-desc">2–3 робочі дні</span>
+                  {% else %}
+                    <span class="opt-desc">Київ, Львів, Дніпро</span>
+                  {% endif %}
+                </span>
+                <span class="opt-price">
+                  {% if value == "pickup" or checkout_subtotal >= 3000 %}
+                    Безкоштовно
+                  {% elif value == "nova_poshta" %}
+                    110 ₴
+                  {% else %}
+                    Безкоштовно
+                  {% endif %}
+                </span>
+              </label>
+            {% endfor %}
+          </div>
+          {% if form.delivery_method.errors %}
+            <span class="field-error">{{ form.delivery_method.errors.0 }}</span>
+          {% endif %}
+          <div class="field{% if form.delivery_address.errors %} has-error{% endif %}">
+            <label for="id_delivery_address">Адреса або відділення НП</label>
+            {{ form.delivery_address }}
+            {% if form.delivery_address.errors %}<span class="field-error">{{ form.delivery_address.errors.0 }}</span>{% endif %}
+          </div>
+          <div class="field">
+            <label for="id_comment">Коментар (опціонально)</label>
+            {{ form.comment }}
+          </div>
+        </section>
+
+        <section class="checkout-section" aria-labelledby="checkout-payment">
+          <h3 id="checkout-payment"><span class="checkout-section__n">03</span> Оплата</h3>
+          <div class="payment-opts">
+            {% for value, label in form.fields.payment_method.choices %}
+              <label class="payment-opt">
+                <input type="radio" name="payment_method" value="{{ value }}"
+                       {% if form.payment_method.value|default:form.fields.payment_method.initial == value %}checked{% endif %}>
+                <span>{{ label }}</span>
+              </label>
+            {% endfor %}
+          </div>
+          {% if form.payment_method.errors %}
+            <span class="field-error">{{ form.payment_method.errors.0 }}</span>
+          {% endif %}
+        </section>
+
+        <div class="checkout-notice" role="note">
+          <svg class="checkout-notice__icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <circle cx="10" cy="10" r="8.5" stroke="currentColor" stroke-width="1.3"/>
+            <path d="M10 9v5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            <circle cx="10" cy="6.5" r=".8" fill="currentColor"/>
+          </svg>
+          <div class="checkout-notice__body">
+            <span class="checkout-notice__label">Умови відправлення</span>
+            <p class="checkout-notice__text">
+              Відправлення здійснюється після <strong>повної оплати</strong> або мінімальної передоплати <strong>200 ₴</strong> для товарів, що є в наявності на складі.
+            </p>
+          </div>
+        </div>
+
+        <button type="submit" class="checkout-btn checkout-btn--desktop">
+          Підтвердити замовлення
+          <span class="arrow" aria-hidden="true">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 6h8M6 2l4 4-4 4"/></svg>
+          </span>
+        </button>
+      </form>
+    </div>
+
+    <aside class="checkout-summary" aria-label="Підсумок замовлення">
+      <details class="checkout-summary__details" open>
+        <summary class="checkout-summary__toggle">
+          <span class="checkout-summary__toggle-title">Ваше замовлення</span>
+          <span class="checkout-summary__toggle-meta">{{ cart_items|length }} поз. · {{ order_total|floatformat:"0" }} ₴</span>
+        </summary>
+        <div class="checkout-summary__body">
+          <ul class="checkout-summary__items">
+            {% for item in cart_items %}
+              <li class="co-item">
+                {% if item.variant.product.primary_image %}
+                  <img src="{{ item.variant.product.primary_image.image.url }}" alt="" width="56" height="56" loading="lazy">
+                {% else %}
+                  <div class="co-ph" aria-hidden="true"></div>
+                {% endif %}
+                <div class="co-body">
+                  <span class="co-name">{{ item.variant.product.brand.name }} {{ item.variant.product.name }}</span>
+                  <span class="co-sub">Розмір {{ item.variant.size_display }} · {{ item.quantity }} шт.</span>
+                </div>
+                <span class="co-price">{{ item.total_price|floatformat:"0" }} ₴</span>
+              </li>
+            {% endfor %}
+          </ul>
+          <div class="co-totals">
+            <div class="r"><span>Сума</span><span>{{ checkout_subtotal|floatformat:"0" }} ₴</span></div>
+            {% if checkout_discount %}<div class="r disc"><span>Знижка</span><span>−{{ checkout_discount|floatformat:"0" }} ₴</span></div>{% endif %}
+            <div class="r">
+              <span>Доставка</span>
+              <span>{% if delivery_cost %}{{ delivery_cost|floatformat:"0" }} ₴{% else %}Безкоштовно{% endif %}</span>
+            </div>
+            <div class="r total"><span>До сплати</span><span>{{ order_total|floatformat:"0" }} ₴</span></div>
+          </div>
+        </div>
+      </details>
+    </aside>
+  </div>
+
+  <div class="checkout-sticky">
+    <div class="checkout-sticky__info">
+      <span class="checkout-sticky__label">До сплати</span>
+      <span class="checkout-sticky__total">{{ order_total|floatformat:"0" }} ₴</span>
+    </div>
+    <button type="submit" form="checkout-form" class="checkout-sticky__btn">
+      Підтвердити
+    </button>
+  </div>
+</div>
+{% endblock %}

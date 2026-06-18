@@ -1,0 +1,12 @@
+:root {
+  --bg: #f3f1ec;
+  --bg-2: #e9e6df;
+  --paper: #fbfaf6;
+  --ink: #0a0a0a;
+  --ink-2: #605d58;
+  --line: #d6d2c8;
+  --line-2: #1f1f1f;
+  --accent: oklch(0.68 0.19 35);
+  --accent-2: oklch(0.42 0.04 250);
+  --ease: cubic-bezier(.2, .7, .2, 1);
+}

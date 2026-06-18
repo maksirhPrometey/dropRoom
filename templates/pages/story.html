@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Про нас{% endblock %}
+{% block description %}Дізнайтесь про DropRoom — мульти-брендовий концепт-стор у Києві.{% endblock %}
+
+{% block nav_story %}active{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/pages/story.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="crumbs">
+  <a href="/">DropRoom</a>
+  <span class="sep">/</span>
+  <span class="here">Про нас</span>
+</div>
+
+<section class="hero">
+  <h1>One room. /<br>Twenty-five<br><span class="accent">brands.</span></h1>
+  <div class="hero-meta">
+    <p class="hero-lead">
+      {% if story_page and story_page.intro_text %}
+        {{ story_page.intro_text|safe }}
+      {% else %}
+        <b>DropRoom</b> — мульти-брендовий концепт-стор у самому центрі Києва. Ми не намагаємось бути найбільшим магазином в Україні. Ми намагаємось бути найкращим — з найжорсткіше відібраним асортиментом і людьми, які знають товар на дотик.
+      {% endif %}
+    </p>
+    <div class="hero-side">
+      <div class="row"><span class="k">Засновано</span><span class="v">2019</span></div>
+      <div class="row"><span class="k">Бренди</span><span class="v"><span class="accent">{{ brands_count|default:"25" }}</span> партнерів</span></div>
+      <div class="row"><span class="k">Дропи</span><span class="v">{{ latest_drop_num|default:"047" }} / два тижні</span></div>
+      <div class="row"><span class="k">SKU в наявності</span><span class="v">{{ products_count|default:"1 248" }}</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- Pillars -->
+<section class="pillars">
+  <div class="pillars-head reveal">
+    <h2>Три речі, що <span class="accent">тримають</span><br>DropRoom разом</h2>
+    <span class="num">— Принципи 001 — 003</span>
+  </div>
+  <div class="pillars-grid pillars-grid--lg-{{ pillars_grid_cols }}">
+    {% if pillars %}
+      {% for pillar in pillars %}
+        <div class="pillar reveal">
+          <span class="k">— No. {{ forloop.counter|stringformat:"03d" }}</span>
+          <div class="num-big">{{ forloop.counter|stringformat:"02d" }}</div>
+          <h3>{{ pillar.title }}</h3>
+          <p>{{ pillar.body }}</p>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="pillar reveal">
+        <span class="k">— No. 001</span>
+        <div class="num-big">01</div>
+        <h3>Прямі<br>контракти</h3>
+        <p>Усі 25 брендів — це прямі контракти з офіційними дистриб'юторами. Без перекупників, без сірих каналів. Кожен товар приходить у заводській упаковці.</p>
+      </div>
+      <div class="pillar reveal">
+        <span class="k">— No. 002</span>
+        <div class="num-big">02</div>
+        <h3>Дропи<br>замість сезонів</h3>
+        <p>Раз на два тижні — новий дроп. 80–150 позицій, зібраних навколо однієї ідеї. Тримаємо ритм, який не виснажує ні нас, ні вас.</p>
+      </div>
+      <div class="pillar reveal">
+        <span class="k">— No. 003</span>
+        <div class="num-big">03</div>
+        <h3>Стилісти, не<br>продавці</h3>
+        <p>Кожна людина в бутіку — стиліст з 3+ роками досвіду. Ми не «продаємо», ми допомагаємо зібрати образ. Безкоштовна консультація, без тиску.</p>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- Timeline -->
+<section class="timeline">
+  <div class="timeline-head reveal">
+    <h2>Як ми<br>сюди<br><span class="accent">прийшли</span></h2>
+    <p>Шість років, два бутіки, одна криза і пандемія. Ми починали з трьох брендів у студії на Подолі. Зараз — 25 партнерів і 22 людини в команді.</p>
+  </div>
+  <div class="events">
+    {% if timeline_events %}
+      {% for event in timeline_events %}
+        <div class="event reveal">
+          <div class="year">{% if forloop.last %}<span class="accent">{{ event.year }}</span>{% else %}{{ event.year }}{% endif %}</div>
+          <h4>{{ event.title }}</h4>
+          <p>{{ event.body }}</p>
+          {% if event.tag %}<span class="tag">— {{ event.tag }}</span>{% endif %}
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="event reveal">
+        <div class="year">2019</div>
+        <h4>Перша студія на Подолі</h4>
+        <p>40 м², три бренди, одна вішалка. Drop 001 — 28 позицій. Продали за дев'ять днів.</p>
+        <span class="tag">— Drop 001</span>
+      </div>
+      <div class="event reveal">
+        <div class="year">2020</div>
+        <h4>Перехід в онлайн під час локдауну</h4>
+        <p>Запустили сайт за 11 днів. Перші 100 замовлень доставили самі, на велосипедах.</p>
+        <span class="tag">— Drop 022</span>
+      </div>
+      <div class="event reveal">
+        <div class="year">2022</div>
+        <h4>Релокація і повернення</h4>
+        <p>З лютого по червень — пауза. У серпні відкрили бутік на Хрещатику.</p>
+        <span class="tag">— Drop 028</span>
+      </div>
+      <div class="event reveal">
+        <div class="year"><span class="accent">2024</span></div>
+        <h4>Відкриття бутіку у Львові</h4>
+        <p>Другий бутік, 120 м², у будинку 1908 року на Ринку.</p>
+        <span class="tag">— Drop 038</span>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- Quote -->
+<section class="quote">
+  {% if story_page and story_page.quote_text %}
+    <div class="eyebrow">— {{ story_page.quote_author_role|default:"Засновники" }}</div>
+    <blockquote>{{ story_page.quote_text|safe }}</blockquote>
+    {% if story_page.quote_author %}<div class="cite">— {{ story_page.quote_author }}</div>{% endif %}
+  {% else %}
+    <div class="eyebrow">— Засновники</div>
+    <blockquote>
+      Наша робота — не <b>продати</b>. Наша робота — <span class="accent">зрозуміти</span>, що людині пасує. Решта — це питання чесності.
+    </blockquote>
+    <div class="cite">— Олександра Кравець & Антон Мельник · Co-founders</div>
+  {% endif %}
+</section>
+
+<!-- Partners -->
+<section class="partners">
+  <div class="partners-head reveal">
+    <h2>{{ brands_count|default:"25" }} <span class="accent">партнерів</span> /<br>один room</h2>
+    <p>Усі бренди, з якими ми працюємо напряму. Від ритейл-гігантів до нішевих ательє. Кожен партнер пройшов через нашу команду закупників.</p>
+  </div>
+  <div class="partners-grid">
+    {% for brand in brands %}
+      <a href="{% url 'catalog:list' %}?brand={{ brand.slug }}" class="partner">
+        <span class="pn">{{ brand.name }}</span>
+        <span class="pc">{{ brand.product_count|default:"0" }} позицій</span>
+      </a>
+    {% empty %}
+      <div class="partner"><span class="pn">Acne Studios</span></div>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- Team -->
+{% if team_members %}
+<section class="team">
+  <div class="team-head reveal">
+    <h2>Команда /<br><span class="accent">{{ team_members|length }} людини</span></h2>
+  </div>
+  <div class="team-grid">
+    {% for member in team_members %}
+      <div class="member m-{{ forloop.counter }} reveal">
+        {% if member.photo %}
+          <img src="{{ member.photo.url }}" alt="{{ member.name }}" class="ph" loading="lazy">
+        {% else %}
+          <div class="ph" data-label="portrait · studio · soft"></div>
+        {% endif %}
+        <h4>{{ member.name }}</h4>
+        <span class="role">{{ member.role }}</span>
+        {% if member.bio %}<p>{{ member.bio }}</p>{% endif %}
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<!-- CTA -->
+<section class="cta">
+  <h2>Заходь<br>у <em>DropRoom</em></h2>
+  <div class="cta-row">
+    <a href="{% url 'catalog:list' %}" class="btn-primary">
+      Дивитися каталог
+      <span class="arrow">→</span>
+    </a>
+    <a href="{% url 'pages:contacts' %}" class="btn-ghost">Завітати в бутік</a>
+  </div>
+</section>
+
+{% endblock %}

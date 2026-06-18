@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DROPROOM — Каталог · Drop 047</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f3f1ec; --bg-2:#e9e6df; --paper:#fbfaf6;
+    --ink:#0a0a0a; --ink-2:#605d58;
+    --line:#d6d2c8;
+    --accent:oklch(0.68 0.19 35);
+    --ease:cubic-bezier(.2,.7,.2,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--ink);font-family:'Archivo',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  body{overflow-x:hidden}
+  a{color:inherit;text-decoration:none}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+
+  .mono{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+  .eyebrow{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2)}
+
+  /* Util + header (shared with Home) */
+  .util{background:var(--ink);color:var(--bg);display:flex;align-items:center;height:30px;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase}
+  .util-track{display:flex;gap:36px;padding-left:36px;animation:scroll 42s linear infinite;white-space:nowrap}
+  .util-track span{display:inline-flex;align-items:center;gap:36px}
+  .util-track span::after{content:"●";color:var(--accent);font-size:7px}
+  @keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+  header{position:sticky;top:0;z-index:50;background:rgba(243,241,236,.86);backdrop-filter:saturate(140%) blur(12px);-webkit-backdrop-filter:saturate(140%) blur(12px);border-bottom:1px solid var(--line)}
+  .nav{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:16px 28px;gap:24px}
+  .nav-left,.nav-right{display:flex;align-items:center;gap:24px}
+  .nav-right{justify-content:flex-end}
+  .nav a.link{font-size:12.5px;font-weight:600;letter-spacing:.02em;position:relative;padding:6px 0;text-transform:uppercase}
+  .nav a.link::after{content:"";position:absolute;left:0;right:0;bottom:2px;height:1px;background:var(--ink);transform:scaleX(0);transform-origin:left;transition:transform .4s var(--ease)}
+  .nav a.link:hover::after,.nav a.link.active::after{transform:scaleX(1)}
+  .wordmark{font-family:'Archivo',sans-serif;font-weight:900;font-size:22px;letter-spacing:-.04em;text-transform:uppercase;display:flex;align-items:center;gap:6px}
+  .wordmark .dot{width:8px;height:8px;background:var(--accent);border-radius:50%;display:inline-block}
+  .icon-btn{display:inline-flex;align-items:center;gap:6px;font-size:12px;text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+  .cart-pill{display:inline-flex;align-items:center;gap:10px;padding:9px 14px;background:var(--ink);color:var(--bg);font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;transition:background .25s,color .25s}
+  .cart-pill:hover{background:var(--accent);color:var(--ink)}
+  .cart-pill .n{font-family:'JetBrains Mono',monospace;font-size:10.5px}
+
+  /* ── Page hero ──────────────────────────────────── */
+  .page-hero{padding:36px 28px 28px;border-bottom:1px solid var(--line);position:relative}
+  .crumbs{display:flex;align-items:center;gap:10px;color:var(--ink-2);font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:24px}
+  .crumbs .sep{opacity:.4}
+  .crumbs a:hover{color:var(--ink)}
+  .crumbs .here{color:var(--ink)}
+
+  .ph-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:48px;align-items:end}
+  .ph-title{font-family:'Archivo',sans-serif;font-weight:900;font-size:clamp(52px,9vw,148px);text-transform:uppercase;letter-spacing:-.045em;line-height:.86}
+  .ph-title .accent{color:var(--accent)}
+  .ph-title em{font-style:italic;font-weight:500}
+  .ph-right{display:flex;flex-direction:column;gap:18px;padding-bottom:14px}
+  .ph-blurb{font-size:15px;line-height:1.6;max-width:46ch;color:var(--ink-2)}
+  .ph-blurb b{color:var(--ink);font-weight:700}
+  .ph-stats{display:flex;gap:32px;border-top:1px solid var(--line);padding-top:18px;margin-top:8px}
+  .ph-stats .stat .k{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);margin-bottom:6px}
+  .ph-stats .stat .v{font-family:'Archivo',sans-serif;font-weight:800;font-size:26px;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .ph-stats .stat .v .accent{color:var(--accent)}
+
+  /* ── Brand chip strip ──────────────────────────── */
+  .brandbar{padding:0 28px;border-bottom:1px solid var(--line);background:var(--bg)}
+  .brandbar-inner{display:flex;gap:6px;overflow-x:auto;padding:14px 0;align-items:center;scrollbar-width:none}
+  .brandbar-inner::-webkit-scrollbar{display:none}
+  .b-chip{flex:none;padding:8px 14px;border:1px solid var(--line);font-family:'Archivo',sans-serif;font-weight:600;font-size:12px;letter-spacing:.02em;text-transform:uppercase;color:var(--ink-2);cursor:pointer;transition:all .3s var(--ease);white-space:nowrap;background:var(--paper)}
+  .b-chip:hover{border-color:var(--ink);color:var(--ink)}
+  .b-chip.active{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .b-chip .n{font-family:'JetBrains Mono',monospace;font-size:9.5px;opacity:.65;margin-left:6px;font-weight:400}
+  .b-chip.featured{background:var(--accent);border-color:var(--accent);color:var(--ink)}
+
+  /* ── Layout ─────────────────────────────────────── */
+  .layout{display:grid;grid-template-columns:240px 1fr;gap:36px;padding:32px 28px 80px}
+
+  /* ── Sidebar ────────────────────────────────────── */
+  aside.filters{position:sticky;top:120px;align-self:start;max-height:calc(100vh - 140px);overflow-y:auto;padding-right:8px;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+  aside.filters::-webkit-scrollbar{width:4px}
+  aside.filters::-webkit-scrollbar-thumb{background:var(--line)}
+  .filter-block{border-bottom:1px solid var(--line);padding:18px 0}
+  .filter-block:first-child{padding-top:0}
+  .filter-head{display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none}
+  .filter-head h4{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink);font-weight:500}
+  .filter-head .cross{width:10px;height:10px;position:relative;transition:transform .35s var(--ease)}
+  .filter-head .cross::before,.filter-head .cross::after{content:"";position:absolute;background:var(--ink);left:50%;top:50%}
+  .filter-head .cross::before{width:10px;height:1px;transform:translate(-50%,-50%)}
+  .filter-head .cross::after{width:1px;height:10px;transform:translate(-50%,-50%)}
+  .filter-block.open .cross::after{transform:translate(-50%,-50%) rotate(90deg)}
+  .filter-body{margin-top:14px;display:flex;flex-direction:column;gap:10px}
+  .filter-block:not(.open) .filter-body{display:none}
+
+  .opt{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:var(--ink-2);transition:color .2s}
+  .opt:hover{color:var(--ink)}
+  .opt input{appearance:none;width:14px;height:14px;border:1px solid var(--line);background:var(--paper);position:relative;cursor:pointer;flex:none}
+  .opt input:checked{border-color:var(--ink);background:var(--ink)}
+  .opt input:checked::after{content:"";position:absolute;left:3px;top:3px;width:6px;height:6px;background:var(--accent)}
+  .opt input:checked + span{color:var(--ink);font-weight:600}
+  .opt .count{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-2);opacity:.65}
+
+  .sizes-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+  .size-btn{padding:8px 0;border:1px solid var(--line);background:var(--paper);font-family:'JetBrains Mono',monospace;font-size:11px;cursor:pointer;transition:all .25s var(--ease)}
+  .size-btn:hover{border-color:var(--ink)}
+  .size-btn.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .size-btn.oos{opacity:.35;text-decoration:line-through;cursor:not-allowed}
+
+  .colors-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+  .color-sw{width:22px;height:22px;border-radius:50%;cursor:pointer;border:1px solid rgba(0,0,0,.12);position:relative;transition:transform .25s var(--ease)}
+  .color-sw:hover{transform:scale(1.12)}
+  .color-sw.on::after{content:"";position:absolute;inset:-4px;border:1px solid var(--ink);border-radius:50%}
+
+  .price-slider{padding:8px 0 4px}
+  .range-track{position:relative;height:2px;background:var(--line);margin:18px 4px}
+  .range-fill{position:absolute;height:100%;background:var(--ink);left:8%;right:14%}
+  .range-thumb{position:absolute;top:50%;width:14px;height:14px;border-radius:50%;background:var(--accent);border:1px solid var(--ink);transform:translate(-50%,-50%);cursor:grab}
+  .range-thumb.a{left:8%}
+  .range-thumb.b{left:86%}
+  .price-vals{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-2);margin-top:14px}
+
+  /* ── Main col ───────────────────────────────────── */
+  main.col{min-width:0}
+  .toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:24px}
+  .results{font-size:13px;color:var(--ink-2)}
+  .results b{color:var(--ink);font-weight:700}
+  .toolbar-right{display:flex;align-items:center;gap:10px}
+  .view-toggle{display:flex;gap:0;border:1px solid var(--line)}
+  .view-toggle button{padding:8px 10px;display:grid;place-items:center;transition:background .25s;border-right:1px solid var(--line)}
+  .view-toggle button:last-child{border-right:0}
+  .view-toggle button.on{background:var(--ink)}
+  .view-toggle button.on svg{stroke:var(--bg)}
+  .view-toggle svg{width:14px;height:14px;stroke:var(--ink-2);stroke-width:1.3;fill:none}
+  .sort-select{display:flex;align-items:center;gap:8px;border:1px solid var(--line);padding:9px 12px;font-size:12px;cursor:pointer;background:var(--paper);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+  .sort-select:hover{border-color:var(--ink)}
+  .sort-select .lbl{color:var(--ink-2);font-weight:400}
+
+  .active-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+  .ac{display:inline-flex;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--line);padding:6px 8px 6px 12px;font-size:12px;cursor:pointer;transition:border-color .2s;font-weight:500;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.04em}
+  .ac:hover{border-color:var(--ink)}
+  .ac.clear{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .ac .x{font-size:10px;opacity:.5}
+
+  /* ── Products ────────────────────────────────────── */
+  .products{display:grid;grid-template-columns:repeat(3,1fr);gap:32px 18px}
+  .products.v4{grid-template-columns:repeat(4,1fr);gap:28px 14px}
+  .products.v2{grid-template-columns:repeat(2,1fr);gap:40px 28px}
+  .product{cursor:pointer;animation:fade .6s var(--ease) both;display:flex;flex-direction:column;gap:12px}
+  @keyframes fade{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  .product-media{position:relative;aspect-ratio:.78;overflow:hidden;background:var(--bg-2);border:1px solid var(--line)}
+  .product-img{position:absolute;inset:0;transition:transform .9s var(--ease),opacity .5s var(--ease)}
+  .product-img.b{opacity:0}
+  .product:hover .product-img.a{opacity:0}
+  .product:hover .product-img.b{opacity:1;transform:scale(1.04)}
+  .product-img::after{content:attr(data-label);position:absolute;left:14px;bottom:12px;font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.1em;color:rgba(0,0,0,.4);text-transform:uppercase}
+  .product-img.dark::after{color:rgba(255,255,255,.55)}
+  .badge{position:absolute;top:10px;left:10px;display:flex;gap:4px;flex-wrap:wrap;max-width:75%}
+  .badge span{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;padding:5px 8px;background:var(--paper);border:1px solid var(--line);color:var(--ink);font-weight:500}
+  .badge .new{background:var(--accent);border-color:transparent;color:var(--ink);font-weight:600}
+  .badge .drop{background:var(--ink);border-color:transparent;color:var(--bg)}
+  .badge .sale{background:#0a0a0a;color:var(--accent);border-color:transparent;font-weight:600}
+  .wishlist{position:absolute;top:10px;right:10px;width:32px;height:32px;background:var(--paper);display:grid;place-items:center;border:1px solid var(--line);opacity:0;transform:translateY(-6px);transition:opacity .35s var(--ease),transform .35s var(--ease);cursor:pointer}
+  .product:hover .wishlist{opacity:1;transform:none}
+  .wishlist svg{width:14px;height:14px;stroke:var(--ink);fill:none;stroke-width:1.3}
+  .wishlist.on svg{fill:var(--accent);stroke:var(--accent)}
+
+  .quick-add{position:absolute;left:10px;right:10px;bottom:10px;background:var(--ink);color:var(--bg);display:flex;justify-content:space-between;align-items:center;padding:10px 12px;transform:translateY(110%);opacity:0;transition:transform .45s var(--ease),opacity .45s var(--ease);font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em}
+  .product:hover .quick-add{transform:none;opacity:1}
+  .quick-add .sizes{display:flex;gap:7px}
+  .quick-add .sizes span{cursor:pointer;padding:2px 3px}
+  .quick-add .sizes span:hover{background:var(--accent);color:var(--ink)}
+  .quick-add .sizes span.oos{opacity:.35;text-decoration:line-through;cursor:not-allowed}
+  .quick-add .add{font-weight:700}
+
+  .p-brand{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+  .p-info{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+  .p-name{font-family:'Archivo',sans-serif;font-weight:600;font-size:15px;line-height:1.25;letter-spacing:-.005em}
+  .products.v4 .p-name{font-size:14px}
+  .products.v2 .p-name{font-size:22px;font-weight:700}
+  .p-sub{font-size:12px;color:var(--ink-2);margin-top:4px}
+  .p-price{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.04em;white-space:nowrap;padding-top:2px;font-weight:500}
+  .p-price s{color:var(--ink-2);opacity:.55;margin-right:6px}
+  .p-price b{color:var(--accent);font-weight:500}
+  .swatches{display:flex;gap:5px;margin-top:8px}
+  .sw{width:11px;height:11px;border-radius:50%;border:1px solid rgba(0,0,0,.15);cursor:pointer;transition:transform .25s var(--ease)}
+  .sw:hover{transform:scale(1.25)}
+
+  /* ── Pagination ─────────────────────────────────── */
+  .pagination{display:flex;justify-content:space-between;align-items:center;margin-top:60px;padding-top:32px;border-top:1px solid var(--line)}
+  .pagination .info{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-2);letter-spacing:.06em;text-transform:uppercase}
+  .pages{display:flex;gap:4px}
+  .pages a{width:34px;height:34px;display:grid;place-items:center;font-family:'JetBrains Mono',monospace;font-size:11px;border:1px solid var(--line);background:var(--paper);transition:all .25s}
+  .pages a:hover{border-color:var(--ink)}
+  .pages a.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .pages a.arrow{width:42px}
+
+  /* Banner inside grid */
+  .grid-banner{grid-column:span 3;background:var(--ink);color:var(--bg);padding:36px 32px;display:flex;justify-content:space-between;align-items:center;gap:24px;border:1px solid var(--ink)}
+  .products.v4 .grid-banner{grid-column:span 4}
+  .products.v2 .grid-banner{grid-column:span 2}
+  .grid-banner h3{font-family:'Archivo',sans-serif;font-weight:800;font-size:36px;text-transform:uppercase;letter-spacing:-.025em;line-height:1}
+  .grid-banner h3 .accent{color:var(--accent);font-style:italic;font-weight:500}
+  .grid-banner p{font-size:13.5px;color:rgba(255,255,255,.65);max-width:50ch;line-height:1.5;margin-top:8px}
+  .grid-banner a{padding:14px 20px;background:var(--accent);color:var(--ink);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;transition:background .3s}
+  .grid-banner a:hover{background:var(--paper)}
+
+  /* Footer */
+  footer{background:var(--ink);color:var(--bg);padding:80px 28px 24px}
+  .foot-top{display:grid;grid-template-columns:1.8fr 1fr 1fr 1fr;gap:48px;padding-bottom:56px;border-bottom:1px solid rgba(255,255,255,.12)}
+  .foot-brand{font-family:'Archivo',sans-serif;font-weight:900;font-size:56px;letter-spacing:-.045em;text-transform:uppercase;line-height:1;display:flex;align-items:center;gap:10px;margin-bottom:20px}
+  .foot-brand .dot{width:14px;height:14px;background:var(--accent);border-radius:50%}
+  .foot-desc{font-size:13.5px;color:rgba(255,255,255,.62);line-height:1.65;max-width:38ch;margin-bottom:24px}
+  .foot-top h5{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:18px}
+  .foot-top ul{list-style:none;display:flex;flex-direction:column;gap:10px}
+  .foot-top a{font-size:13.5px;opacity:.86;transition:color .25s,opacity .25s}
+  .foot-top a:hover{opacity:1;color:var(--accent)}
+  .foot-bottom{display:flex;justify-content:space-between;align-items:center;padding-top:24px;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.45)}
+  .foot-bottom .l{display:flex;gap:24px}
+
+  @media (max-width:1100px){
+    .layout{grid-template-columns:1fr;gap:24px}
+    aside.filters{position:static;max-height:none;display:none}
+    .products{grid-template-columns:repeat(2,1fr)}
+    .products.v4,.products.v2{grid-template-columns:repeat(2,1fr);gap:32px 14px}
+    .grid-banner,.products.v4 .grid-banner,.products.v2 .grid-banner{grid-column:span 2}
+    .ph-grid{grid-template-columns:1fr;gap:24px}
+    .foot-top{grid-template-columns:1fr 1fr}
+  }
+  @media (max-width:640px){
+    .nav{padding:12px 18px;gap:10px;grid-template-columns:auto 1fr auto}
+    .nav-left{display:none}
+    .toolbar{flex-direction:column;align-items:flex-start;gap:12px}
+    .toolbar-right{width:100%;justify-content:space-between}
+    .pagination{flex-direction:column;gap:18px}
+  }
+</style>
+</head>
+<body>
+
+<div class="util">
+  <div class="util-track">
+    <span>Drop 047 — заходить 24 травня · 19:00</span>
+    <span>Безкоштовна доставка від 3 000 ₴</span>
+    <span>14 днів на повернення</span>
+    <span>Сертифікат автентичності</span>
+    <span>Drop 047 — заходить 24 травня · 19:00</span>
+    <span>Безкоштовна доставка від 3 000 ₴</span>
+    <span>14 днів на повернення</span>
+    <span>Сертифікат автентичності</span>
+  </div>
+</div>
+
+<header>
+  <nav class="nav">
+    <div class="nav-left">
+      <a href="Home (Modern).html" class="link">Магазин</a>
+      <a href="Catalog (Modern).html" class="link active">Каталог</a>
+      <a href="#" class="link">Бренди</a>
+      <a href="Story (Modern).html" class="link">Про нас</a>
+    </div>
+    <a href="Home (Modern).html" class="wordmark">DROP<span class="dot"></span>ROOM</a>
+    <div class="nav-right">
+      <a href="#" class="icon-btn">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="6" cy="6" r="4.5"/><path d="M9.5 9.5l3 3"/></svg>
+        Пошук
+      </a>
+      <a href="#" class="icon-btn">UA · ₴</a>
+      <a href="Cart (Modern).html" class="cart-pill">Кошик <span class="n">02</span></a>
+    </div>
+  </nav>
+</header>
+
+<!-- Page hero -->
+<section class="page-hero">
+  <div class="crumbs">
+    <a href="Home (Modern).html">DropRoom</a>
+    <span class="sep">/</span>
+    <a href="#">Каталог</a>
+    <span class="sep">/</span>
+    <span class="here">Усі бренди · S/S ’26</span>
+  </div>
+  <div class="ph-grid">
+    <h1 class="ph-title">Всі<br/>бренди /<br/><span class="accent">всі дропи</span></h1>
+    <div class="ph-right">
+      <span class="eyebrow">— Drop 047 · S/S ’26</span>
+      <p class="ph-blurb">
+        <b>1 248 позицій</b> від 25 брендів-партнерів. Усе на складі в Києві, відправляємо в день замовлення. Кожна позиція супроводжується сертифікатом автентичності <b>DropRoom</b>.
+      </p>
+      <div class="ph-stats">
+        <div class="stat"><div class="k">Позицій</div><div class="v">1 248</div></div>
+        <div class="stat"><div class="k">Брендів</div><div class="v"><span class="accent">25</span></div></div>
+        <div class="stat"><div class="k">Нових сьогодні</div><div class="v">38</div></div>
+        <div class="stat"><div class="k">У дропі</div><div class="v">142</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Brand chip bar -->
+<div class="brandbar">
+  <div class="brandbar-inner" id="brandbar">
+    <button class="b-chip featured">Drop 047 <span class="n">142</span></button>
+    <button class="b-chip active">Усі <span class="n">1248</span></button>
+  </div>
+</div>
+
+<!-- Layout: filters + grid -->
+<div class="layout">
+  <aside class="filters">
+    <div class="filter-block open">
+      <div class="filter-head"><h4>Категорія</h4><span class="cross"></span></div>
+      <div class="filter-body">
+        <label class="opt"><input type="checkbox" /><span>Одяг</span><span class="count">684</span></label>
+        <label class="opt"><input type="checkbox" checked /><span>Взуття</span><span class="count">218</span></label>
+        <label class="opt"><input type="checkbox" /><span>Аксесуари</span><span class="count">312</span></label>
+        <label class="opt"><input type="checkbox" /><span>Сумки</span><span class="count">96</span></label>
+        <label class="opt"><input type="checkbox" /><span>Loungewear</span><span class="count">78</span></label>
+      </div>
+    </div>
+
+    <div class="filter-block open">
+      <div class="filter-head"><h4>Розмір</h4><span class="cross"></span></div>
+      <div class="filter-body">
+        <div class="sizes-grid">
+          <button class="size-btn">XS</button>
+          <button class="size-btn on">S</button>
+          <button class="size-btn on">M</button>
+          <button class="size-btn">L</button>
+          <button class="size-btn">XL</button>
+          <button class="size-btn oos">XXL</button>
+          <button class="size-btn">36</button>
+          <button class="size-btn">38</button>
+          <button class="size-btn">40</button>
+          <button class="size-btn">42</button>
+          <button class="size-btn">44</button>
+          <button class="size-btn">46</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="filter-block open">
+      <div class="filter-head"><h4>Колір</h4><span class="cross"></span></div>
+      <div class="filter-body">
+        <div class="colors-grid">
+          <span class="color-sw on" style="background:#0a0a0a" title="Чорний"></span>
+          <span class="color-sw" style="background:#fbfaf6" title="Молочний"></span>
+          <span class="color-sw" style="background:#c8b89a" title="Беж"></span>
+          <span class="color-sw" style="background:#74695a" title="Хакі"></span>
+          <span class="color-sw" style="background:#8b4a2a" title="Цегла"></span>
+          <span class="color-sw" style="background:#2c4a3e" title="Темно-зелений"></span>
+          <span class="color-sw" style="background:#1d2a4a" title="Темно-синій"></span>
+          <span class="color-sw" style="background:#c43a2a" title="Червоний"></span>
+          <span class="color-sw" style="background:#8a7390" title="Лавандовий"></span>
+          <span class="color-sw" style="background:#d9d3c4" title="Сірий"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="filter-block open">
+      <div class="filter-head"><h4>Ціна, ₴</h4><span class="cross"></span></div>
+      <div class="filter-body">
+        <div class="price-slider">
+          <div class="range-track">
+            <div class="range-fill"></div>
+            <div class="range-thumb a"></div>
+            <div class="range-thumb b"></div>
+          </div>
+          <div class="price-vals"><span>2 800 ₴</span><span>58 000 ₴</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="filter-block open">
+      <div class="filter-head"><h4>Бренд</h4><span class="cross"></span></div>
+      <div class="filter-body" id="filterBrands"></div>
+    </div>
+
+    <div class="filter-block">
+      <div class="filter-head"><h4>Матеріал</h4><span class="cross"></span></div>
+      <div class="filter-body">
+        <label class="opt"><input type="checkbox" /><span>Бавовна</span><span class="count">234</span></label>
+        <label class="opt"><input type="checkbox" /><span>Кашемір</span><span class="count">42</span></label>
+        <label class="opt"><input type="checkbox" /><span>Шовк</span><span class="count">28</span></label>
+        <label class="opt"><input type="checkbox" /><span>Шкіра</span><span class="count">86</span></label>
+      </div>
+    </div>
+
+    <div class="filter-block">
+      <div class="filter-head"><h4>Стать</h4><span class="cross"></span></div>
+      <div class="filter-body">
+        <label class="opt"><input type="checkbox" /><span>Жінки</span><span class="count">682</span></label>
+        <label class="opt"><input type="checkbox" /><span>Чоловіки</span><span class="count">488</span></label>
+        <label class="opt"><input type="checkbox" /><span>Unisex</span><span class="count">78</span></label>
+      </div>
+    </div>
+  </aside>
+
+  <main class="col">
+    <div class="toolbar">
+      <div class="results">Показано <b>1 — 18</b> з <b>1 248</b> позицій</div>
+      <div class="toolbar-right">
+        <div class="view-toggle">
+          <button title="2 cols"><svg viewBox="0 0 14 14"><rect x="1" y="1" width="5" height="12"/><rect x="8" y="1" width="5" height="12"/></svg></button>
+          <button class="on" title="3 cols"><svg viewBox="0 0 14 14"><rect x="1" y="1" width="3" height="12"/><rect x="5.5" y="1" width="3" height="12"/><rect x="10" y="1" width="3" height="12"/></svg></button>
+          <button title="4 cols"><svg viewBox="0 0 14 14"><rect x="0.5" y="1" width="2.5" height="12"/><rect x="4" y="1" width="2.5" height="12"/><rect x="7.5" y="1" width="2.5" height="12"/><rect x="11" y="1" width="2.5" height="12"/></svg></button>
+        </div>
+        <button class="sort-select">
+          <span class="lbl">Сортувати:</span>
+          <span>Drop 047 ↓</span>
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 4l3 3 3-3"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="active-chips">
+      <span class="ac">Взуття <span class="x">✕</span></span>
+      <span class="ac">Чорний <span class="x">✕</span></span>
+      <span class="ac">S, M <span class="x">✕</span></span>
+      <span class="ac">Nike, On Running, Adidas <span class="x">✕</span></span>
+      <span class="ac clear">Очистити все ✕</span>
+    </div>
+
+    <div class="products" id="products"></div>
+
+    <div class="pagination">
+      <div class="info">Сторінка 1 з 70 · 18 / 1 248</div>
+      <div class="pages">
+        <a href="#" class="arrow">←</a>
+        <a href="#" class="on">01</a>
+        <a href="#">02</a>
+        <a href="#">03</a>
+        <a href="#">04</a>
+        <a href="#">…</a>
+        <a href="#">70</a>
+        <a href="#" class="arrow">→</a>
+      </div>
+    </div>
+  </main>
+</div>
+
+<footer>
+  <div class="foot-top">
+    <div>
+      <div class="foot-brand">DROP<span class="dot"></span>ROOM</div>
+      <p class="foot-desc">Мульти-брендовий концепт-стор. Київ, вул. Хрещатик 22. Щодня 11:00–22:00.</p>
+      <div class="mono" style="opacity:.5">© 2019 — 2026 · DropRoom</div>
+    </div>
+    <div><h5>Магазин</h5><ul>
+      <li><a href="Catalog (Modern).html">Каталог</a></li>
+      <li><a href="#">Жінки</a></li><li><a href="#">Чоловіки</a></li>
+      <li><a href="#">Sneakers</a></li><li><a href="#">Архів</a></li></ul></div>
+    <div><h5>Допомога</h5><ul>
+      <li><a href="#">Доставка</a></li><li><a href="#">Розмірна сітка</a></li>
+      <li><a href="#">Повернення</a></li><li><a href="Contacts (Modern).html">Контакти</a></li></ul></div>
+    <div><h5>DropRoom</h5><ul>
+      <li><a href="Story (Modern).html">Про нас</a></li><li><a href="#">Бренди</a></li>
+      <li><a href="#">Журнал</a></li><li><a href="#">Instagram</a></li></ul></div>
+  </div>
+  <div class="foot-bottom">
+    <div class="l"><span>Privacy</span><span>Terms</span><span>Cookies</span></div>
+    <span>UA · ₴ UAH</span>
+  </div>
+</footer>
+
+<script>
+  const brands = ["Acne Studios","Adidas","Alo","Armani","Birkenstock","Boss","Coach","COS","Crocs","Karl Lagerfeld","Lacoste","Love Moschino","Massimo Dutti","Max Mara","Michael Kors","Nike","On Running","Pinko","Polo Ralph Lauren","Skims","Tom Ford","Tommy Hilfiger","Tory Burch","UGG","Zara"];
+  const brandbar = document.getElementById('brandbar');
+  const counts = [24,86,32,28,18,34,22,58,14,26,42,19,48,22,36,94,38,24,56,28,12,44,21,16,112];
+  brands.forEach((b,i)=>{
+    const el = document.createElement('button');
+    el.className = 'b-chip';
+    el.innerHTML = `${b} <span class="n">${counts[i]}</span>`;
+    brandbar.appendChild(el);
+  });
+
+  const fb = document.getElementById('filterBrands');
+  brands.slice(0,8).forEach((b,i)=>{
+    const lbl = document.createElement('label');
+    lbl.className = 'opt';
+    lbl.innerHTML = `<input type="checkbox" ${[15,16,1].includes(i)?'checked':''} /><span>${b}</span><span class="count">${counts[i]}</span>`;
+    fb.appendChild(lbl);
+  });
+  const more = document.createElement('label');
+  more.className = 'opt';
+  more.style.opacity = '.7';
+  more.innerHTML = `<span style="margin-left:0;font-family:'JetBrains Mono',monospace;font-size:11px;text-decoration:underline">+ Усі 25 брендів</span>`;
+  fb.appendChild(more);
+
+  /* Filter blocks toggle */
+  document.querySelectorAll('.filter-head').forEach(h=>{
+    h.addEventListener('click',()=>h.closest('.filter-block').classList.toggle('open'));
+  });
+  document.querySelectorAll('.b-chip').forEach(c=>{
+    c.addEventListener('click',()=>{
+      document.querySelectorAll('.b-chip').forEach(x=>x.classList.remove('active'));
+      c.classList.add('active');
+    });
+  });
+  document.querySelectorAll('.view-toggle button').forEach((b,i,arr)=>{
+    b.addEventListener('click',()=>{
+      arr.forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');
+      const grid = document.getElementById('products');
+      grid.className = 'products' + (i===0?' v2':i===2?' v4':'');
+    });
+  });
+  document.querySelectorAll('.size-btn:not(.oos)').forEach(b=>{
+    b.addEventListener('click',()=>b.classList.toggle('on'));
+  });
+  document.querySelectorAll('.color-sw').forEach(s=>{
+    s.addEventListener('click',()=>{
+      document.querySelectorAll('.color-sw').forEach(x=>x.classList.remove('on'));
+      s.classList.add('on');
+    });
+  });
+  document.querySelectorAll('.wishlist').forEach(w=>{
+    w.addEventListener('click',e=>{e.stopPropagation();w.classList.toggle('on');});
+  });
+
+  /* Products */
+  const palette = {
+    light:"linear-gradient(160deg,#e9e6df,#bdb6a8)",
+    cream:"linear-gradient(160deg,#f0eadb,#c8bda0)",
+    black:"linear-gradient(160deg,#2c2a26,#0a0a0a)",
+    sand:"linear-gradient(160deg,#d8c5a4,#a08763)",
+    olive:"linear-gradient(160deg,#74695a,#3e372c)",
+    rust:"linear-gradient(160deg,#a85a3a,#5c2f1c)",
+    sage:"linear-gradient(160deg,#bcbdb0,#7e8478)",
+    cocoa:"linear-gradient(160deg,#a08c70,#5c4d3a)"
+  };
+  const items = [
+    {brand:"Nike", name:"Vomero 5 ‘Sail’", sub:"Off-white · running", price:"7 990 ₴", badges:[{c:"drop",t:"Drop 047"}], grad:palette.cream, swatches:["#fbfaf6","#0a0a0a","#c8b89a"], lblA:"sneaker · 3/4 · floor", lblB:"sole · tread · macro"},
+    {brand:"On Running", name:"Cloudmonster 2", sub:"All white · everyday", price:"8 600 ₴", badges:[{c:"new",t:"New"}], grad:palette.light, swatches:["#fbfaf6","#74695a","#0a0a0a"], lblA:"runner · side · clean", lblB:"sole · cloud · macro"},
+    {brand:"Adidas", name:"Samba OG", sub:"Cloud white · gum sole", price:"5 200 ₴", badges:[], grad:palette.light, swatches:["#fbfaf6","#0a0a0a","#1d2a4a"], lblA:"trainer · profile · gum", lblB:"tongue · 3-stripe · macro"},
+    {brand:"Birkenstock", name:"Boston shearling", sub:"Mink · suede", price:"9 400 ₴", badges:[{c:"new",t:"New"}], grad:palette.cocoa, swatches:["#5c4d3a","#0a0a0a","#a08c70"], lblA:"clog · top · suede", lblB:"footbed · cork · macro", dark:true},
+    {brand:"UGG", name:"Classic Mini Ultra", sub:"Chestnut · slip-on", price:"11 800 ₴", badges:[], grad:palette.sand, swatches:["#a08763","#0a0a0a","#fbfaf6"], lblA:"boot · profile · soft", lblB:"shearling · hem · macro"},
+    {brand:"Crocs", name:"Classic clog", sub:"Black · iconic", price:"3 200 ₴", badges:[{c:"sale",t:"-20%"}], oldPrice:"4 000 ₴", grad:palette.black, swatches:["#0a0a0a","#c43a2a","#1d2a4a"], lblA:"clog · top · matte", lblB:"jibbitz · detail", dark:true},
+    {brand:"Acne Studios", name:"Wool blend coat", sub:"Charcoal · oversized", price:"42 800 ₴", badges:[{c:"new",t:"New"},{c:"drop",t:"Drop 047"}], grad:palette.black, swatches:["#0a0a0a","#74695a","#c8b89a"], lblA:"figure · coat · charcoal", lblB:"detail · lapel · macro", dark:true},
+    {brand:"Tom Ford", name:"Silk evening shirt", sub:"Ivory · slim", price:"36 400 ₴", oldPrice:"42 000 ₴", badges:[{c:"sale",t:"-15%"}], grad:palette.cream, swatches:["#f0eadb","#0a0a0a","#8b4a2a"], lblA:"shirt · front · soft", lblB:"cuff · button · macro"},
+    {brand:"Max Mara", name:"Camel teddy coat", sub:"Camel · belted", price:"58 900 ₴", badges:[{c:"drop",t:"Hero"}], grad:palette.sand, swatches:["#d8b78b","#0a0a0a","#fbfaf6"], lblA:"coat · full · camel", lblB:"belt · tie · detail"},
+    {brand:"Polo Ralph Lauren", name:"Cable cashmere", sub:"Oat · classic fit", price:"14 200 ₴", badges:[], grad:palette.sand, swatches:["#dccdb0","#1d2a4a","#0a0a0a"], lblA:"knit · front · cable", lblB:"sleeve · texture · macro"},
+    {brand:"COS", name:"Wool wide trouser", sub:"Black · pleated", price:"5 400 ₴", badges:[{c:"new",t:"New"}], grad:palette.black, swatches:["#0a0a0a","#74695a","#fbfaf6"], lblA:"trousers · full · pleat", lblB:"hem · break · floor", dark:true},
+    {brand:"Skims", name:"Soft lounge set", sub:"Onyx · two-piece", price:"5 800 ₴", badges:[{c:"new",t:"New"}], grad:palette.black, swatches:["#0a0a0a","#a08c70","#c8b89a"], lblA:"set · figure · soft", lblB:"texture · ribbed · macro", dark:true},
+    {brand:"Alo", name:"Airbrush legging", sub:"Olive · high-rise", price:"4 200 ₴", badges:[], grad:palette.olive, swatches:["#74695a","#0a0a0a","#bcbdb0"], lblA:"legging · figure · stretch", lblB:"waistband · detail · macro", dark:true},
+    {brand:"Coach", name:"Tabby 26 shoulder", sub:"Cocoa · pebble leather", price:"21 600 ₴", badges:[], grad:palette.cocoa, swatches:["#a08c70","#0a0a0a","#c43a2a"], lblA:"bag · 3/4 · soft", lblB:"hardware · clasp · macro", dark:true},
+    {brand:"Tory Burch", name:"Miller sandal", sub:"Tan · double-T", price:"9 800 ₴", badges:[], grad:palette.sand, swatches:["#c8b89a","#0a0a0a","#8b4a2a"], lblA:"sandal · top · classic", lblB:"sole · detail · macro"},
+    {brand:"Karl Lagerfeld", name:"Logo bomber", sub:"Black · satin", price:"12 400 ₴", badges:[{c:"drop",t:"Drop 047"}], grad:palette.black, swatches:["#0a0a0a","#fbfaf6"], lblA:"jacket · front · satin", lblB:"emblem · stitch · macro", dark:true},
+    {brand:"Lacoste", name:"L.12.12 polo", sub:"Navy · pique", price:"3 800 ₴", badges:[], grad:"linear-gradient(160deg,#1d2a4a,#0a1428)", swatches:["#1d2a4a","#fbfaf6","#0a0a0a"], lblA:"polo · front · pique", lblB:"croc · placket · macro", dark:true},
+    {brand:"Pinko", name:"Love Bag mini", sub:"Black · iconic clasp", price:"16 800 ₴", badges:[{c:"new",t:"New"}], grad:palette.black, swatches:["#0a0a0a","#c43a2a","#fbfaf6"], lblA:"bag · top · clasp", lblB:"chain · detail · macro", dark:true}
+  ];
+
+  // banner placeholder injected after 6th item
+  const grid = document.getElementById('products');
+  items.slice(0,6).forEach(i=>grid.appendChild(makeP(i)));
+  const banner = document.createElement('div');
+  banner.className = 'grid-banner';
+  banner.innerHTML = `
+    <div>
+      <h3>Sneaker floor / <span class="accent">8 брендів</span></h3>
+      <p>Nike · On Running · Adidas · Crocs · Birkenstock · UGG · New Balance · Hoka. 218 пар у наявності, відправляємо в день замовлення.</p>
+    </div>
+    <a href="#">Дивитися всі →</a>`;
+  grid.appendChild(banner);
+  items.slice(6).forEach(i=>grid.appendChild(makeP(i)));
+
+  function makeP(p){
+    const el = document.createElement('div');
+    el.className = 'product';
+    const badges = (p.badges||[]).map(b=>`<span class="${b.c}">${b.t}</span>`).join('');
+    const price = p.oldPrice ? `<s>${p.oldPrice}</s><b>${p.price}</b>` : p.price;
+    el.innerHTML = `
+      <div class="product-media">
+        ${badges?`<div class="badge">${badges}</div>`:''}
+        <button class="wishlist" aria-label="Wishlist">
+          <svg viewBox="0 0 14 14"><path d="M7 12.2S1.5 8.6 1.5 5a3 3 0 015.5-1.7A3 3 0 0112.5 5c0 3.6-5.5 7.2-5.5 7.2z"/></svg>
+        </button>
+        <div class="product-img a ${p.dark?'dark':''}" style="background:${p.grad}" data-label="${p.lblA}"></div>
+        <div class="product-img b ${p.dark?'dark':''}" style="background:${p.grad};filter:hue-rotate(-10deg) brightness(.92)" data-label="${p.lblB}"></div>
+        <div class="quick-add">
+          <div class="sizes"><span>XS</span><span>S</span><span>M</span><span>L</span><span class="oos">XL</span></div>
+          <span class="add">+ Кошик</span>
+        </div>
+      </div>
+      <div class="p-brand">${p.brand}</div>
+      <div class="p-info">
+        <div>
+          <div class="p-name">${p.name}</div>
+          <div class="p-sub">${p.sub}</div>
+          <div class="swatches">${p.swatches.map(s=>`<span class="sw" style="background:${s}"></span>`).join('')}</div>
+        </div>
+        <div class="p-price">${price}</div>
+      </div>`;
+    return el;
+  }
+</script>
+</body>
+</html>

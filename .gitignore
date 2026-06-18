@@ -1,0 +1,14 @@
+.env
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+db.sqlite3
+media/
+.DS_Store
+staticfiles/
+*.egg-info/
+dist/
+build/
+.mypy_cache/
+.ruff_cache/

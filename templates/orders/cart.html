@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Кошик{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/pages/cart.css' %}">
+{% endblock %}
+
+{% block extra_js %}
+<script type="module" src="{% static 'js/cart.js' %}" defer></script>
+{% endblock %}
+
+{% block content %}
+
+<div class="crumbs">
+  <a href="/">DropRoom</a>
+  <span class="sep">/</span>
+  <span class="here">Кошик</span>
+</div>
+
+<section class="stepbar">
+  <h1 class="title">Кошик /<br><span class="accent">{{ cart.total_items }} позиції</span></h1>
+  <div class="steps">
+    <span class="step on"><span class="n">01</span> Кошик</span>
+    <span class="arrow">→</span>
+    <span class="step"><span class="n">02</span> Доставка</span>
+    <span class="arrow">→</span>
+    <span class="step"><span class="n">03</span> Оплата</span>
+    <span class="arrow">→</span>
+    <span class="step"><span class="n">04</span> Готово</span>
+  </div>
+</section>
+
+{% if cart_items %}
+
+{% with free_delivery_threshold=3000 %}
+{% if cart.subtotal < free_delivery_threshold %}
+<section class="deliv">
+  <div class="icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="6" width="14" height="11"/><path d="M15 9h5l3 4v4h-8z"/><circle cx="6" cy="18.5" r="2"/><circle cx="18" cy="18.5" r="2"/></svg>
+  </div>
+  <div>
+    <h3>До <span class="accent">безкоштовної</span> доставки лишилось {{ free_delivery_threshold|add:"-"|add:cart.subtotal }} ₴</h3>
+    <p>Безкоштовна доставка від {{ free_delivery_threshold }} ₴. Додайте ще кілька позицій — і доставка безкоштовна.</p>
+  </div>
+  <a href="{% url 'catalog:list' %}">Догнати →</a>
+</section>
+{% endif %}
+{% endwith %}
+
+<div class="layout" id="cart-body">
+  <main class="items">
+    <div class="items-head">
+      <span>Товар</span>
+      <span>Кількість</span>
+      <span>Наявність</span>
+      <span>Ціна</span>
+    </div>
+
+    {% for item in cart_items %}
+      <div class="item" id="cart-item-{{ item.pk }}">
+        <a href="{% url 'catalog:detail' item.variant.product.slug %}" class="ph-link">
+          {% if item.variant.product.primary_image %}
+            <img src="{{ item.variant.product.primary_image.image.url }}" alt="{{ item.variant.product.name }}" class="ph" loading="lazy">
+          {% else %}
+            <div class="ph"></div>
+          {% endif %}
+        </a>
+        <div class="body">
+          <span class="brand">{{ item.variant.product.brand.name }}</span>
+          <a href="{% url 'catalog:detail' item.variant.product.slug %}" class="name">{{ item.variant.product.name }}</a>
+          <span class="sub">{{ item.variant.product.subtitle|default:"" }}</span>
+          <div class="meta">
+            <span class="tag">Розмір {{ item.variant.size_display }}</span>
+            {% if item.variant.color %}<span class="tag">{{ item.variant.color.name }}</span>{% endif %}
+          </div>
+          <div class="links">
+            <form method="post" action="{% url 'orders:cart_remove' item.pk %}"
+                  hx-delete="{% url 'orders:cart_remove' item.pk %}"
+                  hx-target="#cart-item-{{ item.pk }}" hx-swap="outerHTML">
+              {% csrf_token %}
+              <button type="submit" class="btn-link">Видалити</button>
+            </form>
+          </div>
+        </div>
+
+        <form method="post" action="{% url 'orders:cart_update' item.pk %}"
+              hx-post="{% url 'orders:cart_update' item.pk %}"
+              hx-target="#cart-body" hx-swap="outerHTML"
+              id="update-form-{{ item.pk }}">
+          {% csrf_token %}
+          <div class="qty qty-control" data-item-id="{{ item.pk }}" data-update-form="update-form-{{ item.pk }}">
+            <button type="button" data-qty-action="dec">−</button>
+            <span class="qty-val v">{{ item.quantity }}</span>
+            <button type="button" data-qty-action="inc">+</button>
+            <input type="hidden" name="quantity" value="{{ item.quantity }}">
+            <button type="submit" class="visually-hidden">Оновити</button>
+          </div>
+        </form>
+
+        <div class="stock">
+          {% if item.variant.stock_qty > 0 %}
+            <span class="in">● В наявності</span><br>{{ item.variant.stock_qty }} шт. на складі
+          {% else %}
+            <span class="low">● Під замовлення</span>
+          {% endif %}
+        </div>
+
+        <div class="price">
+          {% if item.quantity > 1 %}
+            {{ item.total_price|floatformat:"0" }} <span>₴</span><br>
+            <span class="unit-price">{{ item.quantity }} × {{ item.unit_price|floatformat:"0" }} ₴</span>
+          {% else %}
+            {{ item.unit_price|floatformat:"0" }} <span>₴</span>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+
+    {% if wishlist_items %}
+      <div class="saved">
+        <div class="saved-head">
+          <h3>Збережено /<br><span class="accent">на потім</span> · {{ wishlist_items|length }}</h3>
+          <a href="{% url 'accounts:wishlist' %}">Усе у Wishlist →</a>
+        </div>
+        <div class="saved-grid">
+          {% for item in wishlist_items|slice:":4" %}
+            <a href="{% url 'catalog:detail' item.product.slug %}" class="saved-card">
+              {% if item.product.primary_image %}
+                <img src="{{ item.product.primary_image.image.url }}" alt="{{ item.product.name }}" class="ph" loading="lazy">
+              {% else %}
+                <div class="ph"></div>
+              {% endif %}
+              <div class="body">
+                <span class="brand">{{ item.product.brand.name }}</span>
+                <span class="name">{{ item.product.name }}</span>
+                <span class="price">{{ item.product.base_price|floatformat:"0" }} ₴</span>
+              </div>
+              <span class="add">+ У кошик</span>
+            </a>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+  </main>
+
+  <aside class="summary" id="cart-summary">
+    <h2>Підсумок<br><span class="total">{{ cart.total_items }} позиції</span></h2>
+
+    <div id="promo-section">
+      {% if cart.promo %}
+        <div class="promo-applied">
+          <span>✓ {{ cart.promo.code }}{% if cart.promo.discount_type == 'PERCENT' %} · −{{ cart.promo.discount_value }}%{% endif %}</span>
+          <form method="post" action="{% url 'orders:cart_promo' %}"
+                hx-post="{% url 'orders:cart_promo' %}" hx-target="#cart-summary" hx-swap="outerHTML">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="remove">
+            <button type="submit" class="x">✕</button>
+          </form>
+        </div>
+      {% else %}
+        <form class="promo" method="post" action="{% url 'orders:cart_promo' %}"
+              hx-post="{% url 'orders:cart_promo' %}" hx-target="#cart-summary" hx-swap="outerHTML">
+          {% csrf_token %}
+          <input type="text" name="code" placeholder="PROMO-код">
+          <button type="submit">Застосувати</button>
+        </form>
+        {% if promo_error %}<div class="promo-error">{{ promo_error }}</div>{% endif %}
+      {% endif %}
+    </div>
+
+    <div class="sum-rows">
+      <div class="r"><span class="k">Сума товарів</span><span class="v">{{ cart.subtotal|floatformat:"0" }} ₴</span></div>
+      {% if cart.discount_amount %}
+        <div class="r"><span class="k">Знижка</span><span class="v disc">−{{ cart.discount_amount|floatformat:"0" }} ₴</span></div>
+      {% endif %}
+      <div class="r {% if cart.subtotal >= 3000 %}free{% endif %}">
+        <span class="k">Доставка</span>
+        <span class="v">{% if cart.subtotal >= 3000 %}Безкоштовно{% else %}Розраховується при оформленні{% endif %}</span>
+      </div>
+      <div class="r"><span class="k">Сертифікат автентичності</span><span class="v">Включено</span></div>
+    </div>
+
+    <div class="total-row">
+      <span class="k">До сплати</span>
+      <span class="v">{{ cart.total|floatformat:"0" }}<span class="ccy">₴</span></span>
+    </div>
+
+    <a href="{% url 'orders:checkout' %}" class="checkout">
+      Перейти до оплати
+      <span class="arrow">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 6h8M6 2l4 4-4 4"/></svg>
+      </span>
+    </a>
+
+    <div class="trust">
+      <div class="t"><span class="k">Доставка</span><span class="v">2–4 робочі дні</span></div>
+      <div class="t"><span class="k">Повернення</span><span class="v">14 днів, без причин</span></div>
+      <div class="t"><span class="k">Гарантія</span><span class="v">Сертифікат DR</span></div>
+      <div class="t"><span class="k">Підтримка</span><span class="v">4 хв у Telegram</span></div>
+    </div>
+
+    <div class="help">Питання? <a href="{% url 'pages:contacts' %}">Чат у Telegram</a></div>
+  </aside>
+</div>
+
+{% else %}
+
+<div class="cart-empty">
+  <div class="eyebrow">— Кошик порожній</div>
+  <h2>Ваш кошик /<br><span class="accent">порожній</span></h2>
+  <p>Додайте позиції з каталогу або перегляньте наш поточний дроп.</p>
+  <a href="{% url 'catalog:list' %}" class="btn-primary">
+    Перейти до каталогу
+    <span class="arrow">→</span>
+  </a>
+</div>
+
+{% endif %}
+
+{% endblock %}
