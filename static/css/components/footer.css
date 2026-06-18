@@ -133,6 +133,18 @@ footer {
   }
 }
 
+.foot-dev {
+  font-size: 11px;
+  color: var(--ink-muted, #888);
+  text-decoration: none;
+  letter-spacing: 0.02em;
+  transition: color 0.2s;
+}
+
+.foot-dev:hover {
+  color: var(--accent, #D28246);
+}
+
 @media (max-width: 400px) {
   .foot-top {
     grid-template-columns: 1fr;
