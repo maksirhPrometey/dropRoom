@@ -28,6 +28,7 @@ class CheckoutForm(forms.Form):
     )
     email = forms.EmailField(
         label="Email",
+        required=False,
         widget=forms.EmailInput(attrs={"placeholder": "email@example.com"}),
     )
     phone = forms.CharField(
