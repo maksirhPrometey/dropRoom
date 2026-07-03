@@ -135,78 +135,13 @@ class ProductDetailView(DetailView):
         ctx["similar_products"] = similar
 
         if self.request.user.is_authenticated:
-            import json
-            import time
-
             from src.accounts.models import WishlistItem
-
-            # #region agent log
-            _log_path = "/Users/prometeylabs/sites/DropRoom/.cursor/debug-0bfdf7.log"
-            _wl_fields = [f.name for f in WishlistItem._meta.get_fields()]
-            with open(_log_path, "a", encoding="utf-8") as _f:
-                _f.write(
-                    json.dumps(
-                        {
-                            "sessionId": "0bfdf7",
-                            "hypothesisId": "A",
-                            "location": "catalog/views.py:get_context_data",
-                            "message": "wishlist check before query",
-                            "data": {
-                                "product_pk": product.pk,
-                                "wishlist_field_names": _wl_fields,
-                                "filter_uses_product_kw": True,
-                            },
-                            "timestamp": int(time.time() * 1000),
-                        }
-                    )
-                    + "\n"
-                )
-            # #endregion
 
             in_wishlist = WishlistItem.objects.filter(
                 user=self.request.user,
                 variant__product=product,
             ).exists()
             product._in_wishlist = in_wishlist
-
-            # #region agent log
-            with open(_log_path, "a", encoding="utf-8") as _f:
-                _f.write(
-                    json.dumps(
-                        {
-                            "sessionId": "0bfdf7",
-                            "runId": "post-fix",
-                            "hypothesisId": "A",
-                            "location": "catalog/views.py:get_context_data",
-                            "message": "wishlist check after fix",
-                            "data": {
-                                "product_pk": product.pk,
-                                "in_wishlist": in_wishlist,
-                                "filter_path": "variant__product",
-                            },
-                            "timestamp": int(time.time() * 1000),
-                        }
-                    )
-                    + "\n"
-                )
-                _f.write(
-                    json.dumps(
-                        {
-                            "sessionId": "0bfdf7",
-                            "runId": "post-fix",
-                            "hypothesisId": "B",
-                            "location": "catalog/views.py:get_context_data",
-                            "message": "in_wishlist via _in_wishlist attr",
-                            "data": {
-                                "property_reads": product.in_wishlist,
-                                "has_setter_error": False,
-                            },
-                            "timestamp": int(time.time() * 1000),
-                        }
-                    )
-                    + "\n"
-                )
-            # #endregion
         else:
             product._in_wishlist = False
 

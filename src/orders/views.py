@@ -44,28 +44,7 @@ class CartView(TemplateView):
         ctx["cart_items"] = items
 
         if self.request.user.is_authenticated:
-            import json
-            import time
-
             from src.accounts.models import WishlistItem
-
-            # #region agent log
-            _log_path = "/Users/prometeylabs/sites/DropRoom/.cursor/debug-0bfdf7.log"
-            with open(_log_path, "a", encoding="utf-8") as _f:
-                _f.write(
-                    json.dumps(
-                        {
-                            "sessionId": "0bfdf7",
-                            "hypothesisId": "A",
-                            "location": "orders/views.py:CartView",
-                            "message": "wishlist queryset path",
-                            "data": {"select_path": "variant__product__brand"},
-                            "timestamp": int(time.time() * 1000),
-                        }
-                    )
-                    + "\n"
-                )
-            # #endregion
 
             wishlist_qs = (
                 WishlistItem.objects.filter(user=self.request.user)
@@ -73,24 +52,6 @@ class CartView(TemplateView):
                 .prefetch_related("variant__product__images")[:4]
             )
             ctx["wishlist_items"] = list(wishlist_qs)
-
-            # #region agent log
-            with open(_log_path, "a", encoding="utf-8") as _f:
-                _f.write(
-                    json.dumps(
-                        {
-                            "sessionId": "0bfdf7",
-                            "runId": "post-fix",
-                            "hypothesisId": "A",
-                            "location": "orders/views.py:CartView",
-                            "message": "wishlist queryset ok",
-                            "data": {"count": len(ctx["wishlist_items"])},
-                            "timestamp": int(time.time() * 1000),
-                        }
-                    )
-                    + "\n"
-                )
-            # #endregion
         return ctx
 
 
