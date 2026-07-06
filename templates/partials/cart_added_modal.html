@@ -1,0 +1,17 @@
+{% load static %}
+<div class="cart-modal" id="cart-modal" hidden>
+  <div class="cart-modal__backdrop" data-modal-close></div>
+  <div class="cart-modal__box" role="dialog" aria-modal="true" aria-labelledby="cart-modal-title">
+    <button type="button" class="cart-modal__close" data-modal-close aria-label="Закрити">✕</button>
+    <div class="cart-modal__icon">✓</div>
+    <h3 id="cart-modal-title">Товар додано до кошика</h3>
+    <p class="cart-modal__product" id="cart-modal-product"></p>
+    <div class="cart-modal__actions">
+      <a href="{% url 'orders:cart' %}" class="btn-primary">
+        Перейти в кошик
+        <span class="arrow">→</span>
+      </a>
+      <button type="button" class="btn-ghost" data-modal-close>Продовжити покупки</button>
+    </div>
+  </div>
+</div>

@@ -9,6 +9,7 @@ html, body {
 }
 
 body { overflow-x: hidden; }
+body.modal-open { overflow-y: hidden; }
 
 a { color: inherit; text-decoration: none; }
 img { display: block; max-width: 100%; }

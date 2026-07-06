@@ -1,7 +1,7 @@
+import json
 import logging
 
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
@@ -81,11 +81,15 @@ class CartAddView(View):
 
         cart_count = cart.get_item_count()
         if request.htmx:
-            return render(
+            response = render(
                 request,
                 "partials/cart_add_response.html",
                 {"cart_count": cart_count},
             )
+            response["HX-Trigger"] = json.dumps(
+                {"cartAdded": {"productName": variant.product.name}}
+            )
+            return response
         messages.success(request, f"{variant.product.name} додано до кошика.")
         return redirect("orders:cart")
 
@@ -166,9 +170,8 @@ class CartPromoView(View):
         return redirect("orders:cart")
 
 
-class CheckoutView(LoginRequiredMixin, View):
+class CheckoutView(View):
     template_name = "orders/checkout.html"
-    login_url = "/accounts/login/"
 
     def _checkout_totals(self, cart, delivery_method="nova_poshta"):
         from .forms import CheckoutForm
@@ -256,7 +259,7 @@ class CheckoutView(LoginRequiredMixin, View):
             cart.promo = None
             cart.save(update_fields=["promo"])
         messages.success(request, f"Замовлення #{order.pk} успішно оформлено!")
-        return redirect("accounts:profile")
+        return redirect("orders:success", pk=order.pk)
 
     def _create_order(self, request, cart, form):
         subtotal = cart.get_subtotal()
@@ -276,7 +279,11 @@ class CheckoutView(LoginRequiredMixin, View):
         notes = "\n".join(notes_parts)
 
         order = Order.objects.create(
-            user=request.user,
+            user=request.user if request.user.is_authenticated else None,
+            first_name=form.cleaned_data["first_name"],
+            last_name=form.cleaned_data["last_name"],
+            phone=form.cleaned_data["phone"],
+            email=form.cleaned_data.get("email", ""),
             promo=cart.promo,
             payment_method=form.cleaned_data["payment_method"],
             subtotal=subtotal,
@@ -306,3 +313,14 @@ class CheckoutView(LoginRequiredMixin, View):
             profile.save(update_fields=["phone"])
 
         return order
+
+
+class OrderSuccessView(TemplateView):
+    template_name = "orders/success.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["order"] = get_object_or_404(
+            Order.objects.prefetch_related("items"), pk=kwargs["pk"]
+        )
+        return ctx

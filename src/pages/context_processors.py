@@ -14,8 +14,19 @@ def site_globals(request):
     except Exception:
         pass
 
+    nav_categories = []
+    try:
+        from src.catalog.models import Category
+
+        nav_categories = Category.objects.filter(parent__isnull=True).order_by(
+            "sort_order", "name"
+        )
+    except Exception:
+        pass
+
     return {
         "site_settings": site_settings,
         "utility_bar_items": utility_bar_items,
         "cart_count": cart_count,
+        "nav_categories": nav_categories,
     }

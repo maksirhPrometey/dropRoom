@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Замовлення оформлено{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/pages/cart.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="crumbs">
+  <a href="/">DropRoom</a>
+  <span class="sep">/</span>
+  <span class="here">Замовлення оформлено</span>
+</div>
+
+<div class="order-success">
+  <div class="order-success__icon">✓</div>
+  <div class="eyebrow">— Дякуємо за замовлення</div>
+  <h2>Замовлення <span class="accent">#{{ order.pk }}</span> прийнято</h2>
+  <p>
+    Ми зателефонуємо на номер <b>{{ order.phone }}</b> протягом найближчого часу, щоб підтвердити
+    замовлення та узгодити деталі доставки.
+  </p>
+
+  <div class="order-success__summary">
+    <div class="r"><span class="k">Отримувач</span><span class="v">{{ order.customer_name }}</span></div>
+    <div class="r"><span class="k">Телефон</span><span class="v">{{ order.phone }}</span></div>
+    <div class="r"><span class="k">Спосіб оплати</span><span class="v">{{ order.get_payment_method_display }}</span></div>
+    <div class="r"><span class="k">Разом до сплати</span><span class="v">{{ order.total|floatformat:"0" }} ₴</span></div>
+  </div>
+
+  <div class="order-success__actions">
+    <a href="{% url 'catalog:list' %}" class="btn-primary">
+      Продовжити покупки
+      <span class="arrow">→</span>
+    </a>
+    {% if user.is_authenticated %}
+      <a href="{% url 'accounts:profile' %}" class="btn-ghost">Мої замовлення</a>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

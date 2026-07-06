@@ -3,6 +3,8 @@ import { initCountdown } from './modules/countdown.js';
 import { initFAQ } from './modules/faq.js';
 import { initAccordions } from './modules/accordions.js';
 import { initGallery } from './modules/gallery.js';
+import { initBurgerMenu } from './modules/burger-menu.js';
+import { initCartModal } from './modules/cart-modal.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   initReveal();
@@ -10,4 +12,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initFAQ();
   initAccordions();
   initGallery();
+  initBurgerMenu();
+  initCartModal();
 });

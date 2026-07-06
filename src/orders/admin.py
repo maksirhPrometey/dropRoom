@@ -130,7 +130,8 @@ class CartAdmin(DropRoomModelAdmin):
 class OrderAdmin(DropRoomModelAdmin):
     list_display = [
         "id",
-        "user",
+        "display_customer",
+        "display_phone",
         "status",
         "payment_method",
         "total",
@@ -141,11 +142,23 @@ class OrderAdmin(DropRoomModelAdmin):
         ("payment_method", ChoicesDropdownFilter),
         "created_at",
     ]
-    search_fields = ["user__username", "user__email", "id"]
+    search_fields = [
+        "user__username",
+        "user__email",
+        "first_name",
+        "last_name",
+        "phone",
+        "email",
+        "id",
+    ]
     readonly_fields = ["created_at", "updated_at"]
     autocomplete_fields = ["user", "address", "promo"]
     inlines = [OrderItemInline]
     fieldsets = [
+        (
+            "Контактні дані замовника",
+            {"fields": ["first_name", "last_name", "phone", "email"]},
+        ),
         (
             "Клієнт",
             {"fields": ["user", "address", "notes"]},
@@ -168,3 +181,15 @@ class OrderAdmin(DropRoomModelAdmin):
         ("Дати", {"fields": ["created_at", "updated_at"]}),
     ]
     ordering = ["-created_at"]
+
+    @admin.display(description="Замовник")
+    def display_customer(self, obj):
+        return obj.customer_name
+
+    @admin.display(description="Телефон")
+    def display_phone(self, obj):
+        if not obj.phone:
+            return "—"
+        from django.utils.html import format_html
+
+        return format_html('<a href="tel:{0}">{0}</a>', obj.phone)

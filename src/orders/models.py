@@ -147,6 +147,10 @@ class Order(models.Model):
         blank=True,
         related_name="orders",
     )
+    first_name = models.CharField(max_length=100, blank=True, verbose_name="Ім'я")
+    last_name = models.CharField(max_length=100, blank=True, verbose_name="Прізвище")
+    phone = models.CharField(max_length=20, blank=True, verbose_name="Телефон")
+    email = models.EmailField(blank=True, verbose_name="Email")
     address = models.ForeignKey(
         "accounts.Address",
         on_delete=models.SET_NULL,
@@ -178,6 +182,15 @@ class Order(models.Model):
 
     def __str__(self) -> str:
         return f"Замовлення #{self.pk}"
+
+    @property
+    def customer_name(self) -> str:
+        name = f"{self.first_name} {self.last_name}".strip()
+        if name:
+            return name
+        if self.user:
+            return self.user.get_full_name() or self.user.username
+        return "—"
 
 
 class OrderItem(models.Model):

@@ -100,13 +100,43 @@ class CheckoutViewTests(TestCase):
             },
         )
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, reverse("accounts:profile"))
         self.assertEqual(Order.objects.count(), 1)
         order = Order.objects.get()
+        self.assertEqual(response.url, reverse("orders:success", args=[order.pk]))
         self.assertEqual(order.payment_method, "CARD")
         self.assertEqual(order.delivery_cost, Decimal("110"))
         self.assertEqual(order.total, Decimal("1610"))
+        self.assertEqual(order.first_name, "Олена")
+        self.assertEqual(order.phone, "+380501234567")
         self.assertFalse(CartItem.objects.filter(cart__user=self.user).exists())
+
+    def test_guest_checkout_does_not_require_login(self):
+        self.client.logout()
+        session = self.client.session
+        session.save()
+        cart = Cart.objects.create(session_key=self.client.session.session_key)
+        CartItem.objects.create(cart=cart, variant=self.variant, quantity=1)
+
+        response = self.client.get(reverse("orders:checkout"))
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.post(
+            reverse("orders:checkout"),
+            {
+                "first_name": "Гість",
+                "last_name": "Покупець",
+                "phone": "+380671234567",
+                "delivery_method": "nova_poshta",
+                "delivery_address": "Львів, НП 3",
+                "payment_method": "CASH",
+                "comment": "",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        order = Order.objects.get()
+        self.assertIsNone(order.user)
+        self.assertEqual(order.first_name, "Гість")
+        self.assertEqual(response.url, reverse("orders:success", args=[order.pk]))
 
     def test_checkout_post_invalid_payment_does_not_create_order(self):
         self._add_to_cart()
