@@ -128,7 +128,7 @@ class HeroStripCard(models.Model):
     class Meta:
         ordering = ["sort_order"]
         verbose_name = "Слайд hero"
-        verbose_name_plural = "Слайди hero"
+        verbose_name_plural = "Hero-слайдер"
 
     def __str__(self) -> str:
         return self.label or f"Слайд #{self.pk}"

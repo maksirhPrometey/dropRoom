@@ -1,4 +1,7 @@
 from django.contrib import admin
+from django.db.models import Q
+from django.urls import reverse
+from django.utils.html import format_html
 from unfold.admin import StackedInline, TabularInline
 
 from config.admin_utils import DropRoomModelAdmin, SingletonAdminMixin, image_preview
@@ -21,20 +24,81 @@ from .models import (
 )
 
 
-class HeroStripCardInline(StackedInline):
-    model = HeroStripCard
-    extra = 1
-    ordering = ["sort_order"]
-    fields = [
-        "sort_order",
-        "is_active",
-        "image",
+@admin.register(HeroStripCard)
+class HeroStripCardAdmin(DropRoomModelAdmin):
+    list_display = [
+        "thumb",
         "label",
         "cta_text",
-        "link",
+        "link_short",
+        "sort_order",
+        "is_active",
     ]
-    verbose_name = "Слайд"
-    verbose_name_plural = "Слайди hero"
+    list_display_links = ["label"]
+    list_editable = ["sort_order", "is_active"]
+    list_filter = ["is_active"]
+    ordering = ["sort_order", "pk"]
+    search_fields = ["label", "cta_text", "link"]
+    readonly_fields = ["image_preview_large"]
+    exclude = ["page"]
+
+    fieldsets = [
+        (
+            "Показ на сайті",
+            {
+                "fields": ["is_active", "sort_order"],
+                "description": "Менший «Порядок» — слайд показується раніше.",
+            },
+        ),
+        (
+            "Фото",
+            {
+                "fields": ["image", "image_preview_large"],
+                "description": "Рекомендований розмір: 1800×760 px або ширше, landscape.",
+            },
+        ),
+        (
+            "Підписи та посилання",
+            {
+                "fields": ["label", "cta_text", "link"],
+                "description": (
+                    "«Підпис» — зліва на слайді. «Текст кнопки» — справа. "
+                    "Посилання порожнє → відкриється каталог."
+                ),
+            },
+        ),
+    ]
+
+    thumb = image_preview("image", width=120, height=68)
+    image_preview_large = image_preview("image", width=480, height=220)
+
+    @admin.display(description="Посилання")
+    def link_short(self, obj: HeroStripCard) -> str:
+        if not obj.link:
+            return "→ Каталог"
+        if len(obj.link) > 40:
+            return f"{obj.link[:37]}..."
+        return obj.link
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.filter(page_id=1)
+
+    def save_model(self, request, obj, form, change) -> None:
+        obj.page = HomePage.load()
+        super().save_model(request, obj, form, change)
+
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        home = HomePage.load()
+        slides = HeroStripCard.objects.filter(page=home)
+        extra_context["title"] = "Hero-слайдер — фото на головній"
+        extra_context["subtitle"] = (
+            f"Активних слайдів з фото: "
+            f"{slides.filter(is_active=True).exclude(Q(image='') | Q(image__isnull=True)).count()} "
+            f"· усього: {slides.count()}"
+        )
+        return super().changelist_view(request, extra_context=extra_context)
 
 
 class StatBlockInline(TabularInline):
@@ -149,8 +213,8 @@ class UtilityBarItemAdmin(DropRoomModelAdmin):
 
 @admin.register(HomePage)
 class HomePageAdmin(SingletonAdminMixin, DropRoomModelAdmin):
-    inlines = [HeroStripCardInline, StatBlockInline]
-    readonly_fields = ["editorial_preview"]
+    inlines = [StatBlockInline]
+    readonly_fields = ["editorial_preview", "hero_slides_manage"]
     fieldsets = [
         (
             "Hero-слайдер",
@@ -158,10 +222,11 @@ class HomePageAdmin(SingletonAdminMixin, DropRoomModelAdmin):
                 "fields": [
                     "hero_slider_autoplay_enabled",
                     "hero_slider_autoplay_seconds",
+                    "hero_slides_manage",
                 ],
                 "description": (
-                    "Автопрокрут і швидкість. Слайди (фото, підпис, кнопка, посилання) "
-                    "— у блоці «Слайди hero» нижче. Показуються лише активні слайди з фото."
+                    "Тут — лише автопрокрут. Фото, підписи та кнопки "
+                    "редагуються в розділі «Hero-слайдер» у меню зліва."
                 ),
             },
         ),
@@ -196,6 +261,29 @@ class HomePageAdmin(SingletonAdminMixin, DropRoomModelAdmin):
     ]
 
     editorial_preview = image_preview("editorial_image", width=280, height=160)
+
+    @admin.display(description="Слайди")
+    def hero_slides_manage(self, obj: HomePage) -> str:
+        slides = HeroStripCard.objects.filter(page=obj)
+        active_count = slides.filter(is_active=True).exclude(
+            Q(image="") | Q(image__isnull=True)
+        ).count()
+        slides_url = reverse("admin:pages_herostripcard_changelist")
+        add_url = reverse("admin:pages_herostripcard_add")
+        return format_html(
+            '<p style="margin:0 0 10px;line-height:1.5;">'
+            "На сайті зараз: <strong>{}</strong> активних слайдів з фото "
+            "(усього в базі: {}). Без фото слайд не показується."
+            "</p>"
+            '<p style="margin:0;display:flex;flex-wrap:wrap;gap:8px;">'
+            '<a href="{}" class="button">Усі слайди</a>'
+            '<a href="{}" class="button">+ Додати слайд</a>'
+            "</p>",
+            active_count,
+            slides.count(),
+            slides_url,
+            add_url,
+        )
 
 
 @admin.register(CatalogPage)
