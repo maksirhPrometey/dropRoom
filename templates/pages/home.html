@@ -65,6 +65,8 @@
 </section>
 {% endif %}
 
+{% include "partials/stock_notice.html" with stock_notice_modifier="home" %}
+
 {% if latest_products %}
 <section class="row home-latest" aria-label="Новинки">
   <div class="products home-latest__grid reveal">

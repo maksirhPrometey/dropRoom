@@ -75,6 +75,8 @@
       <div class="detail-preorder" role="note">Під замовлення</div>
     {% endif %}
 
+    {% include "partials/stock_notice.html" with stock_notice_modifier="detail" %}
+
     {% if variants %}
       <div class="size-block">
         <div class="size-label">
