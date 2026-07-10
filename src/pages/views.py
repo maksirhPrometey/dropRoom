@@ -42,12 +42,16 @@ class HomeView(TemplateView):
         )
         ctx["home_categories_count"] = ctx["categories"].count()
 
-        ctx["featured_products"] = (
+        product_qs = (
             Product.objects.filter(is_active=True)
             .select_related("brand", "category")
-            .prefetch_related("images")
-            .order_by("-created_at")[:8]
+            .prefetch_related("images", "variants")
+            .order_by("-created_at")
         )
+        latest_products = list(product_qs[:4])
+        latest_ids = [product.pk for product in latest_products]
+        ctx["latest_products"] = latest_products
+        ctx["featured_products"] = product_qs.exclude(pk__in=latest_ids)[:8]
         ctx["products_count"] = Product.objects.filter(is_active=True).count()
         ctx["subscriber_count"] = NewsletterSubscriber.objects.filter(is_active=True).count()
         return ctx
