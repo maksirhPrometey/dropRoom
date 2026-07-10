@@ -22,7 +22,7 @@ class HomeView(TemplateView):
         ctx["home_page"] = home_page
         ctx["stat_blocks"] = home_page.stat_blocks.all()
         ctx["hero_slides"] = build_hero_slides(
-            home_page.hero_slide_images.order_by("sort_order", "pk")
+            home_page.hero_slides.order_by("sort_order", "pk")
         )
         ctx["hero_slider_autoplay_ms"] = home_page.hero_slider_autoplay_seconds * 1000
         ctx["hero_slider_autoplay_enabled"] = home_page.hero_slider_autoplay_enabled

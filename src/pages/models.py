@@ -70,12 +70,6 @@ class HomePage(SingletonModel):
         help_text="Затримка між слайдами, від 2 до 60 секунд.",
         validators=[MinValueValidator(2), MaxValueValidator(60)],
     )
-    hero_slide_images = models.ManyToManyField(
-        "HeroSlideImage",
-        blank=True,
-        related_name="home_pages",
-        verbose_name="Фото слайдера",
-    )
     editorial_stamp = models.CharField(max_length=100, blank=True)
     editorial_image = models.ImageField(
         upload_to="pages/home/", null=True, blank=True
@@ -100,22 +94,24 @@ class HomePage(SingletonModel):
 
 
 class HeroSlideImage(models.Model):
+    page = models.ForeignKey(
+        HomePage,
+        on_delete=models.CASCADE,
+        related_name="hero_slides",
+    )
     image = models.ImageField(
         upload_to="pages/home/hero/",
         verbose_name="Фото",
-        help_text="Рекомендовано 1800×760 px, landscape.",
     )
-    sort_order = models.PositiveSmallIntegerField(default=0, verbose_name="Порядок")
+    sort_order = models.PositiveSmallIntegerField(default=0, verbose_name="№")
 
     class Meta:
         ordering = ["sort_order", "pk"]
-        verbose_name = "Фото hero"
-        verbose_name_plural = "Фото hero"
+        verbose_name = "Фото слайдера"
+        verbose_name_plural = "Фото слайдера"
 
     def __str__(self) -> str:
-        if self.image:
-            return f"Фото #{self.pk}"
-        return f"Фото #{self.pk} (без файлу)"
+        return f"Слайд {self.sort_order or self.pk}"
 
 
 class StatBlock(models.Model):

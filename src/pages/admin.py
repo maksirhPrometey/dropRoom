@@ -21,17 +21,14 @@ from .models import (
 )
 
 
-@admin.register(HeroSlideImage)
-class HeroSlideImageAdmin(DropRoomModelAdmin):
-    list_display = ["thumb", "sort_order", "id"]
-    list_display_links = ["id"]
-    list_editable = ["sort_order"]
-    ordering = ["sort_order", "pk"]
-    fields = ["image", "sort_order", "image_preview_large"]
-    readonly_fields = ["image_preview_large"]
-
-    thumb = image_preview("image", width=140, height=78)
-    image_preview_large = image_preview("image", width=480, height=220)
+class HeroSlideImageInline(TabularInline):
+    model = HeroSlideImage
+    extra = 1
+    min_num = 0
+    fields = ["sort_order", "image"]
+    ordering = ["sort_order"]
+    verbose_name = "Фото"
+    verbose_name_plural = "Фото слайдера"
 
 
 class StatBlockInline(TabularInline):
@@ -146,9 +143,8 @@ class UtilityBarItemAdmin(DropRoomModelAdmin):
 
 @admin.register(HomePage)
 class HomePageAdmin(SingletonAdminMixin, DropRoomModelAdmin):
-    inlines = [StatBlockInline]
+    inlines = [HeroSlideImageInline, StatBlockInline]
     readonly_fields = ["editorial_preview"]
-    filter_horizontal = ["hero_slide_images"]
     fieldsets = [
         (
             "Hero-слайдер",
@@ -156,11 +152,10 @@ class HomePageAdmin(SingletonAdminMixin, DropRoomModelAdmin):
                 "fields": [
                     "hero_slider_autoplay_enabled",
                     "hero_slider_autoplay_seconds",
-                    "hero_slide_images",
                 ],
                 "description": (
-                    "1. Завантажте фото в «Hero-слайдер → Фото hero» (меню зліва). "
-                    "2. Оберіть їх тут. Порядок — полем «Порядок» у списку фото."
+                    "Фото додавайте в таблиці «Фото слайдера» нижче — "
+                    "лише завантаження файлу та порядок."
                 ),
             },
         ),
