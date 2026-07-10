@@ -233,7 +233,12 @@ a.hs-card { display: block; color: inherit; text-decoration: none; }
 .brands-foot a:hover { text-decoration: underline; }
 
 /* ── Section rows ── */
-section.row { padding: 80px 28px; border-bottom: 1px solid var(--line); }
+section.row {
+  padding: 80px 28px;
+  border-bottom: 1px solid var(--line);
+  max-width: 100%;
+  overflow-x: clip;
+}
 
 .row-head {
   display: grid;
@@ -241,6 +246,8 @@ section.row { padding: 80px 28px; border-bottom: 1px solid var(--line); }
   align-items: end;
   gap: 32px;
   margin-bottom: 40px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .row-head h2 {
@@ -250,6 +257,8 @@ section.row { padding: 80px 28px; border-bottom: 1px solid var(--line); }
   text-transform: uppercase;
   letter-spacing: -.035em;
   line-height: .92;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .row-head h2 .accent { color: var(--accent); }
@@ -543,9 +552,58 @@ section.row { padding: 80px 28px; border-bottom: 1px solid var(--line); }
   .hero-meta { grid-template-columns: 1fr 1fr; font-size: 9.5px; }
   .hero-bottom { grid-template-columns: 1fr; }
   .hero-actions { justify-self: start; }
+
+  section.row {
+    padding: 48px 16px;
+  }
+
+  .row-head {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    align-items: start;
+    margin-bottom: 28px;
+  }
+
+  .row-head h2 {
+    font-size: clamp(28px, 9.5vw, 44px);
+    letter-spacing: -.03em;
+  }
+
+  .row-head .num {
+    padding-bottom: 0;
+  }
+
+  .row-head .all {
+    justify-self: start;
+  }
+
+  .big-mark {
+    padding: 20px 16px 12px;
+    overflow-x: clip;
+  }
+
+  .big-mark .word {
+    font-size: clamp(32px, 13vw, 56px);
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 10px 16px;
+  }
+
+  .big-mark .word .tiny {
+    writing-mode: horizontal-tb;
+    transform: none;
+    font-size: 9px;
+    padding-bottom: 0;
+    letter-spacing: .08em;
+  }
+
   .cats { grid-template-columns: repeat(2, 1fr); }
+  .cat.big { grid-column: span 2; aspect-ratio: 1.35; }
+  .cat.wide { grid-column: span 2; }
+  .cat.big .cat-name { font-size: clamp(28px, 8vw, 40px); }
+
   .countdown { gap: 12px; }
   .countdown .unit { min-width: 64px; }
   .countdown .v { font-size: 48px; }
-  .ed-text { padding: 48px 28px; }
+  .ed-text { padding: 48px 16px; }
 }
