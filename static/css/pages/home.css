@@ -1,19 +1,26 @@
 /* ── Hero slider ── */
 .hero-slider {
   position: relative;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
   border-bottom: 1px solid var(--line);
 }
 
 .hero-slider__viewport {
   position: relative;
-  aspect-ratio: 16 / 10;
+  width: 100%;
+  max-width: 100%;
+  height: min(calc(100vw * 10 / 16), 80svh, 820px);
   background: var(--bg-2);
   overflow: hidden;
+  contain: layout paint;
 }
 
 .hero-slider__track {
   position: absolute;
   inset: 0;
+  overflow: hidden;
 }
 
 .hero-slider__slide {
@@ -21,6 +28,7 @@
   inset: 0;
   opacity: 0;
   visibility: hidden;
+  overflow: hidden;
   transition: opacity .85s var(--ease), visibility .85s var(--ease);
   z-index: 0;
 }
@@ -34,13 +42,16 @@
 .hero-slider__link {
   display: block;
   position: relative;
+  width: 100%;
   height: 100%;
   color: inherit;
+  overflow: hidden;
   -webkit-tap-highlight-color: transparent;
 }
 
 .hero-slider__media {
   margin: 0;
+  width: 100%;
   height: 100%;
   overflow: hidden;
 }
@@ -48,19 +59,20 @@
 .hero-slider__media img {
   width: 100%;
   height: 100%;
+  max-width: 100%;
   object-fit: cover;
-  object-position: center;
+  object-position: center center;
   display: block;
-  transform: scale(1.02);
+  transform: none;
   transition: transform 1.1s var(--ease);
+  -webkit-user-drag: none;
+  user-select: none;
 }
 
-.hero-slider__slide.is-active .hero-slider__media img {
-  transform: scale(1);
-}
-
-.hero-slider__link:hover .hero-slider__media img {
-  transform: scale(1.03);
+@media (hover: hover) and (pointer: fine) {
+  .hero-slider__link:hover .hero-slider__media img {
+    transform: scale(1.02);
+  }
 }
 
 .hero-slider__overlay {
@@ -144,6 +156,7 @@
   align-items: center;
   gap: 8px;
   z-index: 3;
+  max-width: calc(100% - 24px);
   padding: 6px 10px;
   background: rgba(243, 241, 236, .72);
   border: 1px solid var(--line);
@@ -170,17 +183,7 @@
 
 @media (min-width: 900px) {
   .hero-slider__viewport {
-    aspect-ratio: 2.35 / 1;
-  }
-
-  .hero-slider__overlay {
-    padding: 20px 28px 28px;
-  }
-
-  .hero-slider__tag,
-  .hero-slider__cta {
-    font-size: 12px;
-    padding: 12px 18px;
+    height: min(calc(100vw / 2.35), 72svh, 860px);
   }
 
   .hero-slider__dots {
@@ -188,39 +191,30 @@
   }
 
   .hero-slider__arrow--prev {
-    left: 24px;
+    left: max(24px, env(safe-area-inset-left, 0px));
   }
 
   .hero-slider__arrow--next {
-    right: 24px;
+    right: max(24px, env(safe-area-inset-right, 0px));
+  }
+}
+
+@media (min-width: 641px) and (max-width: 899px) {
+  .hero-slider__viewport {
+    height: min(calc(100vw * 10 / 16), 68svh, 640px);
   }
 }
 
 @media (max-width: 640px) {
   .hero-slider__viewport {
-    aspect-ratio: 4 / 5;
-  }
-
-  .hero-slider__overlay {
-    padding: 12px 12px 44px;
-    flex-wrap: wrap;
-  }
-
-  .hero-slider__tag {
-    max-width: calc(100% - 120px);
-    font-size: 10px;
-    padding: 10px 12px;
-  }
-
-  .hero-slider__cta {
-    font-size: 10px;
-    padding: 10px 14px;
+    height: min(calc(100vw * 6 / 5), 68svh, 520px);
   }
 
   .hero-slider__dots {
-    bottom: 10px;
+    bottom: max(10px, env(safe-area-inset-bottom, 0px));
     gap: 6px;
     padding: 5px 8px;
+    max-width: calc(100% - 16px);
   }
 
   .hero-slider__dot {
@@ -233,11 +227,11 @@
   }
 
   .hero-slider__arrow--prev {
-    left: 10px;
+    left: max(8px, env(safe-area-inset-left, 0px));
   }
 
   .hero-slider__arrow--next {
-    right: 10px;
+    right: max(8px, env(safe-area-inset-right, 0px));
   }
 }
 
