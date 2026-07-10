@@ -3,19 +3,17 @@ from __future__ import annotations
 from django.urls import reverse
 
 
-def build_hero_slides(hero_cards) -> list[dict[str, str]]:
-    slides: list[dict[str, str]] = []
+def build_hero_slides(hero_slides) -> list[dict[str, str]]:
     catalog_link = reverse("catalog:list")
+    slides: list[dict[str, str]] = []
 
-    for card in hero_cards:
-        if not card.image:
+    for slide in hero_slides:
+        if not slide.image:
             continue
         slides.append(
             {
-                "image_url": card.image.url,
-                "label": card.label,
-                "cta_text": card.cta_text or "Переглянути",
-                "link": card.get_link() or catalog_link,
+                "image_url": slide.image.url,
+                "link": catalog_link,
             }
         )
 

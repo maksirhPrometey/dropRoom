@@ -1,4 +1,3 @@
-from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
@@ -71,6 +70,12 @@ class HomePage(SingletonModel):
         help_text="Затримка між слайдами, від 2 до 60 секунд.",
         validators=[MinValueValidator(2), MaxValueValidator(60)],
     )
+    hero_slide_images = models.ManyToManyField(
+        "HeroSlideImage",
+        blank=True,
+        related_name="home_pages",
+        verbose_name="Фото слайдера",
+    )
     editorial_stamp = models.CharField(max_length=100, blank=True)
     editorial_image = models.ImageField(
         upload_to="pages/home/", null=True, blank=True
@@ -94,61 +99,23 @@ class HomePage(SingletonModel):
         return "Головна сторінка"
 
 
-class HeroStripCard(models.Model):
-    """Слайд hero-слайдера на головній."""
-
-    page = models.ForeignKey(
-        HomePage, on_delete=models.CASCADE, related_name="hero_cards"
-    )
+class HeroSlideImage(models.Model):
     image = models.ImageField(
         upload_to="pages/home/hero/",
-        null=True,
-        blank=True,
-        help_text="Фото слайда. Рекомендовано 1800×760 px або ширше.",
-    )
-    label = models.CharField(
-        max_length=120,
-        blank=True,
-        help_text="Підпис зліва внизу, напр. Footwear або Jacquemus.",
-    )
-    cta_text = models.CharField(
-        max_length=60,
-        default="Переглянути",
-        verbose_name="Текст кнопки",
-        help_text="Кнопка справа внизу на слайді.",
-    )
-    link = models.CharField(
-        max_length=255,
-        blank=True,
-        help_text="Посилання при кліку, напр. /catalog/?category=sneakers. Порожньо — каталог.",
+        verbose_name="Фото",
+        help_text="Рекомендовано 1800×760 px, landscape.",
     )
     sort_order = models.PositiveSmallIntegerField(default=0, verbose_name="Порядок")
-    is_active = models.BooleanField(default=True, verbose_name="Активний")
 
     class Meta:
-        ordering = ["sort_order"]
-        verbose_name = "Слайд hero"
-        verbose_name_plural = "Hero-слайдер"
+        ordering = ["sort_order", "pk"]
+        verbose_name = "Фото hero"
+        verbose_name_plural = "Фото hero"
 
     def __str__(self) -> str:
-        return self.label or f"Слайд #{self.pk}"
-
-    def get_link(self) -> str:
-        if self.link:
-            return self.link
-        return ""
-
-    def clean(self) -> None:
-        super().clean()
-        if self.is_active:
-            if not self.image:
-                raise ValidationError(
-                    {"image": "Активний слайд потребує фото."}
-                )
-            if not self.label:
-                raise ValidationError(
-                    {"label": "Вкажіть підпис для активного слайда."}
-                )
+        if self.image:
+            return f"Фото #{self.pk}"
+        return f"Фото #{self.pk} (без файлу)"
 
 
 class StatBlock(models.Model):

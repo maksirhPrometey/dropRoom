@@ -25,12 +25,8 @@
                  aria-hidden="{% if forloop.first %}false{% else %}true{% endif %}">
           <a href="{{ slide.link }}" class="hero-slider__link">
             <figure class="hero-slider__media">
-              <img src="{{ slide.image_url }}" alt="{{ slide.label }}" width="1800" height="760"{% if forloop.first %} loading="eager" fetchpriority="high"{% else %} loading="lazy"{% endif %} decoding="async">
+              <img src="{{ slide.image_url }}" alt="" width="1800" height="760"{% if forloop.first %} loading="eager" fetchpriority="high"{% else %} loading="lazy"{% endif %} decoding="async">
             </figure>
-            <div class="hero-slider__overlay">
-              <span class="hero-slider__tag">{{ slide.label }}</span>
-              <span class="hero-slider__cta">{{ slide.cta_text }}</span>
-            </div>
           </a>
         </article>
       {% endfor %}
@@ -62,7 +58,7 @@
                 data-hero-dot
                 role="tab"
                 aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
-                aria-label="Слайд {{ forloop.counter }}: {{ slide.label }}"></button>
+                aria-label="Слайд {{ forloop.counter }}"></button>
       {% endfor %}
     </div>
   {% endif %}

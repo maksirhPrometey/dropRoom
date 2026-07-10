@@ -281,7 +281,7 @@ UNFOLD = {
                     {
                         "title": "Hero-слайдер",
                         "icon": "slideshow",
-                        "link": reverse_lazy("admin:pages_herostripcard_changelist"),
+                        "link": reverse_lazy("admin:pages_heroslideimage_changelist"),
                     },
                     {
                         "title": "Каталог (тексти)",
