@@ -67,13 +67,8 @@
 
 {% if latest_products %}
 <!-- Latest arrivals -->
-<section class="row home-latest">
-  <div class="row-head home-latest__head reveal">
-    <h2>Щойно<br><span class="accent">надійшло</span></h2>
-    <div class="num">— Останні позиції<br>на київському складі</div>
-    <a href="{% url 'catalog:list' %}" class="all">Увесь каталог →</a>
-  </div>
-  <div class="products home-latest__grid">
+<section class="row home-latest" aria-label="Новинки">
+  <div class="products home-latest__grid reveal">
     {% for product in latest_products %}
       <article class="product">
         <a href="{% url 'catalog:detail' product.slug %}" class="product-media">

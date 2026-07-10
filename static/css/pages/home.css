@@ -511,16 +511,8 @@ a.hs-card { display: block; color: inherit; text-decoration: none; }
 
 /* ── Latest arrivals (after hero) ── */
 .home-latest {
-  padding-top: 48px;
-  padding-bottom: 56px;
-}
-
-.home-latest__head {
-  margin-bottom: 32px;
-}
-
-.home-latest__head h2 {
-  font-size: clamp(32px, 4.8vw, 64px);
+  padding-top: 20px;
+  padding-bottom: 48px;
 }
 
 .home-latest__grid {
@@ -859,29 +851,8 @@ section.row {
   }
 
   .home-latest {
-    padding-top: 24px;
-    padding-bottom: 32px;
-  }
-
-  .home-latest__head {
-    grid-template-columns: 1fr;
-    gap: 10px;
-    margin-bottom: 20px;
-  }
-
-  .home-latest__head h2 {
-    font-size: clamp(24px, 7.5vw, 34px);
-    letter-spacing: -.03em;
-    line-height: .95;
-  }
-
-  .home-latest__head .num {
-    font-size: 10px;
-    padding-bottom: 0;
-  }
-
-  .home-latest__head .all {
-    justify-self: start;
+    padding-top: 12px;
+    padding-bottom: 28px;
   }
 
   .home-latest__grid {
