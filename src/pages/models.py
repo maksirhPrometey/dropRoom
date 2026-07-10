@@ -103,7 +103,11 @@ class HeroSlideImage(models.Model):
         upload_to="pages/home/hero/",
         verbose_name="Фото",
     )
-    sort_order = models.PositiveSmallIntegerField(default=0, verbose_name="№")
+    sort_order = models.PositiveSmallIntegerField(
+        default=0,
+        verbose_name="Порядок",
+        help_text="0 = автоматично в кінець списку.",
+    )
 
     class Meta:
         ordering = ["sort_order", "pk"]

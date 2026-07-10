@@ -1,5 +1,7 @@
 from django.contrib import admin
-from unfold.admin import TabularInline
+from django.db.models import Max
+from django.utils.html import format_html
+from unfold.admin import StackedInline, TabularInline
 
 from config.admin_utils import DropRoomModelAdmin, SingletonAdminMixin, image_preview
 
@@ -21,14 +23,26 @@ from .models import (
 )
 
 
-class HeroSlideImageInline(TabularInline):
+class HeroSlideImageInline(StackedInline):
     model = HeroSlideImage
     extra = 1
     min_num = 0
-    fields = ["sort_order", "image"]
+    fields = ["sort_order", "image", "image_preview"]
+    readonly_fields = ["image_preview"]
     ordering = ["sort_order"]
     verbose_name = "Фото"
     verbose_name_plural = "Фото слайдера"
+    classes = ["hero-slide-inline"]
+
+    @admin.display(description="Превʼю")
+    def image_preview(self, obj: HeroSlideImage) -> str:
+        if obj and obj.image:
+            return format_html(
+                '<img src="{}" alt="" width="320" height="auto" '
+                'style="object-fit:cover;border-radius:4px;border:1px solid #d6d2c8;" />',
+                obj.image.url,
+            )
+        return "—"
 
 
 class StatBlockInline(TabularInline):
@@ -36,6 +50,8 @@ class StatBlockInline(TabularInline):
     extra = 0
     fields = ["label", "value", "description", "sort_order"]
     ordering = ["sort_order"]
+    classes = ["collapse"]
+    verbose_name_plural = "Блоки статистики"
 
 
 class StoryPillarInline(TabularInline):
@@ -154,12 +170,16 @@ class HomePageAdmin(SingletonAdminMixin, DropRoomModelAdmin):
                     "hero_slider_autoplay_seconds",
                 ],
                 "description": (
-                    "Фото додавайте в таблиці «Фото слайдера» нижче — "
-                    "лише завантаження файлу та порядок."
+                    "Нижче — блок «Фото слайдера»: натисніть «Додати ще один Фото», "
+                    "завантажте файл і збережіть. Менший «Порядок» = слайд показується раніше. "
+                    "Клік по фото на сайті веде в каталог."
                 ),
             },
         ),
-        ("Головний екран", {"fields": ["hero_blurb"]}),
+        (
+            "Головний екран",
+            {"fields": ["hero_blurb"], "classes": ["collapse"]},
+        ),
         (
             "Editorial-блок",
             {
@@ -173,6 +193,7 @@ class HomePageAdmin(SingletonAdminMixin, DropRoomModelAdmin):
                     "editorial_body_1",
                     "editorial_body_2",
                 ],
+                "classes": ["collapse"],
             },
         ),
         (
@@ -185,11 +206,43 @@ class HomePageAdmin(SingletonAdminMixin, DropRoomModelAdmin):
                     "newsletter_subtext",
                     "newsletter_counter_label",
                 ],
+                "classes": ["collapse"],
             },
         ),
     ]
 
     editorial_preview = image_preview("editorial_image", width=280, height=160)
+
+    def save_formset(self, request, form, formset, change) -> None:
+        instances = formset.save(commit=False)
+        home = form.instance
+
+        for obj in instances:
+            if isinstance(obj, HeroSlideImage):
+                obj.page = home
+                if obj.sort_order == 0:
+                    current_max = (
+                        HeroSlideImage.objects.filter(page=home)
+                        .exclude(pk=obj.pk)
+                        .aggregate(m=Max("sort_order"))
+                        .get("m")
+                        or 0
+                    )
+                    obj.sort_order = current_max + 1
+            obj.save()
+
+        for obj in formset.deleted_objects:
+            obj.delete()
+
+    def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
+        extra_context = extra_context or {}
+        home = HomePage.load()
+        extra_context["subtitle"] = (
+            f"Фото в слайдері: {home.hero_slides.count()}"
+        )
+        return super().changeform_view(
+            request, object_id, form_url, extra_context=extra_context
+        )
 
 
 @admin.register(CatalogPage)

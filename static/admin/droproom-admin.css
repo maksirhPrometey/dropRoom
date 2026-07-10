@@ -22,6 +22,22 @@ fieldset.module h2 {
   height: auto;
 }
 
+/* Hero-слайдер: inline-блок одразу під fieldset */
+.inline-group.hero-slide-inline {
+  margin-top: 0;
+}
+
+.inline-group.hero-slide-inline h2 {
+  font-size: 0.95rem;
+}
+
+.inline-group.hero-slide-inline .stacked {
+  padding: 12px 16px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+
 /* Кольоровий зразок у списку кольорів */
 .admin-color-swatch {
   display: inline-block;

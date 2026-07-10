@@ -274,7 +274,7 @@ UNFOLD = {
                         "link": reverse_lazy("admin:pages_sitesettings_changelist"),
                     },
                     {
-                        "title": "Головна",
+                        "title": "Головна + слайдер",
                         "icon": "home",
                         "link": reverse_lazy("admin:pages_homepage_changelist"),
                     },
