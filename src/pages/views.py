@@ -21,6 +21,11 @@ class HomeView(TemplateView):
         ctx["home_page"] = home_page
         ctx["stat_blocks"] = home_page.stat_blocks.all()
         ctx["hero_cards"] = home_page.hero_cards.filter(is_active=True)
+        hero_cards = ctx["hero_cards"]
+        ctx["hero_banner"] = (
+            hero_cards.exclude(image="").filter(image__isnull=False).first()
+            or hero_cards.first()
+        )
 
         ctx["brands"] = Brand.objects.filter(is_active=True).order_by("name")
         ctx["brands_count"] = ctx["brands"].count()

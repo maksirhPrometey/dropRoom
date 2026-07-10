@@ -12,104 +12,46 @@
 {% block content %}
 
 <!-- Hero -->
-<section class="hero">
-  <div class="hero-meta">
-    {% if latest_drop %}
-      <div><b>Drop {{ latest_drop.number }}</b> · {{ latest_drop.season }}</div>
-      <div>{{ brands_count }} нових брендів · {{ products_count }} позицій</div>
+<section class="hero-min" aria-label="Головний банер">
+  {% if hero_banner %}
+    {% if hero_banner.get_link %}
+      <a href="{{ hero_banner.get_link }}" class="hero-min__link">
     {% else %}
-      <div><b>DropRoom</b> · Концепт-стор</div>
-      <div>25 брендів-партнерів</div>
+      <a href="{% url 'catalog:list' %}" class="hero-min__link">
     {% endif %}
-    {% if site_settings and site_settings.address %}<div>{{ site_settings.address }}</div>{% else %}<div>Київ, вул. Хрещатик 22 · щодня 11–22</div>{% endif %}
-    <div>50.4501° N · 30.5234° E · Live</div>
-  </div>
-
-  <div class="hero-stack">
-    <div class="hero-line">
-      <h1><span class="row"><span>One Room.</span></span></h1>
-    </div>
-    <div class="hero-line">
-      <h1><span class="row"><span><em>Twenty-five</em> brands.</span></span></h1>
-      <span class="marker">{% if latest_drop %}— No. {{ latest_drop.number }} · {{ latest_drop.season }}{% else %}— Multi-brand drops{% endif %}</span>
-    </div>
-    <div class="hero-line">
-      <h1><span class="row"><span><span class="accent">Zero</span> noise.</span></span></h1>
-    </div>
-  </div>
-
-  <div class="hero-bottom">
-    <p class="hero-blurb">
-      <b>DropRoom</b> — мульти-брендовий концепт-стор у самому центрі Києва. Кожні два тижні — новий дроп: ретельно відібрані позиції від Tom Ford до On Running. Усі речі — оригінальні, з гарантією бутіку.
-    </p>
-    <div class="hero-actions">
-      <a href="{% url 'catalog:list' %}" class="btn-primary">
-        Дивитися каталог
-        <span class="arrow">
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5h6M6 2l3 3-3 3"/></svg>
-        </span>
-      </a>
-      <a href="{% url 'catalog:list' %}?drops=true" class="btn-ghost">Архів дропів</a>
-    </div>
-  </div>
-
-  <div class="hero-strip">
-    {% for card in hero_cards %}
-      {% if card.layout == "drop" %}
-        {% if card.get_link %}
-        <a href="{{ card.get_link }}" class="hs-card dark tall">
+      <figure class="hero-min__media">
+        {% if hero_banner.image %}
+          <img src="{{ hero_banner.image.url }}" alt="" width="1600" height="720" loading="eager" decoding="async">
+        {% elif home_page.editorial_image %}
+          <img src="{{ home_page.editorial_image.url }}" alt="" width="1600" height="720" loading="eager" decoding="async">
         {% else %}
-        <div class="hs-card dark tall">
+          <div class="hero-min__fallback" aria-hidden="true"></div>
         {% endif %}
-          {% if card.image %}
-            <div class="hs-img hs-img--photo">
-              <img src="{{ card.image.url }}" alt="" width="800" height="1000">
-            </div>
-          {% else %}
-            <div class="hs-img"></div>
-          {% endif %}
-          <div class="center">
-            <div class="drop-lbl">{{ card.drop_label }}</div>
-            {% if card.use_live_drop and latest_drop %}
-              <div class="drop-num">{{ latest_drop.number }}</div>
-              <div class="drop-sub">
-                {% if latest_drop.scheduled_at %}
-                  {{ latest_drop.scheduled_at|date:"d / m / 'y" }} · {{ latest_drop.scheduled_at|time:"H:i" }}
-                {% endif %}
-              </div>
+        <div class="hero-min__overlay">
+          <span class="hero-min__tag">
+            {% if hero_banner.label %}
+              {{ hero_banner.label }}
+            {% elif hero_banner.layout == "drop" and latest_drop %}
+              Drop {{ latest_drop.number }}
             {% else %}
-              <div class="drop-num">—</div>
-              <div class="drop-sub">Скоро</div>
+              {{ hero_banner.title|striptags }}
             {% endif %}
-          </div>
-        {% if card.get_link %}</a>{% else %}</div>{% endif %}
-      {% else %}
-        {% if card.get_link %}
-        <a href="{{ card.get_link }}" class="hs-card">
-        {% else %}
-        <div class="hs-card">
-        {% endif %}
-          {% if card.image %}
-            <div class="hs-img hs-img--photo">
-              <img src="{{ card.image.url }}" alt="" width="800" height="1000">
-            </div>
-          {% else %}
-            <div class="hs-img"></div>
-          {% endif %}
-          {% if card.label %}<span class="hs-label">{{ card.label }}</span>{% endif %}
-          <div class="hs-foot">
-            <span class="ttl">{{ card.title|safe }}</span>
-            {% if card.meta %}<span class="meta">{{ card.meta|linebreaksbr }}</span>{% endif %}
-          </div>
-        {% if card.get_link %}</a>{% else %}</div>{% endif %}
-      {% endif %}
-    {% empty %}
-      <div class="hs-card">
-        <div class="hs-img"></div>
-        <span class="hs-label">Додайте картки в адмінці → Головна</span>
-      </div>
-    {% endfor %}
-  </div>
+          </span>
+          <span class="hero-min__cta">Переглянути</span>
+        </div>
+      </figure>
+    </a>
+  {% else %}
+    <a href="{% url 'catalog:list' %}" class="hero-min__link">
+      <figure class="hero-min__media">
+        <div class="hero-min__fallback" aria-hidden="true"></div>
+        <div class="hero-min__overlay">
+          <span class="hero-min__tag">DropRoom</span>
+          <span class="hero-min__cta">Переглянути</span>
+        </div>
+      </figure>
+    </a>
+  {% endif %}
 </section>
 
 <!-- Brands strip -->
