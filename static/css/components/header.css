@@ -154,9 +154,13 @@ header {
 
 @media (max-width: 640px) {
   .nav {
-    padding: 12px 14px;
-    gap: 8px;
+    padding: 12px 12px;
+    gap: 6px;
     grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .nav-left {
+    flex-shrink: 0;
   }
 
   .nav-right {
@@ -165,7 +169,7 @@ header {
   }
 
   .wordmark {
-    font-size: clamp(16px, 4.8vw, 20px);
+    font-size: clamp(14px, 4.2vw, 18px);
     justify-content: center;
     min-width: 0;
   }
@@ -258,10 +262,10 @@ header {
 
 @media (max-width: 640px) {
   .burger-btn {
-    padding: 9px 10px;
-    gap: 7px;
-    font-size: 10.5px;
-    letter-spacing: .06em;
+    padding: 8px 9px;
+    gap: 6px;
+    font-size: 10px;
+    letter-spacing: .04em;
   }
 
   .burger-icon {
@@ -274,20 +278,7 @@ header {
   }
 
   .burger-btn__label {
-    max-width: 5.5em;
-    overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
-  }
-}
-
-@media (max-width: 380px) {
-  .burger-btn__label {
-    display: none;
-  }
-
-  .burger-btn {
-    padding: 10px;
   }
 }
 
