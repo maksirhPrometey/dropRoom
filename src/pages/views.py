@@ -13,10 +13,11 @@ class HomeView(TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        from django.db.models import Count, Q
+        from django.db.models import Count, Q, Sum
 
         from src.catalog.models import Brand, Category, Drop, Product
         from src.marketing.models import NewsletterSubscriber
+        from src.orders.models import OrderItem
 
         home_page = HomePage.load()
         ctx["home_page"] = home_page
@@ -46,14 +47,42 @@ class HomeView(TemplateView):
             Product.objects.filter(is_active=True)
             .select_related("brand", "category")
             .prefetch_related("images", "variants")
-            .order_by("-created_at")
         )
-        latest_products = list(product_qs[:4])
-        latest_ids = [product.pk for product in latest_products]
+        latest_products = list(product_qs.order_by("-created_at")[:4])
+        exclude_ids = {product.pk for product in latest_products}
         ctx["latest_products"] = latest_products
-        ctx["featured_products"] = product_qs.exclude(pk__in=latest_ids)[:8]
+
+        popular_ids = list(
+            OrderItem.objects.filter(variant__product__is_active=True)
+            .exclude(variant__product_id__in=exclude_ids)
+            .values("variant__product_id")
+            .annotate(total_sold=Sum("quantity"))
+            .order_by("-total_sold")
+            .values_list("variant__product_id", flat=True)[:12]
+        )
+
+        catalog_products = []
+        if popular_ids:
+            products_by_id = {
+                product.pk: product
+                for product in product_qs.filter(pk__in=popular_ids)
+            }
+            catalog_products = [
+                products_by_id[pk] for pk in popular_ids if pk in products_by_id
+            ]
+
+        if len(catalog_products) < 12:
+            used_ids = exclude_ids | {product.pk for product in catalog_products}
+            backfill = product_qs.exclude(pk__in=used_ids).order_by("-created_at")[
+                : 12 - len(catalog_products)
+            ]
+            catalog_products.extend(backfill)
+
+        ctx["catalog_products"] = catalog_products
         ctx["products_count"] = Product.objects.filter(is_active=True).count()
-        ctx["subscriber_count"] = NewsletterSubscriber.objects.filter(is_active=True).count()
+        ctx["subscriber_count"] = NewsletterSubscriber.objects.filter(
+            is_active=True
+        ).count()
         return ctx
 
 
