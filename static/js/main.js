@@ -6,6 +6,8 @@ import { initGallery } from './modules/gallery.js';
 import { initBurgerMenu } from './modules/burger-menu.js';
 import { initCartModal } from './modules/cart-modal.js';
 
+import { initHeroSlider } from './modules/hero-slider.js';
+
 document.addEventListener('DOMContentLoaded', () => {
   initReveal();
   initCountdown();
@@ -14,4 +16,5 @@ document.addEventListener('DOMContentLoaded', () => {
   initGallery();
   initBurgerMenu();
   initCartModal();
+  initHeroSlider();
 });

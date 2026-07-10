@@ -11,46 +11,43 @@
 
 {% block content %}
 
-<!-- Hero -->
-<section class="hero-min" aria-label="Головний банер">
-  {% if hero_banner %}
-    {% if hero_banner.get_link %}
-      <a href="{{ hero_banner.get_link }}" class="hero-min__link">
-    {% else %}
-      <a href="{% url 'catalog:list' %}" class="hero-min__link">
-    {% endif %}
-      <figure class="hero-min__media">
-        {% if hero_banner.image %}
-          <img src="{{ hero_banner.image.url }}" alt="" width="1600" height="720" loading="eager" decoding="async">
-        {% elif home_page.editorial_image %}
-          <img src="{{ home_page.editorial_image.url }}" alt="" width="1600" height="720" loading="eager" decoding="async">
-        {% else %}
-          <div class="hero-min__fallback" aria-hidden="true"></div>
-        {% endif %}
-        <div class="hero-min__overlay">
-          <span class="hero-min__tag">
-            {% if hero_banner.label %}
-              {{ hero_banner.label }}
-            {% elif hero_banner.layout == "drop" and latest_drop %}
-              Drop {{ latest_drop.number }}
-            {% else %}
-              {{ hero_banner.title|striptags }}
-            {% endif %}
-          </span>
-          <span class="hero-min__cta">Переглянути</span>
-        </div>
-      </figure>
-    </a>
-  {% else %}
-    <a href="{% url 'catalog:list' %}" class="hero-min__link">
-      <figure class="hero-min__media">
-        <div class="hero-min__fallback" aria-hidden="true"></div>
-        <div class="hero-min__overlay">
-          <span class="hero-min__tag">DropRoom</span>
-          <span class="hero-min__cta">Переглянути</span>
-        </div>
-      </figure>
-    </a>
+<!-- Hero slider -->
+<section class="hero-slider" aria-label="Головний банер" data-hero-slider data-autoplay="5500">
+  <div class="hero-slider__viewport">
+    <div class="hero-slider__track">
+      {% for slide in hero_slides %}
+        <article class="hero-slider__slide{% if forloop.first %} is-active{% endif %}"
+                 data-hero-slide
+                 aria-hidden="{% if forloop.first %}false{% else %}true{% endif %}">
+          <a href="{{ slide.link }}" class="hero-slider__link">
+            <figure class="hero-slider__media">
+              {% if slide.image_url %}
+                <img src="{{ slide.image_url }}" alt="{{ slide.label }}" width="1800" height="760"{% if forloop.first %} loading="eager" fetchpriority="high"{% else %} loading="lazy"{% endif %} decoding="async">
+              {% else %}
+                <img src="{% static slide.static_image %}" alt="{{ slide.label }}" width="1800" height="760"{% if forloop.first %} loading="eager" fetchpriority="high"{% else %} loading="lazy"{% endif %} decoding="async">
+              {% endif %}
+            </figure>
+            <div class="hero-slider__overlay">
+              <span class="hero-slider__tag">{{ slide.label }}</span>
+              <span class="hero-slider__cta">Переглянути</span>
+            </div>
+          </a>
+        </article>
+      {% endfor %}
+    </div>
+  </div>
+
+  {% if hero_slides|length > 1 %}
+    <div class="hero-slider__dots" role="tablist" aria-label="Слайди банера">
+      {% for slide in hero_slides %}
+        <button type="button"
+                class="hero-slider__dot{% if forloop.first %} is-active{% endif %}"
+                data-hero-dot
+                role="tab"
+                aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+                aria-label="Слайд {{ forloop.counter }}: {{ slide.label }}"></button>
+      {% endfor %}
+    </div>
   {% endif %}
 </section>
 

@@ -4,6 +4,7 @@ from django.shortcuts import render
 from django.views.generic import FormView, TemplateView
 
 from .forms import ContactForm
+from .hero_slides import build_hero_slides
 from .models import ContactsPage, HomePage, StoryPage
 
 
@@ -21,11 +22,8 @@ class HomeView(TemplateView):
         ctx["home_page"] = home_page
         ctx["stat_blocks"] = home_page.stat_blocks.all()
         ctx["hero_cards"] = home_page.hero_cards.filter(is_active=True)
-        hero_cards = ctx["hero_cards"]
-        ctx["hero_banner"] = (
-            hero_cards.exclude(image="").filter(image__isnull=False).first()
-            or hero_cards.first()
-        )
+        ctx["latest_drop"] = Drop.objects.order_by("-number").first()
+        ctx["hero_slides"] = build_hero_slides(ctx["hero_cards"], ctx["latest_drop"])
 
         ctx["brands"] = Brand.objects.filter(is_active=True).order_by("name")
         ctx["brands_count"] = ctx["brands"].count()
@@ -40,8 +38,6 @@ class HomeView(TemplateView):
             .order_by("sort_order", "name")[:6]
         )
         ctx["home_categories_count"] = ctx["categories"].count()
-
-        ctx["latest_drop"] = Drop.objects.order_by("-number").first()
 
         ctx["featured_products"] = (
             Product.objects.filter(is_active=True)
