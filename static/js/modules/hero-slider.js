@@ -12,7 +12,7 @@ export function initHeroSlider() {
   let index = 0;
   let timer = null;
   let resumeTimer = null;
-  const interval = Number(root.dataset.autoplay) || 5000;
+  const interval = Number(root.dataset.autoplay) || 3000;
   const manualPauseMs = 10000;
   const canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
