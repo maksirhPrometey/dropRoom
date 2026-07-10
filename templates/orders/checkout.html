@@ -148,6 +148,16 @@
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 6h8M6 2l4 4-4 4"/></svg>
           </span>
         </button>
+
+        <div class="checkout-sticky">
+          <div class="checkout-sticky__info">
+            <span class="checkout-sticky__label">До сплати</span>
+            <span class="checkout-sticky__total">{{ order_total|floatformat:"0" }} ₴</span>
+          </div>
+          <button type="submit" class="checkout-sticky__btn">
+            Підтвердити
+          </button>
+        </div>
       </form>
     </div>
 
@@ -186,16 +196,6 @@
         </div>
       </details>
     </aside>
-  </div>
-
-  <div class="checkout-sticky">
-    <div class="checkout-sticky__info">
-      <span class="checkout-sticky__label">До сплати</span>
-      <span class="checkout-sticky__total">{{ order_total|floatformat:"0" }} ₴</span>
-    </div>
-    <button type="submit" form="checkout-form" class="checkout-sticky__btn">
-      Підтвердити
-    </button>
   </div>
 </div>
 {% endblock %}

@@ -19,14 +19,16 @@ fuser -k 80/tcp 2>/dev/null || true
 fuser -k 443/tcp 2>/dev/null || true
 
 echo "==> Building and starting containers..."
-docker compose -f "$COMPOSE_FILE" up -d --build --remove-orphans
+docker compose -f "$COMPOSE_FILE" up -d --build --remove-orphans --force-recreate nginx web
 
 echo "==> Waiting for web service..."
 sleep 8
 
 HEALTHY=0
 for i in $(seq 1 15); do
-    if curl -sfL http://127.0.0.1/healthz/ > /dev/null || curl -sfk https://127.0.0.1/healthz/ > /dev/null; then
+    if docker compose -f "$COMPOSE_FILE" exec -T web python -c \
+        "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz/', timeout=5)" \
+        > /dev/null 2>&1; then
         echo "==> Healthcheck OK"
         HEALTHY=1
         break

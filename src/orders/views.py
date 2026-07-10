@@ -4,7 +4,9 @@ import logging
 from django.contrib import messages
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.decorators import method_decorator
 from django.views import View
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.generic import TemplateView
 
 from .models import Cart, CartItem, Order, OrderItem, PromoCode
@@ -170,6 +172,7 @@ class CartPromoView(View):
         return redirect("orders:cart")
 
 
+@method_decorator(ensure_csrf_cookie, name="dispatch")
 class CheckoutView(View):
     template_name = "orders/checkout.html"
 
