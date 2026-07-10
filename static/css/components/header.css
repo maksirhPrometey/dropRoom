@@ -202,12 +202,29 @@ header {
 .burger-btn {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  font-size: 12.5px;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: .04em;
   text-transform: uppercase;
   cursor: pointer;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  transition: background .25s var(--ease), color .25s var(--ease), border-color .25s var(--ease);
+  -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
+}
+
+.burger-btn:hover {
+  border-color: var(--ink);
+  background: var(--bg-2);
+}
+
+.burger-btn[aria-expanded="true"] {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
 }
 
 .burger-icon {
@@ -215,14 +232,15 @@ header {
   flex-direction: column;
   justify-content: center;
   gap: 4px;
-  width: 18px;
+  width: 16px;
+  flex: none;
 }
 
 .burger-icon span {
   display: block;
   height: 1.5px;
   width: 100%;
-  background: var(--ink);
+  background: currentColor;
   transition: transform .25s var(--ease), opacity .2s var(--ease);
 }
 
@@ -239,8 +257,37 @@ header {
 }
 
 @media (max-width: 640px) {
-  .burger-btn span:not(.burger-icon) {
+  .burger-btn {
+    padding: 9px 10px;
+    gap: 7px;
+    font-size: 10.5px;
+    letter-spacing: .06em;
+  }
+
+  .burger-icon {
+    width: 14px;
+    gap: 3px;
+  }
+
+  .burger-icon span {
+    height: 1.6px;
+  }
+
+  .burger-btn__label {
+    max-width: 5.5em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 380px) {
+  .burger-btn__label {
     display: none;
+  }
+
+  .burger-btn {
+    padding: 10px;
   }
 }
 
