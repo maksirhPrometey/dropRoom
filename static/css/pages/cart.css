@@ -7,6 +7,9 @@
   align-items: center;
   gap: 32px;
   flex-wrap: wrap;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: clip;
 }
 
 .stepbar .title {
@@ -28,6 +31,8 @@
   font-size: 11px;
   letter-spacing: .14em;
   text-transform: uppercase;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .step {
@@ -1018,26 +1023,33 @@ aside.summary {
 }
 
 @media (max-width: 768px) {
+  .crumbs {
+    padding: 16px 20px 0;
+  }
+
   .stepbar {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
     padding: 20px;
     gap: 16px;
+    overflow-x: clip;
   }
 
   .stepbar .title {
-    font-size: clamp(32px, 10vw, 48px);
+    font-size: clamp(28px, 9vw, 48px);
+    max-width: 100%;
+    overflow-wrap: anywhere;
   }
 
   .steps {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
     width: 100%;
     max-width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
-    flex-wrap: nowrap;
-    padding-bottom: 4px;
-    mask-image: linear-gradient(90deg, #000 92%, transparent);
+    overflow-x: visible;
+    mask-image: none;
+    -webkit-mask-image: none;
   }
 
   .steps .arrow {
@@ -1045,9 +1057,39 @@ aside.summary {
   }
 
   .step {
-    flex-shrink: 0;
-    padding: 8px 12px;
-    font-size: 10px;
+    flex-shrink: 1;
+    min-width: 0;
+    justify-content: center;
+    padding: 10px 6px;
+    font-size: 9px;
+    letter-spacing: .08em;
+    text-align: center;
+  }
+
+  .step .step-label {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .cart-layout,
+  #cart-body.layout,
+  .layout#cart-body {
+    padding: 20px 16px 60px;
+    gap: 20px;
+    min-width: 0;
+  }
+
+  .deliv {
+    padding: 16px 20px;
+    gap: 14px;
+  }
+
+  .deliv > a {
+    white-space: normal;
+    text-align: center;
+    justify-self: start;
   }
 
   .checkout-page__crumbs {
@@ -1221,6 +1263,19 @@ aside.summary {
 }
 
 @media (max-width: 480px) {
+  .step .step-label {
+    display: none;
+  }
+
+  .step .n {
+    opacity: 1;
+  }
+
+  .step {
+    padding: 12px 4px;
+    font-size: 10px;
+  }
+
   .checkout-page .step .step-label {
     display: none;
   }
@@ -1265,15 +1320,88 @@ aside.summary {
 
 @media (max-width: 640px) {
   .items-head { display: none; }
+
+  .items {
+    min-width: 0;
+    overflow: hidden;
+  }
+
   .item,
   .cart-item {
-    grid-template-columns: 80px 1fr;
-    gap: 16px;
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: 12px;
+    padding: 20px 0;
+    min-width: 0;
   }
+
+  .item .ph-link {
+    grid-column: 1;
+    grid-row: 1 / -1;
+    width: 72px;
+    min-width: 72px;
+    align-self: start;
+  }
+
+  .item .ph,
+  .cart-item .ph {
+    width: 72px;
+    aspect-ratio: .78;
+  }
+
+  .item .body {
+    grid-column: 2;
+    min-width: 0;
+  }
+
+  .item .name {
+    font-size: 16px;
+    overflow-wrap: anywhere;
+  }
+
+  .item .sub {
+    overflow-wrap: anywhere;
+  }
+
   .item .qty,
   .item .stock,
   .item .price,
-  .item form { grid-column: 2; }
-  .item .price { text-align: left; }
-  .deliv { grid-template-columns: 1fr; }
+  .item form {
+    grid-column: 2;
+    min-width: 0;
+  }
+
+  .item .stock {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    padding-top: 4px;
+  }
+
+  .item .price {
+    text-align: left;
+    white-space: normal;
+  }
+
+  .item .meta {
+    flex-wrap: wrap;
+  }
+
+  .deliv {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+
+  aside.summary {
+    padding: 20px 16px;
+    min-width: 0;
+  }
+
+  .promo {
+    min-width: 0;
+  }
+
+  .promo button {
+    padding: 0 12px;
+    font-size: 9px;
+    letter-spacing: .1em;
+  }
 }
