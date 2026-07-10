@@ -6,6 +6,31 @@ DEBUG = False
 
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", cast=Csv())
 
+
+def _csrf_trusted_origins() -> list[str]:
+    """Build trusted origins from env + ALLOWED_HOSTS (HTTPS on prod)."""
+    origins: list[str] = []
+    raw = config("CSRF_TRUSTED_ORIGINS", default="")
+    if raw:
+        origins.extend(s.strip() for s in raw.split(",") if s.strip())
+
+    local_hosts = {"localhost", "127.0.0.1", "web", "0.0.0.0"}
+    for host in ALLOWED_HOSTS:
+        if host in local_hosts:
+            origins.append(f"http://{host}")
+            continue
+        if host.replace(".", "").isdigit():
+            origins.extend((f"http://{host}", f"https://{host}"))
+            continue
+        origins.append(f"https://{host}")
+        if not host.startswith("www."):
+            origins.append(f"https://www.{host}")
+
+    return list(dict.fromkeys(origins))
+
+
+CSRF_TRUSTED_ORIGINS = _csrf_trusted_origins()
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -25,17 +50,13 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 USE_X_FORWARDED_HOST = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
-SESSION_COOKIE_SAMESITE = "Strict"
-CSRF_COOKIE_SAMESITE = "Strict"
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
 
-CSRF_TRUSTED_ORIGINS = config(
-    "CSRF_TRUSTED_ORIGINS",
-    default="",
-    cast=lambda v: [s.strip() for s in v.split(",") if s.strip()],
-)
+# CSRF_TRUSTED_ORIGINS is built in _csrf_trusted_origins() above.
 
 # WhiteNoise removed — static served by nginx from /app/staticfiles
 MIDDLEWARE = [
