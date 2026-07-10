@@ -38,6 +38,23 @@
   </div>
 
   {% if hero_slides|length > 1 %}
+    <button type="button"
+            class="hero-slider__arrow hero-slider__arrow--prev"
+            data-hero-prev
+            aria-label="Попередній слайд">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+        <path d="M10 3L5 8l5 5"/>
+      </svg>
+    </button>
+    <button type="button"
+            class="hero-slider__arrow hero-slider__arrow--next"
+            data-hero-next
+            aria-label="Наступний слайд">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+        <path d="M6 3l5 5-5 5"/>
+      </svg>
+    </button>
+
     <div class="hero-slider__dots" role="tablist" aria-label="Слайди банера">
       {% for slide in hero_slides %}
         <button type="button"

@@ -3,13 +3,18 @@ export function initHeroSlider() {
   if (!root) return;
 
   const slides = [...root.querySelectorAll('[data-hero-slide]')];
-  const dots = [...root.querySelectorAll('[data-hero-dot]')];
   if (slides.length < 2) return;
+
+  const dots = [...root.querySelectorAll('[data-hero-dot]')];
+  const prevBtn = root.querySelector('[data-hero-prev]');
+  const nextBtn = root.querySelector('[data-hero-next]');
 
   let index = 0;
   let timer = null;
-  const interval = Number(root.dataset.autoplay) || 5500;
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let resumeTimer = null;
+  const interval = Number(root.dataset.autoplay) || 5000;
+  const manualPauseMs = 10000;
+  const canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
   function goTo(nextIndex) {
     index = (nextIndex + slides.length) % slides.length;
@@ -27,44 +32,77 @@ export function initHeroSlider() {
     });
   }
 
-  function next() {
-    goTo(index + 1);
-  }
-
-  function stop() {
+  function stopAutoplay() {
     if (timer !== null) {
-      window.clearInterval(timer);
+      window.clearTimeout(timer);
       timer = null;
     }
   }
 
-  function start() {
-    if (reducedMotion || root.dataset.paused === 'true') return;
-    stop();
-    timer = window.setInterval(next, interval);
+  function scheduleAutoplay() {
+    stopAutoplay();
+    timer = window.setTimeout(() => {
+      goTo(index + 1);
+      scheduleAutoplay();
+    }, interval);
   }
 
+  function pauseAfterManual() {
+    stopAutoplay();
+    if (resumeTimer !== null) {
+      window.clearTimeout(resumeTimer);
+    }
+    resumeTimer = window.setTimeout(scheduleAutoplay, manualPauseMs);
+  }
+
+  function prev() {
+    goTo(index - 1);
+    pauseAfterManual();
+  }
+
+  function next() {
+    goTo(index + 1);
+    pauseAfterManual();
+  }
+
+  prevBtn?.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    prev();
+  });
+
+  nextBtn?.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    next();
+  });
+
   dots.forEach((dot, n) => {
-    dot.addEventListener('click', () => {
+    dot.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
       goTo(n);
-      start();
+      pauseAfterManual();
     });
   });
 
-  root.addEventListener('mouseenter', stop);
-  root.addEventListener('mouseleave', start);
-  root.addEventListener('focusin', stop);
-  root.addEventListener('focusout', start);
-  root.addEventListener('touchstart', stop, { passive: true });
-  root.addEventListener('touchend', () => {
-    window.setTimeout(start, 3500);
-  }, { passive: true });
+  if (canHover) {
+    root.addEventListener('mouseenter', stopAutoplay);
+    root.addEventListener('mouseleave', scheduleAutoplay);
+  }
 
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) stop();
-    else start();
+    if (document.hidden) {
+      stopAutoplay();
+      return;
+    }
+    scheduleAutoplay();
+  });
+
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) scheduleAutoplay();
   });
 
   goTo(0);
-  start();
+  scheduleAutoplay();
 }
