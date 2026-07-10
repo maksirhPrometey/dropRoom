@@ -2,6 +2,12 @@
 <header>
   <nav class="nav">
     <div class="nav-left">
+      <div class="nav-desktop">
+        <a href="/" class="link {% block nav_home %}{% endblock %}">Магазин</a>
+        <a href="{% url 'catalog:list' %}" class="link {% block nav_catalog %}{% endblock %}">Каталог</a>
+        <a href="{% url 'catalog:list' %}?brands=true" class="link">Бренди</a>
+        <a href="{% url 'pages:story' %}" class="link {% block nav_story %}{% endblock %}">Про нас</a>
+      </div>
       <button type="button" class="burger-btn" id="burger-toggle"
               aria-expanded="false" aria-controls="burger-menu"
               aria-label="Меню магазину">
