@@ -12,8 +12,9 @@ export function initHeroSlider() {
   let index = 0;
   let timer = null;
   let resumeTimer = null;
+  const autoplayEnabled = root.dataset.autoplayEnabled !== 'false';
   const interval = Number(root.dataset.autoplay) || 3000;
-  const manualPauseMs = 10000;
+  const manualPauseMs = Math.max(interval * 2, 6000);
   const canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
   function goTo(nextIndex) {
@@ -40,6 +41,7 @@ export function initHeroSlider() {
   }
 
   function scheduleAutoplay() {
+    if (!autoplayEnabled || interval <= 0) return;
     stopAutoplay();
     timer = window.setTimeout(() => {
       goTo(index + 1);
@@ -48,6 +50,7 @@ export function initHeroSlider() {
   }
 
   function pauseAfterManual() {
+    if (!autoplayEnabled || interval <= 0) return;
     stopAutoplay();
     if (resumeTimer !== null) {
       window.clearTimeout(resumeTimer);

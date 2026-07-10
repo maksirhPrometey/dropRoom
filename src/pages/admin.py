@@ -23,36 +23,18 @@ from .models import (
 
 class HeroStripCardInline(StackedInline):
     model = HeroStripCard
-    extra = 0
+    extra = 1
     ordering = ["sort_order"]
-    fieldsets = [
-        (
-            None,
-            {
-                "fields": [
-                    "sort_order",
-                    "layout",
-                    "is_active",
-                    "image",
-                    "label",
-                    "title",
-                    "meta",
-                    "link",
-                ],
-                "description": (
-                    "Завантажте «image» — це фото на всю картку. "
-                    "У заголовку можна перенос: Outerwear /<br>Spring Layers"
-                ),
-            },
-        ),
-        (
-            "Тільки для типу «Дроп»",
-            {
-                "fields": ["use_live_drop", "drop_label"],
-                "classes": ["collapse"],
-            },
-        ),
+    fields = [
+        "sort_order",
+        "is_active",
+        "image",
+        "label",
+        "cta_text",
+        "link",
     ]
+    verbose_name = "Слайд"
+    verbose_name_plural = "Слайди hero"
 
 
 class StatBlockInline(TabularInline):
@@ -170,6 +152,19 @@ class HomePageAdmin(SingletonAdminMixin, DropRoomModelAdmin):
     inlines = [HeroStripCardInline, StatBlockInline]
     readonly_fields = ["editorial_preview"]
     fieldsets = [
+        (
+            "Hero-слайдер",
+            {
+                "fields": [
+                    "hero_slider_autoplay_enabled",
+                    "hero_slider_autoplay_seconds",
+                ],
+                "description": (
+                    "Автопрокрут і швидкість. Слайди (фото, підпис, кнопка, посилання) "
+                    "— у блоці «Слайди hero» нижче. Показуються лише активні слайди з фото."
+                ),
+            },
+        ),
         ("Головний екран", {"fields": ["hero_blurb"]}),
         (
             "Editorial-блок",

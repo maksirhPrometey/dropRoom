@@ -22,9 +22,11 @@ class HomeView(TemplateView):
         ctx["home_page"] = home_page
         ctx["stat_blocks"] = home_page.stat_blocks.all()
         ctx["hero_cards"] = home_page.hero_cards.filter(is_active=True)
-        ctx["latest_drop"] = Drop.objects.order_by("-number").first()
-        ctx["hero_slides"] = build_hero_slides(ctx["hero_cards"], ctx["latest_drop"])
+        ctx["hero_slides"] = build_hero_slides(ctx["hero_cards"])
+        ctx["hero_slider_autoplay_ms"] = home_page.hero_slider_autoplay_seconds * 1000
+        ctx["hero_slider_autoplay_enabled"] = home_page.hero_slider_autoplay_enabled
 
+        ctx["latest_drop"] = Drop.objects.order_by("-number").first()
         ctx["brands"] = Brand.objects.filter(is_active=True).order_by("name")
         ctx["brands_count"] = ctx["brands"].count()
 

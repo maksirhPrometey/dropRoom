@@ -1,3 +1,5 @@
+from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 
@@ -58,6 +60,17 @@ class UtilityBarItem(models.Model):
 
 class HomePage(SingletonModel):
     hero_blurb = models.TextField(blank=True)
+    hero_slider_autoplay_enabled = models.BooleanField(
+        default=True,
+        verbose_name="Автопрокрут",
+        help_text="Увімкнути автоматичне гортання слайдів.",
+    )
+    hero_slider_autoplay_seconds = models.PositiveSmallIntegerField(
+        default=3,
+        verbose_name="Інтервал автопрокруту (сек)",
+        help_text="Затримка між слайдами, від 2 до 60 секунд.",
+        validators=[MinValueValidator(2), MaxValueValidator(60)],
+    )
     editorial_stamp = models.CharField(max_length=100, blank=True)
     editorial_image = models.ImageField(
         upload_to="pages/home/", null=True, blank=True
@@ -82,68 +95,60 @@ class HomePage(SingletonModel):
 
 
 class HeroStripCard(models.Model):
-    """Три (або більше) візуальні картки під hero на головній."""
-
-    LAYOUT_CATEGORY = "category"
-    LAYOUT_DROP = "drop"
-    LAYOUT_CHOICES = [
-        (LAYOUT_CATEGORY, "Категорія (світла)"),
-        (LAYOUT_DROP, "Дроп (темна, по центру)"),
-    ]
+    """Слайд hero-слайдера на головній."""
 
     page = models.ForeignKey(
         HomePage, on_delete=models.CASCADE, related_name="hero_cards"
-    )
-    layout = models.CharField(
-        max_length=20, choices=LAYOUT_CHOICES, default=LAYOUT_CATEGORY
     )
     image = models.ImageField(
         upload_to="pages/home/hero/",
         null=True,
         blank=True,
-        help_text="Фото для фону картки. Без файлу — нейтральний фон.",
+        help_text="Фото слайда. Рекомендовано 1800×760 px або ширше.",
     )
     label = models.CharField(
         max_length=120,
         blank=True,
-        help_text="Плашка зверху, напр. FIGURE · COAT · STUDIO",
+        help_text="Підпис зліва внизу, напр. Footwear або Jacquemus.",
     )
-    title = models.CharField(
-        max_length=200,
-        help_text="Заголовок внизу. Перенос рядка: Outerwear /<br>Spring Layers",
-    )
-    meta = models.CharField(
-        max_length=200,
-        blank=True,
-        help_text="Статистика справа внизу. Два рядки через Enter.",
+    cta_text = models.CharField(
+        max_length=60,
+        default="Переглянути",
+        verbose_name="Текст кнопки",
+        help_text="Кнопка справа внизу на слайді.",
     )
     link = models.CharField(
         max_length=255,
         blank=True,
-        help_text="Посилання, напр. /catalog/?category=sneakers або порожньо",
+        help_text="Посилання при кліку, напр. /catalog/?category=sneakers. Порожньо — каталог.",
     )
-    use_live_drop = models.BooleanField(
-        default=True,
-        help_text="Для типу «Дроп»: номер і дата з актуального Drop у каталозі.",
-    )
-    drop_label = models.CharField(
-        max_length=60, default="— Drop No.", blank=True
-    )
-    sort_order = models.PositiveSmallIntegerField(default=0)
-    is_active = models.BooleanField(default=True)
+    sort_order = models.PositiveSmallIntegerField(default=0, verbose_name="Порядок")
+    is_active = models.BooleanField(default=True, verbose_name="Активний")
 
     class Meta:
         ordering = ["sort_order"]
-        verbose_name = "Картка hero"
-        verbose_name_plural = "Картки hero (під заголовком)"
+        verbose_name = "Слайд hero"
+        verbose_name_plural = "Слайди hero"
 
     def __str__(self) -> str:
-        return self.title or self.label or f"Картка #{self.pk}"
+        return self.label or f"Слайд #{self.pk}"
 
     def get_link(self) -> str:
         if self.link:
             return self.link
         return ""
+
+    def clean(self) -> None:
+        super().clean()
+        if self.is_active:
+            if not self.image:
+                raise ValidationError(
+                    {"image": "Активний слайд потребує фото."}
+                )
+            if not self.label:
+                raise ValidationError(
+                    {"label": "Вкажіть підпис для активного слайда."}
+                )
 
 
 class StatBlock(models.Model):

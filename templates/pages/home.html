@@ -11,8 +11,12 @@
 
 {% block content %}
 
+{% if hero_slides %}
 <!-- Hero slider -->
-<section class="hero-slider" aria-label="Головний банер" data-hero-slider data-autoplay="3000">
+<section class="hero-slider" aria-label="Головний банер"
+         data-hero-slider
+         data-autoplay="{{ hero_slider_autoplay_ms }}"
+         data-autoplay-enabled="{% if hero_slider_autoplay_enabled %}true{% else %}false{% endif %}">
   <div class="hero-slider__viewport">
     <div class="hero-slider__track">
       {% for slide in hero_slides %}
@@ -21,15 +25,11 @@
                  aria-hidden="{% if forloop.first %}false{% else %}true{% endif %}">
           <a href="{{ slide.link }}" class="hero-slider__link">
             <figure class="hero-slider__media">
-              {% if slide.image_url %}
-                <img src="{{ slide.image_url }}" alt="{{ slide.label }}" width="1800" height="760"{% if forloop.first %} loading="eager" fetchpriority="high"{% else %} loading="lazy"{% endif %} decoding="async">
-              {% else %}
-                <img src="{% static slide.static_image %}" alt="{{ slide.label }}" width="1800" height="760"{% if forloop.first %} loading="eager" fetchpriority="high"{% else %} loading="lazy"{% endif %} decoding="async">
-              {% endif %}
+              <img src="{{ slide.image_url }}" alt="{{ slide.label }}" width="1800" height="760"{% if forloop.first %} loading="eager" fetchpriority="high"{% else %} loading="lazy"{% endif %} decoding="async">
             </figure>
             <div class="hero-slider__overlay">
               <span class="hero-slider__tag">{{ slide.label }}</span>
-              <span class="hero-slider__cta">Переглянути</span>
+              <span class="hero-slider__cta">{{ slide.cta_text }}</span>
             </div>
           </a>
         </article>
@@ -67,6 +67,7 @@
     </div>
   {% endif %}
 </section>
+{% endif %}
 
 <!-- Brands strip -->
 <section class="brands">
