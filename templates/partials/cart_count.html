@@ -1,5 +1,1 @@
-{% load static %}
-<a href="{% url 'orders:cart' %}" class="cart-pill" id="cart-count"
-   hx-get="{% url 'orders:cart_count' %}" hx-trigger="every 60s" hx-swap="outerHTML">
-  Кошик <span class="n">{{ cart_count|default:"0" }}</span>
-</a>
+{% include "partials/cart_pill.html" %}
