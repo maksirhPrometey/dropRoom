@@ -1,7 +1,9 @@
-/* ── Home fold: hero + peek of products on first screen ── */
+/* ── Home fold: hero + promo + notice + peek of products ── */
 :root {
   --home-top-chrome: calc(30px + 64px);
-  --home-product-peek: 152px;
+  --home-promo-stack: 84px;
+  --home-stock-stack: 92px;
+  --home-product-peek: 148px;
 }
 
 /* ── Hero slider ── */
@@ -20,9 +22,15 @@
   width: 100%;
   max-width: 100%;
   height: clamp(
-    280px,
-    calc(100svh - var(--home-top-chrome) - var(--home-product-peek)),
-    580px
+    260px,
+    calc(
+      100svh
+      - var(--home-top-chrome)
+      - var(--home-promo-stack)
+      - var(--home-stock-stack)
+      - var(--home-product-peek)
+    ),
+    520px
   );
   background: var(--bg-2);
   overflow: hidden;
@@ -375,14 +383,22 @@
 @media (max-width: 640px) {
   :root {
     --home-top-chrome: calc(30px + 56px);
-    --home-product-peek: 118px;
+    --home-promo-stack: 210px;
+    --home-stock-stack: 108px;
+    --home-product-peek: 96px;
   }
 
   .hero-slider__viewport {
     height: clamp(
-      240px,
-      calc(100svh - var(--home-top-chrome) - var(--home-product-peek)),
-      400px
+      220px,
+      calc(
+        100svh
+        - var(--home-top-chrome)
+        - var(--home-promo-stack)
+        - var(--home-stock-stack)
+        - var(--home-product-peek)
+      ),
+      360px
     );
   }
 

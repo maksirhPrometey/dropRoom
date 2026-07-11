@@ -108,6 +108,11 @@
   </div>
 </section>
 
+{% include "partials/hero_promo_strip.html" %}
+{% endif %}
+
+{% include "partials/stock_notice.html" with stock_notice_modifier="home" %}
+
 {% if latest_products %}
 <section class="row home-latest" aria-label="Новинки">
   <div class="products home-latest__grid reveal">
@@ -117,11 +122,6 @@
   </div>
 </section>
 {% endif %}
-
-{% include "partials/hero_promo_strip.html" %}
-{% endif %}
-
-{% include "partials/stock_notice.html" with stock_notice_modifier="home" %}
 
 {% if catalog_products %}
 <section class="row home-catalog" aria-label="Каталог">
