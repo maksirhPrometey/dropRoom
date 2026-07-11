@@ -27,6 +27,7 @@ class HomeView(TemplateView):
         )
         ctx["hero_slider_autoplay_ms"] = home_page.hero_slider_autoplay_seconds * 1000
         ctx["hero_slider_autoplay_enabled"] = home_page.hero_slider_autoplay_enabled
+        ctx["hero_promos"] = home_page.hero_promos.all()[:3]
 
         ctx["latest_drop"] = Drop.objects.order_by("-number").first()
         ctx["brands"] = Brand.objects.filter(is_active=True).order_by("name")

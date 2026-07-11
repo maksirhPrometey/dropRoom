@@ -108,14 +108,93 @@ class HeroSlideImage(models.Model):
         verbose_name="Порядок",
         help_text="0 = автоматично в кінець списку.",
     )
+    eyebrow = models.CharField(
+        max_length=120,
+        blank=True,
+        verbose_name="Плашка зверху",
+        help_text="Напр.: OUTLET — ОРИГІНАЛЬНІ БРЕНДИ",
+    )
+    title_line1 = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name="Заголовок (частина 1)",
+        help_text="Напр.: СТИЛЬ,",
+    )
+    title_accent = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name="Заголовок (акцент)",
+        help_text="Напр.: ЩО В ТЕБЕ. — виділяється кольором.",
+    )
+    subtitle = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name="Підзаголовок",
+    )
+    usp_text = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name="Рамка USP",
+        help_text="Напр.: ДОСТУПНО. ВИГІДНО. ОРИГІНАЛЬНО.",
+    )
+    feature_1 = models.CharField(max_length=80, blank=True, verbose_name="Перевага 1")
+    feature_2 = models.CharField(max_length=80, blank=True, verbose_name="Перевага 2")
+    feature_3 = models.CharField(max_length=80, blank=True, verbose_name="Перевага 3")
+    cta_text = models.CharField(
+        max_length=80,
+        blank=True,
+        verbose_name="Текст кнопки",
+        help_text="Напр.: Перейти до аутлету",
+    )
+    link = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name="Посилання кнопки",
+        help_text="URL або шлях (/catalog/). Порожнє — каталог.",
+    )
 
     class Meta:
         ordering = ["sort_order", "pk"]
-        verbose_name = "Фото слайдера"
-        verbose_name_plural = "Фото слайдера"
+        verbose_name = "Слайд hero"
+        verbose_name_plural = "Слайди hero"
 
     def __str__(self) -> str:
-        return f"Слайд {self.sort_order or self.pk}"
+        label = self.title_line1 or self.eyebrow or f"Слайд {self.sort_order or self.pk}"
+        return label
+
+
+class HeroPromoItem(models.Model):
+    ICON_TAG = "tag"
+    ICON_PERCENT = "percent"
+    ICON_CLOCK = "clock"
+    ICON_CHOICES = [
+        (ICON_TAG, "Цінник"),
+        (ICON_PERCENT, "Знижка"),
+        (ICON_CLOCK, "Ліміт"),
+    ]
+
+    page = models.ForeignKey(
+        HomePage,
+        on_delete=models.CASCADE,
+        related_name="hero_promos",
+    )
+    icon = models.CharField(
+        max_length=20,
+        choices=ICON_CHOICES,
+        default=ICON_TAG,
+        verbose_name="Іконка",
+    )
+    title = models.CharField(max_length=80, verbose_name="Заголовок")
+    description = models.CharField(max_length=200, verbose_name="Опис")
+    sort_order = models.PositiveSmallIntegerField(default=0, verbose_name="Порядок")
+
+    class Meta:
+        ordering = ["sort_order", "pk"]
+        verbose_name = "Промо під hero"
+        verbose_name_plural = "Промо під hero"
+
+    def __str__(self) -> str:
+        return self.title
 
 
 class StatBlock(models.Model):

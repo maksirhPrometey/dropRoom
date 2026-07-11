@@ -1,0 +1,32 @@
+{% if hero_promos %}
+<section class="hero-promo" aria-label="Переваги магазину">
+  <div class="hero-promo__grid">
+    {% for promo in hero_promos %}
+      <article class="hero-promo__item">
+        <span class="hero-promo__icon" aria-hidden="true">
+          {% if promo.icon == "percent" %}
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+              <circle cx="7" cy="7" r="3"/><circle cx="17" cy="17" r="3"/>
+              <path d="M19 5L5 19"/>
+            </svg>
+          {% elif promo.icon == "clock" %}
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+              <circle cx="12" cy="12" r="9"/>
+              <path d="M12 7v5l3 2"/>
+            </svg>
+          {% else %}
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+              <path d="M20 12V8H6a2 2 0 010-4h12v4"/>
+              <path d="M4 6v12a2 2 0 002 2h14v-8H6a2 2 0 01-2-2z"/>
+            </svg>
+          {% endif %}
+        </span>
+        <div class="hero-promo__text">
+          <h3 class="hero-promo__title">{{ promo.title }}</h3>
+          <p class="hero-promo__desc">{{ promo.description }}</p>
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}

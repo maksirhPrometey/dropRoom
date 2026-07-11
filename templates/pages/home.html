@@ -12,7 +12,6 @@
 {% block content %}
 
 {% if hero_slides %}
-<!-- Hero slider -->
 <section class="hero-slider" aria-label="Головний банер"
          data-hero-slider
          data-autoplay="{{ hero_slider_autoplay_ms }}"
@@ -23,11 +22,56 @@
         <article class="hero-slider__slide{% if forloop.first %} is-active{% endif %}"
                  data-hero-slide
                  aria-hidden="{% if forloop.first %}false{% else %}true{% endif %}">
-          <a href="{{ slide.link }}" class="hero-slider__link">
-            <figure class="hero-slider__media">
-              <img src="{{ slide.image_url }}" alt="" width="1800" height="760"{% if forloop.first %} loading="eager" fetchpriority="high"{% else %} loading="lazy"{% endif %} decoding="async">
-            </figure>
-          </a>
+          <figure class="hero-slider__media">
+            <img src="{{ slide.image_url }}" alt="" width="1800" height="760"{% if forloop.first %} loading="eager" fetchpriority="high"{% else %} loading="lazy"{% endif %} decoding="async">
+          </figure>
+
+          {% if slide.has_panel %}
+            <div class="hero-slider__panel">
+              {% if slide.eyebrow %}
+                <p class="hero-slider__eyebrow">{{ slide.eyebrow }}</p>
+              {% endif %}
+
+              {% if slide.title_line1 or slide.title_accent %}
+                <h2 class="hero-slider__title">
+                  {% if slide.title_line1 %}<span class="hero-slider__title-main">{{ slide.title_line1 }}</span>{% endif %}
+                  {% if slide.title_accent %}<span class="hero-slider__title-accent">{{ slide.title_accent }}</span>{% endif %}
+                </h2>
+              {% endif %}
+
+              {% if slide.subtitle %}
+                <p class="hero-slider__subtitle">{{ slide.subtitle }}</p>
+              {% endif %}
+
+              {% if slide.usp_text %}
+                <p class="hero-slider__usp">{{ slide.usp_text }}</p>
+              {% endif %}
+
+              {% if slide.features %}
+                <ul class="hero-slider__features">
+                  {% for feature in slide.features %}
+                    <li class="hero-slider__feature">
+                      <span class="hero-slider__feature-icon" aria-hidden="true">
+                        {% if forloop.counter == 1 %}
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 12V8H6a2 2 0 010-4h12v4"/><path d="M4 6v12a2 2 0 002 2h14v-8H6a2 2 0 01-2-2z"/></svg>
+                        {% elif forloop.counter == 2 %}
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3l2.2 6.8H21l-5.5 4 2.1 6.7L12 16.8 6.4 20.5l2.1-6.7L3 9.8h6.8L12 3z"/></svg>
+                        {% else %}
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+                        {% endif %}
+                      </span>
+                      <span class="hero-slider__feature-text">{{ feature }}</span>
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% endif %}
+
+              <a href="{{ slide.link }}" class="hero-slider__cta">
+                {{ slide.cta_text }}
+                <span class="hero-slider__cta-arrow" aria-hidden="true">→</span>
+              </a>
+            </div>
+          {% endif %}
         </article>
       {% endfor %}
     </div>
@@ -63,6 +107,8 @@
     {% endif %}
   </div>
 </section>
+
+{% include "partials/hero_promo_strip.html" %}
 {% endif %}
 
 {% include "partials/stock_notice.html" with stock_notice_modifier="home" %}

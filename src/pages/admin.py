@@ -10,6 +10,7 @@ from .models import (
     ContactChannel,
     ContactsPage,
     FAQItem,
+    HeroPromoItem,
     HeroSlideImage,
     HomePage,
     SiteSettings,
@@ -27,12 +28,37 @@ class HeroSlideImageInline(StackedInline):
     model = HeroSlideImage
     extra = 1
     min_num = 0
-    fields = ["sort_order", "image", "image_preview"]
     readonly_fields = ["image_preview"]
     ordering = ["sort_order"]
-    verbose_name = "Фото"
-    verbose_name_plural = "Фото слайдера"
+    verbose_name = "Слайд"
+    verbose_name_plural = "Слайди hero"
     classes = ["hero-slide-inline"]
+    fieldsets = [
+        (
+            None,
+            {"fields": ["sort_order", "image", "image_preview"]},
+        ),
+        (
+            "Текст на слайді",
+            {
+                "fields": [
+                    "eyebrow",
+                    "title_line1",
+                    "title_accent",
+                    "subtitle",
+                    "usp_text",
+                ],
+            },
+        ),
+        (
+            "Переваги",
+            {"fields": ["feature_1", "feature_2", "feature_3"]},
+        ),
+        (
+            "Кнопка",
+            {"fields": ["cta_text", "link"]},
+        ),
+    ]
 
     @admin.display(description="Превʼю")
     def image_preview(self, obj: HeroSlideImage) -> str:
@@ -43,6 +69,16 @@ class HeroSlideImageInline(StackedInline):
                 obj.image.url,
             )
         return "—"
+
+
+class HeroPromoItemInline(TabularInline):
+    model = HeroPromoItem
+    extra = 0
+    max_num = 3
+    fields = ["sort_order", "icon", "title", "description"]
+    ordering = ["sort_order"]
+    verbose_name = "Промо"
+    verbose_name_plural = "Промо під hero (3 колонки)"
 
 
 class StatBlockInline(TabularInline):
@@ -159,7 +195,7 @@ class UtilityBarItemAdmin(DropRoomModelAdmin):
 
 @admin.register(HomePage)
 class HomePageAdmin(SingletonAdminMixin, DropRoomModelAdmin):
-    inlines = [HeroSlideImageInline, StatBlockInline]
+    inlines = [HeroSlideImageInline, HeroPromoItemInline, StatBlockInline]
     readonly_fields = ["editorial_preview"]
     fieldsets = [
         (
@@ -170,9 +206,9 @@ class HomePageAdmin(SingletonAdminMixin, DropRoomModelAdmin):
                     "hero_slider_autoplay_seconds",
                 ],
                 "description": (
-                    "Нижче — блок «Фото слайдера»: натисніть «Додати ще один Фото», "
-                    "завантажте файл і збережіть. Менший «Порядок» = слайд показується раніше. "
-                    "Клік по фото на сайті веде в каталог."
+                    "Додайте слайди з фото та текстом (як на макеті). "
+                    "Менший «Порядок» = слайд показується раніше. "
+                    "Під hero — до 3 промо-колонок."
                 ),
             },
         ),
