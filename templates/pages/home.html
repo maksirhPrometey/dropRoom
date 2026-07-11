@@ -12,7 +12,6 @@
 {% block content %}
 
 {% if hero_slides %}
-<div class="hero-stage">
 <section class="hero-slider" aria-label="Головний банер"
          data-hero-slider
          data-autoplay="{{ hero_slider_autoplay_ms }}"
@@ -20,7 +19,7 @@
   <div class="hero-slider__viewport">
     <div class="hero-slider__track">
       {% for slide in hero_slides %}
-        <article class="hero-slider__slide{% if forloop.first %} is-active{% endif %}{% if slide.has_panel %} hero-slider__slide--has-panel{% endif %}"
+        <article class="hero-slider__slide{% if forloop.first %} is-active{% endif %}"
                  data-hero-slide
                  aria-hidden="{% if forloop.first %}false{% else %}true{% endif %}">
           <figure class="hero-slider__media">
@@ -109,8 +108,13 @@
   </div>
 </section>
 
+{% include "partials/hero_promo_strip.html" %}
+{% endif %}
+
+{% include "partials/stock_notice.html" with stock_notice_modifier="home" %}
+
 {% if latest_products %}
-<section class="row home-latest hero-stage__products" aria-label="Новинки">
+<section class="row home-latest" aria-label="Новинки">
   <div class="products home-latest__grid reveal">
     {% for product in latest_products %}
       {% include "partials/product_card.html" %}
@@ -118,12 +122,6 @@
   </div>
 </section>
 {% endif %}
-</div>
-
-{% include "partials/hero_promo_strip.html" %}
-{% endif %}
-
-{% include "partials/stock_notice.html" with stock_notice_modifier="home" %}
 
 {% if catalog_products %}
 <section class="row home-catalog" aria-label="Каталог">
