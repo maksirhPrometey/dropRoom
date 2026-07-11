@@ -1,3 +1,9 @@
+/* ── Home fold: hero + peek of products on first screen ── */
+:root {
+  --home-top-chrome: calc(30px + 64px);
+  --home-product-peek: 152px;
+}
+
 /* ── Hero slider ── */
 .hero-slider {
   position: relative;
@@ -13,7 +19,11 @@
   position: relative;
   width: 100%;
   max-width: 100%;
-  height: clamp(360px, 52vw, 620px);
+  height: clamp(
+    280px,
+    calc(100svh - var(--home-top-chrome) - var(--home-product-peek)),
+    580px
+  );
   background: var(--bg-2);
   overflow: hidden;
   overflow-x: clip;
@@ -44,7 +54,7 @@
   z-index: 1;
 }
 
-.hero-slider__slide::after {
+.hero-slider__slide--has-panel::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -337,10 +347,6 @@
 }
 
 @media (min-width: 900px) {
-  .hero-slider__viewport {
-    height: clamp(420px, 46vw, 640px);
-  }
-
   .hero-slider__panel {
     padding: 36px 40px 64px;
     gap: 16px;
@@ -360,10 +366,6 @@
 }
 
 @media (min-width: 641px) and (max-width: 899px) {
-  .hero-slider__viewport {
-    height: clamp(340px, 50vw, 560px);
-  }
-
   .hero-slider__panel {
     width: min(100%, 480px);
     padding: 24px 24px 52px;
@@ -371,16 +373,16 @@
 }
 
 @media (max-width: 640px) {
-  .hero-slider__viewport {
-    height: clamp(300px, 78vw, 460px);
+  :root {
+    --home-top-chrome: calc(30px + 56px);
+    --home-product-peek: 118px;
   }
 
-  .hero-slider__slide::after {
-    background: linear-gradient(
-      180deg,
-      rgba(243, 241, 236, .08) 0%,
-      rgba(243, 241, 236, .55) 45%,
-      rgba(243, 241, 236, .94) 100%
+  .hero-slider__viewport {
+    height: clamp(
+      240px,
+      calc(100svh - var(--home-top-chrome) - var(--home-product-peek)),
+      400px
     );
   }
 
@@ -721,10 +723,9 @@ a.hs-card { display: block; color: inherit; text-decoration: none; }
 .brands-foot a { color: var(--accent); }
 .brands-foot a:hover { text-decoration: underline; }
 
-/* ── Latest arrivals (after hero) ── */
-.home-latest {
-  padding-top: 20px;
-  padding-bottom: 0;
+/* ── Latest arrivals (peek below hero) ── */
+.home-latest.row {
+  padding: 14px 28px 0;
   border-bottom: 0;
 }
 
@@ -1100,9 +1101,8 @@ section.row {
     padding: 48px 16px;
   }
 
-  .home-latest {
-    padding-top: 12px;
-    padding-bottom: 0;
+  .home-latest.row {
+    padding: 10px 16px 0;
   }
 
   .home-latest__grid {
