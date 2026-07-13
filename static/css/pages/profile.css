@@ -350,15 +350,17 @@
 }
 
 /* ── Wishlist inside profile ── */
-.profile-wishlist-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+.profile-wishlist-grid.products {
+  --grid-cols: 3;
+  --grid-gap: 20px;
 }
 
 .profile-wishlist-grid .empty-state,
+.profile-wishlist-grid .profile-empty,
 .profile-page .profile-empty {
-  grid-column: 1 / -1;
+  flex: 0 0 100%;
+  width: 100%;
+  max-width: 100%;
 }
 
 /* ── Responsive ── */
@@ -389,8 +391,8 @@
     flex: 1 1 100%;
   }
 
-  .profile-wishlist-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .profile-wishlist-grid.products {
+    --grid-cols: 2;
   }
 }
 
@@ -432,7 +434,7 @@
     text-align: left;
   }
 
-  .profile-wishlist-grid {
-    grid-template-columns: 1fr;
+  .profile-wishlist-grid.products {
+    --grid-cols: 1;
   }
 }

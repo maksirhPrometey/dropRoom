@@ -1,14 +1,28 @@
 <article class="product">
-  <a href="{% url 'catalog:detail' product.slug %}" class="product-media">
-    {% if product.compare_price %}
-      <div class="badge">
-        <span class="sale">-{{ product.discount_pct }}%</span>
-        {% if product.badge_new %}<span class="new">New</span>{% endif %}
-      </div>
-    {% elif product.badge_new %}
-      <div class="badge"><span class="new">New</span></div>
-    {% endif %}
-    {% if product.badge_drop %}<div class="badge"><span class="drop">Drop</span></div>{% endif %}
+  <div class="product-media">
+    <a href="{% url 'catalog:detail' product.slug %}"
+       class="product-media__frame"
+       aria-label="{{ product.name }}">
+      <span class="product-media__ratio" aria-hidden="true"></span>
+      {% if product.compare_price or product.badge_new or product.badge_drop %}
+        <div class="badge product-media__badges">
+          {% if product.compare_price %}
+            <span class="sale">-{{ product.discount_pct }}%</span>
+          {% endif %}
+          {% if product.badge_new %}<span class="new">New</span>{% endif %}
+          {% if product.badge_drop %}<span class="drop">Drop</span>{% endif %}
+        </div>
+      {% endif %}
+      {% if product.primary_image %}
+        <img src="{{ product.primary_image.image.url }}"
+             alt=""
+             class="product-media__img"
+             loading="lazy"
+             decoding="async">
+      {% else %}
+        <span class="product-media__img product-media__img--empty" role="img" aria-label="Немає фото"></span>
+      {% endif %}
+    </a>
     <button type="button" class="wishlist" aria-label="Додати до обраного"
             hx-post="{% url 'accounts:wishlist_toggle' product.pk %}"
             hx-swap="outerHTML">
@@ -17,15 +31,6 @@
         <path d="M7 12.2S1.5 8.6 1.5 5a3 3 0 015.5-1.7A3 3 0 0112.5 5c0 3.6-5.5 7.2-5.5 7.2z"/>
       </svg>
     </button>
-    {% if product.primary_image %}
-      <img src="{{ product.primary_image.image.url }}"
-           alt="{{ product.name }}"
-           class="product-img a"
-           loading="lazy"
-           decoding="async">
-    {% else %}
-      <div class="product-img a product-img--empty" role="img" aria-label="Немає фото"></div>
-    {% endif %}
     {% if show_quick_add %}
       <div class="quick-add" aria-hidden="true">
         <div class="sizes">
@@ -36,7 +41,7 @@
         <span class="add">+ Кошик</span>
       </div>
     {% endif %}
-  </a>
+  </div>
   <div class="p-brand">{{ product.brand.name }}</div>
   <div class="p-info">
     <div class="p-name-wrap">
