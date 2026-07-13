@@ -325,7 +325,7 @@ main.col { min-width: 0; }
 
 /* ── Grid banner ── */
 .grid-banner {
-  grid-column: span 3;
+  grid-column: 1 / -1;
   background: var(--ink);
   color: var(--bg);
   padding: 36px 32px;
@@ -334,6 +334,11 @@ main.col { min-width: 0; }
   align-items: center;
   gap: 24px;
   border: 1px solid var(--ink);
+}
+
+.catalog-products {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: start;
 }
 
 .grid-banner h3 { font-family: 'Archivo', sans-serif; font-weight: 800; font-size: 36px; text-transform: uppercase; letter-spacing: -.025em; line-height: 1; }
@@ -479,10 +484,30 @@ main.col { min-width: 0; }
   }
   .ph-grid,
   .ph-inner { grid-template-columns: 1fr; gap: 24px; }
+  .catalog-products {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .grid-banner h3 {
+    font-size: clamp(24px, 4vw, 32px);
+  }
 }
 
 @media (max-width: 640px) {
   .toolbar { flex-direction: column; align-items: flex-start; gap: 12px; }
   .toolbar-right { width: 100%; justify-content: space-between; }
   .pagination { flex-direction: column; gap: 18px; }
+  .catalog-products {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px 12px;
+  }
+  .grid-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 24px 20px;
+    gap: 16px;
+  }
+  .grid-banner a {
+    width: 100%;
+    text-align: center;
+  }
 }

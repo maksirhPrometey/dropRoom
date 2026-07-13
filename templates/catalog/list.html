@@ -142,7 +142,7 @@
       </div>
     </div>
 
-    <div class="products" id="products">
+    <div class="products catalog-products" id="products">
       {% for product in page_obj %}
         {% if forloop.counter == 7 %}
           <div class="grid-banner">
@@ -153,59 +153,7 @@
             <a href="{% url 'catalog:list' %}?category=sneakers">Дивитися всі →</a>
           </div>
         {% endif %}
-        <article class="product">
-          <a href="{% url 'catalog:detail' product.slug %}" class="product-media">
-            {% if product.compare_price %}
-              <div class="badge">
-                <span class="sale">-{{ product.discount_pct }}%</span>
-                {% if product.badge_new %}<span class="new">New</span>{% endif %}
-              </div>
-            {% elif product.badge_new %}
-              <div class="badge"><span class="new">New</span></div>
-            {% endif %}
-            <button class="wishlist" aria-label="Додати до обраного"
-                    hx-post="{% url 'accounts:wishlist_toggle' product.pk %}"
-                    hx-swap="outerHTML">
-              {% csrf_token %}
-              <svg viewBox="0 0 14 14" width="14" height="14" stroke="currentColor" fill="{% if product.in_wishlist %}var(--ink){% else %}none{% endif %}" stroke-width="1.3">
-                <path d="M7 12.2S1.5 8.6 1.5 5a3 3 0 015.5-1.7A3 3 0 0112.5 5c0 3.6-5.5 7.2-5.5 7.2z"/>
-              </svg>
-            </button>
-            {% if product.primary_image %}
-              <img src="{{ product.primary_image.image.url }}" alt="{{ product.name }}" class="product-img a" loading="lazy">
-            {% else %}
-              <div class="product-img a"></div>
-            {% endif %}
-            <div class="quick-add">
-              <div class="sizes">
-                {% for v in product.available_variants_preview %}
-                  <span class="{% if not v.in_stock %}oos{% endif %}">{{ v.size_display }}</span>
-                {% endfor %}
-              </div>
-              <span class="add">+ Кошик</span>
-            </div>
-          </a>
-          <div class="p-brand">{{ product.brand.name }}</div>
-          <div class="p-info">
-            <div>
-              <div class="p-name">{{ product.name }}</div>
-              <div class="p-sub">{{ product.subtitle|default:"" }}</div>
-            </div>
-            <div class="p-price">
-              {% if product.compare_price %}
-                <s>{{ product.compare_price|floatformat:"0" }} ₴</s>
-                <b>{{ product.base_price|floatformat:"0" }} ₴</b>
-              {% else %}
-                {{ product.base_price|floatformat:"0" }} ₴
-              {% endif %}
-            </div>
-          </div>
-          {% if product.is_low_stock %}
-            <div class="p-low-stock" aria-label="Обмежена кількість">Товар закінчується</div>
-          {% elif product.is_under_order %}
-            <div class="p-preorder">Під замовлення</div>
-          {% endif %}
-        </article>
+        {% include "partials/product_card.html" with product=product show_quick_add=True show_stock=True %}
       {% empty %}
         <div class="empty-state">
           <p>За вашим запитом нічого не знайдено.</p>
