@@ -12,7 +12,7 @@
 {% block content %}
 
 {% if hero_slides %}
-<section class="hero-slider" aria-label="Головний банер"
+<section class="hero-slider{% if hero_slides|length > 1 %} hero-slider--has-nav{% endif %}" aria-label="Головний банер"
          data-hero-slider
          data-autoplay="{{ hero_slider_autoplay_ms }}"
          data-autoplay-enabled="{% if hero_slider_autoplay_enabled %}true{% else %}false{% endif %}">
@@ -55,7 +55,7 @@
                         {% if forloop.counter == 1 %}
                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 12V8H6a2 2 0 010-4h12v4"/><path d="M4 6v12a2 2 0 002 2h14v-8H6a2 2 0 01-2-2z"/></svg>
                         {% elif forloop.counter == 2 %}
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3l2.2 6.8H21l-5.5 4 2.1 6.7L12 16.8 6.4 20.5l2.1-6.7L3 9.8h6.8L12 3z"/></svg>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                         {% else %}
                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
                         {% endif %}
