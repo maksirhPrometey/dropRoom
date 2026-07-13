@@ -158,7 +158,7 @@ class Product(models.Model):
         related_name="products",
     )
     name = models.CharField(max_length=255)
-    slug = models.SlugField(unique=True)
+    slug = models.SlugField(max_length=255, unique=True)
     subtitle = models.CharField(max_length=255, blank=True)
     description = models.TextField(blank=True)
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES)
@@ -187,12 +187,17 @@ class Product(models.Model):
         return reverse("catalog:detail", kwargs={"slug": self.slug})
 
     def save(self, *args, **kwargs) -> None:
+        slug_max_length = self._meta.get_field("slug").max_length or 255
         if not self.slug:
-            base = slugify(f"{self.brand.name}-{self.name}")
+            base = slugify(f"{self.brand.name}-{self.name}")[:slug_max_length].strip("-")
+            if not base:
+                base = "product"
             slug = base
             counter = 1
             while Product.objects.filter(slug=slug).exclude(pk=self.pk).exists():
-                slug = f"{base}-{counter}"
+                suffix = f"-{counter}"
+                trim = slug_max_length - len(suffix)
+                slug = f"{base[:trim]}{suffix}".strip("-")
                 counter += 1
             self.slug = slug
         super().save(*args, **kwargs)
