@@ -24,6 +24,8 @@ BRANDS = [
     ("Michael Kors", "michael-kors", "USA"),
     ("Birkenstock", "birkenstock", "Germany"),
     ("UGG", "ugg", "USA"),
+    ("Premiata", "premiata", "Italy"),
+    ("Ralph Lauren", "ralph-lauren", "USA"),
 ]
 
 CATEGORIES = [

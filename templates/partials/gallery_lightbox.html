@@ -1,0 +1,47 @@
+<div class="gallery-lightbox"
+     id="gallery-lightbox"
+     data-gallery-lightbox
+     hidden
+     aria-hidden="true">
+  <div class="gallery-lightbox__backdrop" data-gallery-close tabindex="-1"></div>
+
+  <div class="gallery-lightbox__dialog"
+       role="dialog"
+       aria-modal="true"
+       aria-label="Галерея товару">
+    <button type="button"
+            class="gallery-lightbox__close"
+            data-gallery-close
+            aria-label="Закрити галерею">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <path d="M3 3l10 10M13 3L3 13"/>
+      </svg>
+    </button>
+
+    <button type="button"
+            class="gallery-lightbox__nav gallery-lightbox__nav--prev"
+            data-gallery-prev
+            aria-label="Попереднє фото">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <path d="M12 4l-6 6 6 6"/>
+      </svg>
+    </button>
+
+    <figure class="gallery-lightbox__stage">
+      <img class="gallery-lightbox__img"
+           src=""
+           alt=""
+           decoding="async">
+      <figcaption class="gallery-lightbox__counter" data-gallery-counter aria-live="polite"></figcaption>
+    </figure>
+
+    <button type="button"
+            class="gallery-lightbox__nav gallery-lightbox__nav--next"
+            data-gallery-next
+            aria-label="Наступне фото">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <path d="M8 4l6 6-6 6"/>
+      </svg>
+    </button>
+  </div>
+</div>

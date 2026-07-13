@@ -17,6 +17,7 @@ urlpatterns = [
     path("cart/", include("src.orders.urls")),
     path("accounts/", include("src.accounts.urls")),
     path("newsletter/", include("src.marketing.urls")),
+    path("telegram/", include("src.telegram_import.urls")),
 ]
 
 if settings.DEBUG:

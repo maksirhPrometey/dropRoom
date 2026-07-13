@@ -34,6 +34,7 @@ LOCAL_APPS = [
     "src.orders",
     "src.marketing",
     "src.pages",
+    "src.telegram_import",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -108,6 +109,33 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
+
+
+def _env_int(name: str, default: int = 0) -> int:
+    raw = config(name, default=str(default))
+    try:
+        return int(str(raw).strip())
+    except (TypeError, ValueError):
+        return default
+
+
+# ── Telegram import ───────────────────────────────────────────────────────────
+TELEGRAM_BOT_TOKEN = config("TELEGRAM_BOT_TOKEN", default="")
+TELEGRAM_WEBHOOK_SECRET = config("TELEGRAM_WEBHOOK_SECRET", default="")
+TELEGRAM_WEBHOOK_URL = config("TELEGRAM_WEBHOOK_URL", default="")
+TELEGRAM_CHANNEL_ID = _env_int("TELEGRAM_CHANNEL_ID", 0)
+TELEGRAM_DEFAULT_BRAND_ID = _env_int("TELEGRAM_DEFAULT_BRAND_ID", 0)
+TELEGRAM_DEFAULT_CATEGORY_ID = _env_int("TELEGRAM_DEFAULT_CATEGORY_ID", 0)
+TELEGRAM_DEFAULT_GENDER = config("TELEGRAM_DEFAULT_GENDER", default="U")
+TELEGRAM_DEFAULT_PRICE = config("TELEGRAM_DEFAULT_PRICE", default="1000")
+TELEGRAM_DEFAULT_SIZE = config("TELEGRAM_DEFAULT_SIZE", default="ONE SIZE")
+TELEGRAM_DEFAULT_STOCK = _env_int("TELEGRAM_DEFAULT_STOCK", 1)
+TELEGRAM_IMPORT_AS_ACTIVE = config("TELEGRAM_IMPORT_AS_ACTIVE", default=False, cast=bool)
+TELEGRAM_API_ID = _env_int("TELEGRAM_API_ID", 0)
+TELEGRAM_API_HASH = config("TELEGRAM_API_HASH", default="")
+TELEGRAM_SESSION_STRING = config("TELEGRAM_SESSION_STRING", default="")
+# @username публічного каналу або invite-link slug (якщо CHANNEL_ID ще невідомий)
+TELEGRAM_CHANNEL_USERNAME = config("TELEGRAM_CHANNEL_USERNAME", default="")
 
 CONTENT_SECURITY_POLICY = {
     "EXCLUDE_URL_PREFIXES": ("/admin/",),
@@ -264,6 +292,27 @@ UNFOLD = {
                 ],
             },
             {
+                "title": "Telegram",
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": "Імпорти",
+                        "icon": "cloud_download",
+                        "link": reverse_lazy(
+                            "admin:telegram_import_telegramimport_changelist"
+                        ),
+                    },
+                    {
+                        "title": "Синхронізація",
+                        "icon": "sync",
+                        "link": reverse_lazy(
+                            "admin:telegram_import_telegramsyncstate_changelist"
+                        ),
+                    },
+                ],
+            },
+            {
                 "title": "Контент сайту",
                 "separator": True,
                 "collapsible": True,
@@ -322,6 +371,11 @@ LOGGING = {
     "root": {"handlers": ["console"], "level": "WARNING"},
     "loggers": {
         "src": {"handlers": ["console"], "level": "INFO", "propagate": False},
+        "src.telegram_import": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
         "django": {"handlers": ["console"], "level": "WARNING", "propagate": False},
     },
 }

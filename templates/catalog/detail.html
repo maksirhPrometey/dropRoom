@@ -7,7 +7,9 @@
 {% block nav_catalog %}active{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/pages/catalog.css' %}">
+<link rel="stylesheet" href="{% static 'css/pages/detail.css' %}">
+<link rel="stylesheet" href="{% static 'css/components/gallery-lightbox.css' %}">
+<link rel="stylesheet" href="{% static 'css/components/size-picker.css' %}">
 {% endblock %}
 
 {% block extra_js %}
@@ -17,194 +19,224 @@
 
 {% block content %}
 
-<div class="crumbs">
-  <a href="/">DropRoom</a>
-  <span class="sep">/</span>
-  <a href="{% url 'catalog:list' %}">Каталог</a>
-  {% if product.category %}
-    <span class="sep">/</span>
-    <a href="{% url 'catalog:list' %}?category={{ product.category.slug }}">{{ product.category.name }}</a>
-  {% endif %}
-  <span class="sep">/</span>
-  <span class="here">{{ product.name }}</span>
-</div>
+<div class="detail-page">
 
-<div class="detail-grid">
-
-  <!-- Gallery -->
-  <div class="gallery">
-    <div class="gallery-main">
-      {% if product.primary_image %}
-        <img src="{{ product.primary_image.image.url }}" alt="{{ product.name }}" id="main-img" loading="eager">
-      {% else %}
-        <div class="gallery-placeholder"></div>
+  <div class="detail-page__crumbs">
+    <nav class="crumbs" aria-label="Навігація">
+      <a href="/">DropRoom</a>
+      <span class="sep">/</span>
+      <a href="{% url 'catalog:list' %}">Каталог</a>
+      {% if product.category %}
+        <span class="sep">/</span>
+        <a href="{% url 'catalog:list' %}?category={{ product.category.slug }}">{{ product.category.name }}</a>
       {% endif %}
-    </div>
-    {% if product.images.count > 1 %}
-      <div class="gallery-thumbs">
-        {% for img in product.images.all %}
-          <button class="gallery-thumb {% if forloop.first %}active{% endif %}"
-                  data-src="{{ img.image.url }}"
-                  aria-label="{{ img.alt|default:product.name }}">
-            <img src="{{ img.image.url }}" alt="{{ img.alt|default:product.name }}" loading="lazy">
+      <span class="sep">/</span>
+      <span class="here">{{ product.name }}</span>
+    </nav>
+  </div>
+
+  <div class="detail-grid">
+
+    <div class="detail-gallery gallery" data-product-gallery>
+      <div class="gallery-main">
+        {% if product.primary_image %}
+          <button type="button"
+                  class="gallery-main__open"
+                  data-gallery-open
+                  aria-label="Відкрити галерею — {{ product.name }}">
+            <img src="{{ product.primary_image.image.url }}"
+                 alt="{{ product.name }}"
+                 id="main-img"
+                 loading="eager"
+                 decoding="async">
+            <span class="gallery-main__hint" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+              </svg>
+            </span>
           </button>
-        {% endfor %}
+        {% else %}
+          <div class="gallery-placeholder" role="img" aria-label="Немає зображення"></div>
+        {% endif %}
       </div>
-    {% endif %}
-  </div>
-
-  <!-- Info -->
-  <div class="detail-info">
-
-    <div class="detail-brand">{{ product.brand.name }}</div>
-    <h1 class="detail-name">{{ product.name }}</h1>
-    {% if product.subtitle %}<div class="detail-sub">{{ product.subtitle }}</div>{% endif %}
-
-    <div class="detail-price" data-product-price>
-      {% if product.compare_price %}
-        <s>{{ product.compare_price|floatformat:"0" }} ₴</s>
-        <b>{{ product.base_price|floatformat:"0" }} ₴</b>
-        <span class="detail-price__pct">-{{ product.discount_pct }}%</span>
-      {% else %}
-        {{ product.base_price|floatformat:"0" }} ₴
-      {% endif %}
-    </div>
-    {% if product.is_low_stock %}
-      <div class="detail-low-stock" role="alert" aria-live="polite">Товар закінчується</div>
-    {% elif product.is_under_order %}
-      <div class="detail-preorder" role="note">Під замовлення</div>
-    {% endif %}
-
-    {% include "partials/stock_notice.html" with stock_notice_modifier="detail" %}
-
-    {% if variants %}
-      <div class="size-block">
-        <div class="size-label">
-          <span>Розмір</span>
-          <a href="#" class="size-guide">Таблиця розмірів</a>
-        </div>
-
-        <select data-size-select name="variant_id" class="size-select">
-          <option value="">— Обрати розмір</option>
-          {% for variant in variants %}
-            <option value="{{ variant.pk }}"
-                    data-variant-id="{{ variant.pk }}"
-                    data-price="{{ variant.price|floatformat:'0' }} ₴"
-                    data-in-stock="{{ variant.in_stock|lower }}">
-              {{ variant.size_display }}{% if not variant.in_stock %} — Під замовлення{% endif %}
-            </option>
+      {% if product.images.count > 1 %}
+        <div class="gallery-thumbs" role="tablist" aria-label="Мініатюри товару">
+          {% for img in product.images.all %}
+            <button type="button"
+                    class="gallery-thumb {% if forloop.first %}active{% endif %}"
+                    data-src="{{ img.image.url }}"
+                    role="tab"
+                    aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+                    aria-label="Фото {{ forloop.counter }}">
+              <img src="{{ img.image.url }}" alt="" loading="lazy" decoding="async">
+            </button>
           {% endfor %}
-        </select>
-
-        <div class="stock-status" data-stock-status>
-          <span class="stock-dot"></span>
-          <span data-stock-label>Оберіть розмір</span>
         </div>
-      </div>
+      {% endif %}
+    </div>
 
-      <form method="post" action="{% url 'orders:cart_add' %}"
-            hx-post="{% url 'orders:cart_add' %}" hx-target="#cart-count" hx-swap="outerHTML"
-            class="detail-add-form">
-        {% csrf_token %}
-        <input type="hidden" name="variant_id" data-variant-input value="">
-        <input type="number" name="quantity" value="1" min="1" max="10" class="visually-hidden">
-        <button type="submit" class="btn-primary" data-add-btn
-                data-label-stock="Додати до кошика"
-                data-label-order="Під замовлення"
-                disabled>
-          Оберіть розмір
-          <span class="arrow">
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5h6M6 2l3 3-3 3"/></svg>
-          </span>
-        </button>
-      </form>
+    <div class="detail-info">
 
-      {% if site_settings and site_settings.telegram_support %}
-        <a href="https://t.me/{{ site_settings.telegram_support|cut:'@' }}"
-           class="detail-contact-link"
-           target="_blank" rel="noopener noreferrer">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-            <path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z"/>
+      <header class="detail-info__head">
+        <div class="detail-brand">{{ product.brand.name }}</div>
+        <h1 class="detail-name">{{ product.name }}</h1>
+        {% if product.subtitle %}<p class="detail-sub">{{ product.subtitle }}</p>{% endif %}
+
+        <div class="detail-price" data-product-price>
+          {% if product.compare_price %}
+            <s>{{ product.compare_price|floatformat:"0" }} ₴</s>
+            <b>{{ product.base_price|floatformat:"0" }} ₴</b>
+            <span class="detail-price__pct">-{{ product.discount_pct }}%</span>
+          {% else %}
+            <span>{{ product.base_price|floatformat:"0" }} ₴</span>
+          {% endif %}
+        </div>
+
+        {% if product.is_low_stock or product.is_under_order %}
+          <div class="detail-info__status">
+            {% if product.is_low_stock %}
+              <div class="detail-low-stock" role="alert" aria-live="polite">Товар закінчується</div>
+            {% elif product.is_under_order %}
+              <div class="detail-preorder" role="note">Під замовлення</div>
+            {% endif %}
+          </div>
+        {% endif %}
+      </header>
+
+      <section class="detail-info__buy" aria-label="Покупка">
+        {% include "partials/stock_notice.html" with stock_notice_modifier="detail" %}
+
+        {% if variants %}
+          <div class="size-block">
+            <div class="size-label">
+              <span>Розмір</span>
+              <a href="#" class="size-guide">Таблиця розмірів</a>
+            </div>
+
+            <select data-size-select class="size-select" aria-label="Розмір">
+              <option value="">— Обрати розмір</option>
+              {% for variant in variants %}
+                <option value="{{ variant.pk }}"
+                        data-variant-id="{{ variant.pk }}"
+                        data-price="{{ variant.price|floatformat:'0' }} ₴"
+                        data-in-stock="{{ variant.in_stock|lower }}">
+                  {{ variant.size_display }}{% if not variant.in_stock %} — Під замовлення{% endif %}
+                </option>
+              {% endfor %}
+            </select>
+
+            <div class="stock-status" data-stock-status>
+              <span class="stock-dot"></span>
+              <span data-stock-label>Оберіть розмір</span>
+            </div>
+          </div>
+
+          <form method="post" action="{% url 'orders:cart_add' %}"
+                hx-post="{% url 'orders:cart_add' %}" hx-target="#cart-count" hx-swap="outerHTML"
+                class="detail-add-form">
+            {% csrf_token %}
+            <input type="hidden" name="variant_id" data-variant-input value="">
+            <input type="number" name="quantity" value="1" min="1" max="10" class="visually-hidden">
+            <button type="submit" class="btn-primary" data-add-btn
+                    data-label-stock="Додати до кошика"
+                    data-label-order="Під замовлення"
+                    data-label-choose="Оберіть розмір"
+                    disabled>
+              <span data-add-btn-label>Оберіть розмір</span>
+              <span class="arrow">
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5h6M6 2l3 3-3 3"/></svg>
+              </span>
+            </button>
+          </form>
+
+          {% if site_settings and site_settings.telegram_support %}
+            <a href="https://t.me/{{ site_settings.telegram_support|cut:'@' }}"
+               class="detail-contact-link"
+               target="_blank" rel="noopener noreferrer">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z"/>
+              </svg>
+              Запитати про товар у Telegram
+            </a>
+          {% endif %}
+        {% else %}
+          <p class="empty-variants">Немає доступних варіантів</p>
+        {% endif %}
+      </section>
+
+      <div class="detail-info__extras">
+        <button type="button" class="wishlist-btn"
+                hx-post="{% url 'accounts:wishlist_toggle' product.pk %}"
+                hx-swap="outerHTML">
+          {% csrf_token %}
+          <svg viewBox="0 0 14 14" width="14" height="14" stroke="currentColor" fill="{% if product.in_wishlist %}var(--ink){% else %}none{% endif %}" stroke-width="1.3" aria-hidden="true">
+            <path d="M7 12.2S1.5 8.6 1.5 5a3 3 0 015.5-1.7A3 3 0 0112.5 5c0 3.6-5.5 7.2-5.5 7.2z"/>
           </svg>
-          Запитати про товар у Telegram
-        </a>
-      {% endif %}
-    {% else %}
-      <div class="empty-variants">Немає доступних варіантів</div>
-    {% endif %}
+          {% if product.in_wishlist %}В обраному{% else %}Додати до обраного{% endif %}
+        </button>
 
-    <button class="wishlist-btn"
-            hx-post="{% url 'accounts:wishlist_toggle' product.pk %}"
-            hx-swap="outerHTML">
-      {% csrf_token %}
-      <svg viewBox="0 0 14 14" width="14" height="14" stroke="currentColor" fill="{% if product.in_wishlist %}var(--ink){% else %}none{% endif %}" stroke-width="1.3">
-        <path d="M7 12.2S1.5 8.6 1.5 5a3 3 0 015.5-1.7A3 3 0 0112.5 5c0 3.6-5.5 7.2-5.5 7.2z"/>
-      </svg>
-      {% if product.in_wishlist %}В обраному{% else %}Додати до обраного{% endif %}
-    </button>
+        {% if product.description %}
+          <div class="detail-desc">{{ product.description|safe }}</div>
+        {% endif %}
+      </div>
 
-    {% if product.description %}
-      <div class="detail-desc">{{ product.description|safe }}</div>
-    {% endif %}
+      <div class="detail-meta">
+        {% if product.brand %}
+          <div class="row"><span class="k">Бренд</span><span class="v">{{ product.brand.name }}</span></div>
+        {% endif %}
+        {% if product.category %}
+          <div class="row"><span class="k">Категорія</span><span class="v">{{ product.category.name }}</span></div>
+        {% endif %}
+        {% if product.gender %}
+          <div class="row">
+            <span class="k">Стать</span>
+            <span class="v">{% if product.gender == 'M' %}Чоловіки{% elif product.gender == 'W' %}Жінки{% else %}Unisex{% endif %}</span>
+          </div>
+        {% endif %}
+        {% if product.material %}
+          <div class="row"><span class="k">Матеріал</span><span class="v">{{ product.material }}</span></div>
+        {% endif %}
+        {% if product.sku %}
+          <div class="row"><span class="k">Артикул</span><span class="v">{{ product.sku }}</span></div>
+        {% endif %}
+      </div>
 
-    <div class="detail-meta">
-      {% if product.brand %}<div class="row"><span class="k">Бренд</span><span class="v">{{ product.brand.name }}</span></div>{% endif %}
-      {% if product.category %}<div class="row"><span class="k">Категорія</span><span class="v">{{ product.category.name }}</span></div>{% endif %}
-      {% if product.gender %}
-        <div class="row"><span class="k">Стать</span><span class="v">
-          {% if product.gender == 'M' %}Чоловіки{% elif product.gender == 'W' %}Жінки{% else %}Unisex{% endif %}
-        </span></div>
-      {% endif %}
-      {% if product.material %}<div class="row"><span class="k">Матеріал</span><span class="v">{{ product.material }}</span></div>{% endif %}
-      {% if product.sku %}<div class="row"><span class="k">Артикул</span><span class="v">{{ product.sku }}</span></div>{% endif %}
+      <ul class="detail-trust">
+        <li class="trust-item">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M8 1.5L2 4v5c0 3 3 5.5 6 6.5 3-1 6-3.5 6-6.5V4L8 1.5z"/></svg>
+          <span>Сертифікат автентичності DropRoom</span>
+        </li>
+        <li class="trust-item">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="1" y="5" width="14" height="10" rx="1"/><path d="M5 5V3.5a3 3 0 016 0V5"/></svg>
+          <span>Безпечна оплата</span>
+        </li>
+        <li class="trust-item">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M14 6H2M2 6l4-4M2 6l4 4"/></svg>
+          <span>14 днів на повернення</span>
+        </li>
+      </ul>
+
     </div>
-
-    <div class="detail-trust">
-      <div class="trust-item">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 1.5L2 4v5c0 3 3 5.5 6 6.5 3-1 6-3.5 6-6.5V4L8 1.5z"/></svg>
-        <span>Сертифікат автентичності DropRoom</span>
-      </div>
-      <div class="trust-item">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1" y="5" width="14" height="10" rx="1"/><path d="M5 5V3.5a3 3 0 016 0V5"/></svg>
-        <span>Безпечна оплата</span>
-      </div>
-      <div class="trust-item">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M14 6H2M2 6l4-4M2 6l4 4"/></svg>
-        <span>14 днів на повернення</span>
-      </div>
-    </div>
-
   </div>
+
+  {% if similar_products %}
+  <section class="similar-products" aria-label="Схожі товари">
+    <div class="row-head">
+      <h2>Схожі /<br><span class="accent">товари</span></h2>
+      <a href="{% url 'catalog:list' %}?brand={{ product.brand.slug }}" class="all">Усі від {{ product.brand.name }} →</a>
+    </div>
+    <div class="products">
+      {% for p in similar_products %}
+        {% include "partials/product_card.html" with product=p %}
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
 </div>
 
-{% if similar_products %}
-<section class="similar-products">
-  <div class="row-head">
-    <h2>Схожі /<br><span class="accent">товари</span></h2>
-    <a href="{% url 'catalog:list' %}?brand={{ product.brand.slug }}" class="all">Усі від {{ product.brand.name }} →</a>
-  </div>
-  <div class="products">
-    {% for p in similar_products %}
-      <article class="product">
-        <a href="{% url 'catalog:detail' p.slug %}" class="product-media">
-          {% if p.primary_image %}
-            <img src="{{ p.primary_image.image.url }}" alt="{{ p.name }}" class="product-img a" loading="lazy">
-          {% else %}
-            <div class="product-img a"></div>
-          {% endif %}
-        </a>
-        <div class="p-brand">{{ p.brand.name }}</div>
-        <div class="p-info">
-          <div>
-            <div class="p-name">{{ p.name }}</div>
-            <div class="p-sub">{{ p.subtitle|default:"" }}</div>
-          </div>
-          <div class="p-price">{{ p.base_price|floatformat:"0" }} ₴</div>
-        </div>
-      </article>
-    {% endfor %}
-  </div>
-</section>
+{% if product.primary_image %}
+  {% include "partials/gallery_lightbox.html" %}
 {% endif %}
 
 {% endblock %}

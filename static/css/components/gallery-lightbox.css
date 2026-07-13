@@ -1,0 +1,189 @@
+.gallery-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(16px, env(safe-area-inset-top, 0px))
+           max(16px, env(safe-area-inset-right, 0px))
+           max(16px, env(safe-area-inset-bottom, 0px))
+           max(16px, env(safe-area-inset-left, 0px));
+}
+
+.gallery-lightbox[hidden] {
+  display: none;
+}
+
+.gallery-lightbox__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(14, 13, 11, .88);
+  cursor: pointer;
+}
+
+.gallery-lightbox__dialog {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 1120px);
+  height: min(100%, 92vh);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-rows: 1fr auto;
+  align-items: center;
+  gap: 8px 12px;
+  animation: gallery-lightbox-in .28s var(--ease);
+}
+
+@keyframes gallery-lightbox-in {
+  from { opacity: 0; transform: scale(.98); }
+  to { opacity: 1; transform: none; }
+}
+
+.gallery-lightbox__close {
+  position: absolute;
+  top: max(0px, env(safe-area-inset-top, 0px));
+  right: max(0px, env(safe-area-inset-right, 0px));
+  z-index: 3;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  cursor: pointer;
+  transition: color .25s var(--ease), border-color .25s var(--ease);
+}
+
+.gallery-lightbox__close:hover,
+.gallery-lightbox__close:focus-visible {
+  color: var(--accent);
+  border-color: var(--ink);
+  outline: none;
+}
+
+.gallery-lightbox__stage {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 48px 56px 32px;
+  touch-action: pan-y pinch-zoom;
+}
+
+.gallery-lightbox__img {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: min(78vh, 820px);
+  object-fit: contain;
+  object-position: center center;
+  -webkit-object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.gallery-lightbox__counter {
+  margin-top: 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, .72);
+}
+
+.gallery-lightbox__nav {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: color .25s var(--ease), border-color .25s var(--ease), opacity .25s var(--ease);
+}
+
+.gallery-lightbox__nav:hover,
+.gallery-lightbox__nav:focus-visible {
+  color: var(--accent);
+  border-color: var(--ink);
+  outline: none;
+}
+
+.gallery-lightbox__nav--prev {
+  left: max(0px, env(safe-area-inset-left, 0px));
+}
+
+.gallery-lightbox__nav--next {
+  right: max(0px, env(safe-area-inset-right, 0px));
+}
+
+.gallery-lightbox__nav[hidden] {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .gallery-lightbox {
+    padding: 0;
+  }
+
+  .gallery-lightbox__dialog {
+    width: 100%;
+    height: 100%;
+    gap: 0;
+  }
+
+  .gallery-lightbox__stage {
+    padding: 56px 12px 72px;
+  }
+
+  .gallery-lightbox__img {
+    max-height: min(70vh, 640px);
+  }
+
+  .gallery-lightbox__close {
+    top: max(8px, env(safe-area-inset-top, 0px));
+    right: max(8px, env(safe-area-inset-right, 0px));
+    width: 40px;
+    height: 40px;
+  }
+
+  .gallery-lightbox__nav {
+    width: 44px;
+    height: 44px;
+    top: auto;
+    bottom: max(20px, env(safe-area-inset-bottom, 0px));
+    transform: none;
+    background: rgba(243, 241, 236, .94);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .gallery-lightbox__nav--prev {
+    left: max(16px, env(safe-area-inset-left, 0px));
+  }
+
+  .gallery-lightbox__nav--next {
+    right: max(16px, env(safe-area-inset-right, 0px));
+  }
+
+  .gallery-lightbox__counter {
+    position: absolute;
+    left: 50%;
+    bottom: max(28px, calc(env(safe-area-inset-bottom, 0px) + 20px));
+    transform: translateX(-50%);
+    margin-top: 0;
+  }
+}

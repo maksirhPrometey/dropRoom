@@ -1,0 +1,32 @@
+from dataclasses import dataclass, field
+from decimal import Decimal
+
+from src.catalog.models import Brand, Category
+
+
+@dataclass
+class ParsedVariant:
+    size: str
+    price: Decimal
+    stock_qty: int = 1
+    is_available: bool = True
+    color: str | None = None
+    note: str = ""
+
+
+@dataclass
+class ParsedProduct:
+    name: str
+    description: str
+    brand: Brand | None
+    category: Category | None
+    gender: str
+    variants: list[ParsedVariant] = field(default_factory=list)
+
+    @property
+    def base_price(self) -> Decimal | None:
+        if not self.variants:
+            return None
+        available = [v.price for v in self.variants if v.is_available]
+        prices = available or [v.price for v in self.variants]
+        return min(prices)
