@@ -153,21 +153,54 @@ def _sync_variants(
         )
 
 
+def _find_duplicate_product(
+    channel_id: int,
+    message_id: int,
+    caption: str,
+) -> Product | None:
+    normalized = caption.strip()
+    if not normalized:
+        return None
+    existing = (
+        TelegramImport.objects.filter(
+            channel_id=channel_id,
+            raw_caption=normalized,
+            product_id__isnull=False,
+            status=TelegramImport.STATUS_IMPORTED,
+        )
+        .exclude(message_id=message_id)
+        .select_related("product")
+        .order_by("message_id")
+        .first()
+    )
+    return existing.product if existing else None
+
+
 def _sync_images(
     product: Product,
     record: TelegramImport,
     alt_text: str,
     photo_files: list[tuple[str, bytes]] | None = None,
+    *,
+    merge_existing: bool = False,
 ) -> None:
     existing_count = product.images.count()
 
     if photo_files:
-        photo_files = rank_photo_files(photo_files)
-        if not photo_files:
+        combined = list(photo_files)
+        if merge_existing and product.images.exists():
+            for image in product.images.order_by("sort_order"):
+                if not image.image:
+                    continue
+                with image.image.open("rb") as handle:
+                    combined.append((image.image.name.rsplit("/", 1)[-1], handle.read()))
+
+        combined = rank_photo_files(combined)
+        if not combined:
             return
 
         product.images.all().delete()
-        for sort_order, (filename, content) in enumerate(photo_files):
+        for sort_order, (filename, content) in enumerate(combined):
             ProductImage.objects.create(
                 product=product,
                 image=ContentFile(
@@ -273,10 +306,13 @@ def import_telegram_message(
         record.save(update_fields=["status", "error", "updated_at"])
         raise ImportError(record.error)
 
+    caption_text = (caption or record.raw_caption).strip()
+    duplicate_product = _find_duplicate_product(channel_id, message_id, caption_text)
+
     default_price = Decimal(settings.TELEGRAM_DEFAULT_PRICE)
     base_price = parsed.base_price or default_price
 
-    product = record.product
+    product = record.product or duplicate_product
     if not product:
         product = Product.objects.create(
             brand=parsed.brand,
@@ -289,6 +325,7 @@ def import_telegram_message(
         )
         record.product = product
     else:
+        record.product = product
         product.brand = parsed.brand
         product.category = parsed.category
         product.name = parsed.name
@@ -304,7 +341,13 @@ def import_telegram_message(
         parsed_variants=parsed.variants,
         default_price=default_price,
     )
-    _sync_images(product, record, parsed.name, photo_files=photo_files)
+    _sync_images(
+        product,
+        record,
+        parsed.name,
+        photo_files=photo_files,
+        merge_existing=bool(duplicate_product and photo_files),
+    )
 
     record.status = TelegramImport.STATUS_IMPORTED
     record.imported_at = timezone.now()

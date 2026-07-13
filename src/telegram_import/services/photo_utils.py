@@ -129,6 +129,11 @@ def rank_photo_files(
     ]
     if product_photos:
         return product_photos
+
+    if ranked:
+        best = max(ranked, key=lambda item: len(item[2]))
+        return [(best[1], best[2])]
+
     return []
 
 

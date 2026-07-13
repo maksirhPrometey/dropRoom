@@ -83,6 +83,15 @@ UGG_VENTURE_DAZE = """UGG Venture Daze — стильні сандалі на м
 всі кольори в одну ціну"""
 
 
+POLO_CAP = """В наявності кепка Polo 
+
+one size
+
+- 50 % 
+
+🏷️999"""
+
+
 class ChannelCaptionParserTests(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -99,6 +108,11 @@ class ChannelCaptionParserTests(TestCase):
         )
         Category.objects.get_or_create(slug="bags", defaults={"name": "Bags"})
         Category.objects.get_or_create(slug="footwear", defaults={"name": "Footwear"})
+        Category.objects.get_or_create(
+            slug="accessories",
+            defaults={"name": "Accessories"},
+        )
+        Brand.objects.get_or_create(name="Crocs", defaults={"slug": "crocs"})
 
     def _parse(self, caption: str):
         return parse_caption(
@@ -175,3 +189,12 @@ class ChannelCaptionParserTests(TestCase):
         self.assertIn("літніх образів", parsed.description)
         self.assertNotIn("Розміри та ціни", parsed.description)
         self.assertNotIn("3 850 грн", parsed.description)
+
+    def test_polo_cap_strips_availability_and_matches_brand(self):
+        parsed = self._parse(POLO_CAP)
+        self.assertEqual(parsed.name, "Кепка Polo")
+        self.assertEqual(parsed.brand.name, "Polo Ralph Lauren")
+        self.assertEqual(parsed.category.slug, "accessories")
+        self.assertEqual(len(parsed.variants), 1)
+        self.assertEqual(parsed.variants[0].size, "ONE SIZE")
+        self.assertEqual(parsed.variants[0].price, Decimal("999"))

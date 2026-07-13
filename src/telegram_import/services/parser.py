@@ -21,6 +21,11 @@ _SKIP_TITLE_RE = re.compile(
     r"^(?:розмір|обхват|света|там де)",
     re.IGNORECASE,
 )
+_AVAILABILITY_PREFIX_RE = re.compile(
+    r"^(?:в\s+наявності|наявності|під\s+замовлення)\s+",
+    re.IGNORECASE,
+)
+_BRAND_STOPWORDS = frozenset({"the", "and", "for", "new", "york"})
 _GENDER_RE = re.compile(
     r"(?:стать|gender)[:\s]*(W|M|U|жіноч|чоловіч|унісекс)",
     re.IGNORECASE,
@@ -41,6 +46,7 @@ _CATEGORY_KEYWORDS: list[tuple[str, str]] = [
     ("accessor", "accessories"),
     ("легінс", "loungewear"),
     ("hoodie", "loungewear"),
+    ("кепк", "accessories"),
 ]
 
 
@@ -65,6 +71,14 @@ def _split_name_and_lead(line: str) -> tuple[str, str]:
     return name, lead
 
 
+def _normalize_title(title: str) -> str:
+    cleaned = _clean_title_line(title)
+    cleaned = _AVAILABILITY_PREFIX_RE.sub("", cleaned).strip()
+    if cleaned:
+        cleaned = cleaned[0].upper() + cleaned[1:]
+    return cleaned
+
+
 def _extract_title(caption: str) -> str:
     for line in caption.splitlines():
         stripped = line.strip()
@@ -79,7 +93,7 @@ def _extract_title(caption: str) -> str:
         if _VARIANT_SECTION_RE.match(stripped):
             continue
         name, _lead = _split_name_and_lead(stripped)
-        title = name or _clean_title_line(stripped)
+        title = _normalize_title(name or stripped)
         if title and len(title) > 2:
             return title[:255]
     return "Товар з Telegram"
@@ -87,6 +101,11 @@ def _extract_title(caption: str) -> str:
 
 def _line_matches_title(stripped: str, title: str) -> tuple[bool, str]:
     cleaned = _clean_title_line(stripped)
+    normalized = _normalize_title(cleaned)
+    title_norm = _normalize_title(title)
+    if normalized == title_norm:
+        return True, ""
+
     if cleaned == _clean_title_line(title):
         return True, ""
 
@@ -183,8 +202,14 @@ def _match_brand(text: str) -> Brand | None:
         tokens = [token for token in name.replace("-", " ").split() if len(token) > 2]
         if len(tokens) >= 2 and all(token in lowered for token in tokens[-2:]):
             return brand
-        if len(tokens) == 1 and tokens[0] in lowered:
-            return brand
+
+        if tokens:
+            lead = tokens[0]
+            if lead not in _BRAND_STOPWORDS and re.search(
+                rf"(?<![a-zа-яіїєґ]){re.escape(lead)}(?![a-zа-яіїєґ])",
+                lowered,
+            ):
+                return brand
 
     return None
 

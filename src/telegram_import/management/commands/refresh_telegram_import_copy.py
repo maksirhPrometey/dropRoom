@@ -61,11 +61,15 @@ class Command(BaseCommand):
                 default_gender=product.gender or "U",
             )
 
-            updates: dict[str, str] = {}
+            updates: dict[str, object] = {}
             if parsed.name and product.name != parsed.name:
                 updates["name"] = parsed.name
             if product.description != parsed.description:
                 updates["description"] = parsed.description
+            if parsed.brand and product.brand_id != parsed.brand.pk:
+                updates["brand"] = parsed.brand
+            if parsed.category and product.category_id != parsed.category.pk:
+                updates["category"] = parsed.category
 
             if not updates:
                 continue
@@ -77,6 +81,10 @@ class Command(BaseCommand):
                 preview += f"\n     → {updates['name']!r}"
             if "description" in updates:
                 preview += f"\n  description: {len(product.description)} → {len(updates['description'])} chars"
+            if "brand" in updates:
+                preview += f"\n  brand: {product.brand.name} → {updates['brand'].name}"
+            if "category" in updates:
+                preview += f"\n  category: {product.category.slug} → {updates['category'].slug}"
 
             if dry_run:
                 self.stdout.write(preview)
