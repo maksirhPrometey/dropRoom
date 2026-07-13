@@ -17,7 +17,7 @@ _STOCK_NOTE_RE = re.compile(
     re.IGNORECASE,
 )
 _VARIANT_SECTION_RE = re.compile(
-    r"^(?:розміри\s*(?:та\s*ціни)?|розмірна\s*сітка)\s*:?\s*$",
+    r"^(?:📏\s*)?(?:розміри\s*(?:та\s*ціни)?|розмірна\s*сітка)\s*:?\s*$",
     re.IGNORECASE,
 )
 _SIZE_LINE_RE = re.compile(

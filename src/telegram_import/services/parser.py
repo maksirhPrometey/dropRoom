@@ -6,9 +6,10 @@ from .parser_types import ParsedProduct
 from .parser_variants import extract_variants
 
 _VARIANT_SECTION_RE = re.compile(
-    r"^(?:розміри\s*(?:та\s*ціни)?|розмірна\s*сітка)\s*:?\s*$",
+    r"^(?:📏\s*)?(?:розміри\s*(?:та\s*ціни)?|розмірна\s*сітка)\s*:?\s*$",
     re.IGNORECASE,
 )
+_TITLE_LEAD_RE = re.compile(r"^(.+?)\s+[—–-]\s+(.+)$")
 
 _TITLE_EMOJI_RE = re.compile(
     r"^[\s✨⭐️🌟💫📏🏷️❤️🤍🖤💛💚💙🧡]+",
@@ -49,6 +50,21 @@ def _clean_title_line(line: str) -> str:
     return cleaned.strip("—–-: ")
 
 
+def _split_name_and_lead(line: str) -> tuple[str, str]:
+    cleaned = _clean_title_line(line)
+    if not cleaned:
+        return "", ""
+
+    match = _TITLE_LEAD_RE.match(cleaned)
+    if not match:
+        return cleaned, ""
+
+    name, lead = match.group(1).strip(), match.group(2).strip()
+    if len(name) > 80 or len(lead) < 20:
+        return cleaned, ""
+    return name, lead
+
+
 def _extract_title(caption: str) -> str:
     for line in caption.splitlines():
         stripped = line.strip()
@@ -58,14 +74,33 @@ def _extract_title(caption: str) -> str:
             continue
         if _SKIP_TITLE_RE.match(stripped):
             continue
-        if re.match(r"^[•✅❌]", stripped):
+        if re.match(r"^[•✅❌🔹]", stripped):
             continue
         if _VARIANT_SECTION_RE.match(stripped):
             continue
-        title = _clean_title_line(stripped)
+        name, _lead = _split_name_and_lead(stripped)
+        title = name or _clean_title_line(stripped)
         if title and len(title) > 2:
             return title[:255]
     return "Товар з Telegram"
+
+
+def _line_matches_title(stripped: str, title: str) -> tuple[bool, str]:
+    cleaned = _clean_title_line(stripped)
+    if cleaned == _clean_title_line(title):
+        return True, ""
+
+    name, lead = _split_name_and_lead(stripped)
+    if name and name == title:
+        return True, lead
+
+    if title in cleaned:
+        remainder = cleaned.split(title, 1)[1].lstrip(" —–-: ")
+        if remainder and remainder != cleaned:
+            return True, remainder
+        return True, ""
+
+    return False, ""
 
 
 def _extract_description(caption: str, title: str) -> str:
@@ -81,15 +116,18 @@ def _extract_description(caption: str, title: str) -> str:
             continue
 
         if not title_found:
-            if _clean_title_line(stripped) == _clean_title_line(title) or title in stripped:
+            matched, lead = _line_matches_title(stripped, title)
+            if matched:
                 title_found = True
+                if lead:
+                    description_lines.append(lead)
             continue
 
         if _VARIANT_SECTION_RE.match(stripped):
             break
         if stripped.startswith("•") and "🏷️" in stripped:
             break
-        if re.match(r"^[✅❌]?\s*(?:XXS|XXXL|XXL|XL|XS|[SML]|\d{2})\s*[—–-]", stripped):
+        if re.match(r"^[✅❌🔹]?\s*(?:XXS|XXXL|XXL|XL|XS|[SML]|\d{2})\s*[—–-]", stripped):
             break
         if stripped.startswith("🏷️") and len(description_lines) > 0:
             break

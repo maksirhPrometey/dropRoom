@@ -69,6 +69,19 @@ ZARA_SLIPPERS = """Шльопанці Zara
 📏 Розмірна сітка
 • 42 — 25,5 см — 🏷️ 1850 грн"""
 
+UGG_VENTURE_DAZE = """UGG Venture Daze — стильні сандалі на масивній платформі, які поєднують комфорт, легкість і сучасний дизайн. М’яка анатомічна устілка, регульована шнурівка та амортизуюча підошва забезпечують максимальну зручність протягом усього дня. Ідеальний вибір для літніх образів.
+
+📏 Розміри та ціни:
+🔹 34 (21,5 см) — 3 850 грн
+🔹 35 (22 см) — 3 950 грн
+🔹 36 (23 см) — 4 050 грн
+🔹 37 (23,5 см) — 4 150 грн
+🔹 38 (24 см) — 4 250 грн
+🔹 39 (25 см) — 4 350 грн
+🔹 40 (25,5 см) — 4 450 грн
+
+всі кольори в одну ціну"""
+
 
 class ChannelCaptionParserTests(TestCase):
     @classmethod
@@ -79,6 +92,7 @@ class ChannelCaptionParserTests(TestCase):
         )
         Brand.objects.get_or_create(name="Coach", defaults={"slug": "coach"})
         Brand.objects.get_or_create(name="Zara", defaults={"slug": "zara"})
+        Brand.objects.get_or_create(name="UGG", defaults={"slug": "ugg"})
         cls.knitwear, _ = Category.objects.get_or_create(
             slug="knitwear",
             defaults={"name": "Knitwear"},
@@ -153,3 +167,11 @@ class ChannelCaptionParserTests(TestCase):
             v for v in parsed.variants if v.size == "42" and v.color == "леопардові"
         )
         self.assertEqual(leopard_42.price, Decimal("1850"))
+
+    def test_inline_title_lead_splits_name_and_description(self):
+        parsed = self._parse(UGG_VENTURE_DAZE)
+        self.assertEqual(parsed.name, "UGG Venture Daze")
+        self.assertIn("стильні сандалі", parsed.description)
+        self.assertIn("літніх образів", parsed.description)
+        self.assertNotIn("Розміри та ціни", parsed.description)
+        self.assertNotIn("3 850 грн", parsed.description)
