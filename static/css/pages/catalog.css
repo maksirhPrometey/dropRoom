@@ -337,7 +337,7 @@ main.col { min-width: 0; }
 }
 
 .catalog-products {
-  --grid-cols: 4;
+  /* cols: product-grid--catalog у product-grid.css */
 }
 
 .grid-banner h3 { font-family: 'Archivo', sans-serif; font-weight: 800; font-size: 36px; text-transform: uppercase; letter-spacing: -.025em; line-height: 1; }

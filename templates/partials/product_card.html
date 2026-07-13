@@ -42,26 +42,30 @@
       </div>
     {% endif %}
   </div>
-  <div class="p-brand">{{ product.brand.name }}</div>
-  <div class="p-info">
-    <div class="p-name-wrap">
-      <div class="p-name">{{ product.name }}</div>
-      {% if product.subtitle %}<div class="p-sub">{{ product.subtitle }}</div>{% endif %}
-    </div>
-    <div class="p-price">
-      {% if product.compare_price %}
-        <s>{{ product.compare_price|floatformat:"0" }} ₴</s>
-        <b>{{ product.base_price|floatformat:"0" }} ₴</b>
-      {% else %}
-        {{ product.base_price|floatformat:"0" }} ₴
+  <div class="product-body">
+    <div class="p-brand">{{ product.brand.name }}</div>
+    <div class="product-footer">
+      <div class="p-info">
+        <div class="p-name-wrap">
+          <div class="p-name">{{ product.name }}</div>
+          {% if product.subtitle %}<div class="p-sub">{{ product.subtitle }}</div>{% endif %}
+        </div>
+        <div class="p-price">
+          {% if product.compare_price %}
+            <s>{{ product.compare_price|floatformat:"0" }} ₴</s>
+            <b>{{ product.base_price|floatformat:"0" }} ₴</b>
+          {% else %}
+            {{ product.base_price|floatformat:"0" }} ₴
+          {% endif %}
+        </div>
+      </div>
+      {% if show_stock %}
+        {% if product.is_low_stock %}
+          <div class="p-low-stock" aria-label="Обмежена кількість">Товар закінчується</div>
+        {% elif product.is_under_order %}
+          <div class="p-preorder">Під замовлення</div>
+        {% endif %}
       {% endif %}
     </div>
   </div>
-  {% if show_stock %}
-    {% if product.is_low_stock %}
-      <div class="p-low-stock" aria-label="Обмежена кількість">Товар закінчується</div>
-    {% elif product.is_under_order %}
-      <div class="p-preorder">Під замовлення</div>
-    {% endif %}
-  {% endif %}
 </article>

@@ -142,7 +142,8 @@
       </div>
     </div>
 
-    <div class="products catalog-products" id="products">
+    <div class="products catalog-products product-grid product-grid--catalog"
+         id="products">
       {% for product in page_obj %}
         {% if forloop.counter == 7 %}
           <div class="grid-banner">

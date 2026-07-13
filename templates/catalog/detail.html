@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static grid_tags %}
 
 {% block title %}{{ product.brand.name }} {{ product.name }}{% endblock %}
 {% block description %}{{ product.brand.name }} {{ product.name }}. {{ product.subtitle }}. Купити в DropRoom.{% endblock %}
@@ -225,11 +225,13 @@
       <h2>Схожі /<br><span class="accent">товари</span></h2>
       <a href="{% url 'catalog:list' %}?brand={{ product.brand.slug }}" class="all">Усі від {{ product.brand.name }} →</a>
     </div>
-    <div class="products">
+    {% with n=similar_products|length %}
+    <div class="products product-grid product-grid--cols-{{ n|ideal_cols:4 }}">
       {% for p in similar_products %}
         {% include "partials/product_card.html" with product=p %}
       {% endfor %}
     </div>
+    {% endwith %}
   </section>
   {% endif %}
 

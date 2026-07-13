@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static grid_tags %}
 
 {% block title %}{% if home_page %}{{ home_page.hero_title|striptags }}{% else %}DROPROOM{% endif %}{% endblock %}
 
@@ -115,23 +115,27 @@
 
 {% if latest_products %}
 <section class="row home-latest" aria-label="Новинки">
-  <div class="products home-latest__grid reveal">
+  {% with n=latest_products|length %}
+  <div class="products product-grid product-grid--cols-{{ n|ideal_cols:4 }} home-latest__grid reveal">
     {% for product in latest_products %}
       {% include "partials/product_card.html" %}
     {% endfor %}
   </div>
+  {% endwith %}
 </section>
 {% endif %}
 
 {% if catalog_products %}
 <section class="row home-catalog" aria-label="Каталог">
-  <div class="products home-catalog__grid reveal">
+  {% with n=catalog_products|length %}
+  <div class="products product-grid product-grid--cols-{{ n|ideal_cols:4 }} home-catalog__grid reveal">
     {% for product in catalog_products %}
       {% include "partials/product_card.html" %}
     {% empty %}
       <p class="empty-state">Товари незабаром з'являться</p>
     {% endfor %}
   </div>
+  {% endwith %}
   <div class="home-catalog__more reveal">
     <a href="{% url 'catalog:list' %}" class="home-catalog__link">Усі {{ products_count }} позицій →</a>
   </div>
