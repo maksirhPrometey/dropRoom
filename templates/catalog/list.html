@@ -7,6 +7,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/pages/catalog.css' %}">
+<link rel="stylesheet" href="{% static 'css/components/sort-picker.css' %}">
 {% endblock %}
 
 {% block extra_js %}
@@ -133,12 +134,14 @@
         Показано <b>{{ page_obj.start_index }} — {{ page_obj.end_index }}</b> з <b>{{ page_obj.paginator.count }}</b> позицій
       </div>
       <div class="toolbar-right">
-        <select name="sort" form="filter-form" onchange="document.getElementById('filter-form').submit()">
-          <option value="-created_at" {% if request.GET.sort == '-created_at' or not request.GET.sort %}selected{% endif %}>Нові спочатку</option>
-          <option value="price" {% if request.GET.sort == 'price' %}selected{% endif %}>Ціна ↑</option>
-          <option value="-price" {% if request.GET.sort == '-price' %}selected{% endif %}>Ціна ↓</option>
-          <option value="name" {% if request.GET.sort == 'name' %}selected{% endif %}>Назва А–Я</option>
-        </select>
+        <div class="sort-picker" data-sort-picker>
+          <select name="sort" form="filter-form" data-sort-picker-native aria-label="Сортування">
+            <option value="-created_at" {% if request.GET.sort == '-created_at' or not request.GET.sort %}selected{% endif %}>Нові спочатку</option>
+            <option value="price" {% if request.GET.sort == 'price' %}selected{% endif %}>Ціна ↑</option>
+            <option value="-price" {% if request.GET.sort == '-price' %}selected{% endif %}>Ціна ↓</option>
+            <option value="name" {% if request.GET.sort == 'name' %}selected{% endif %}>Назва А–Я</option>
+          </select>
+        </div>
       </div>
     </div>
 
