@@ -35,6 +35,10 @@ _SIZE_PRICE_SIMPLE_RE = re.compile(
     r"(?:Sold\s*Out|(\d[\d\s]*)(?:\s*грн)?)\s*$",
     re.IGNORECASE,
 )
+_SIZE_MEASUREMENT_RE = re.compile(
+    rf"^(?:✅|❌)?\s*({_SIZE_LETTER})\s*[—–-]\s*(?:груди|ог|обхват)",
+    re.IGNORECASE,
+)
 _COLOR_HEADER_RE = re.compile(
     r"^(?:коричнев|чорн|біл|бежев|син|зелен|рожев|червон|сірий|леопард|молочн|кремов)",
     re.IGNORECASE,
@@ -164,6 +168,7 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
     variants: list[ParsedVariant] = []
     current_color: str | None = None
     pending_size_line: str | None = None
+    measurement_sizes: list[str] = []
 
     for index, line in enumerate(lines):
         stripped = line.strip()
@@ -181,6 +186,12 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
             continue
 
         if "розмірна сітка" in stripped.lower():
+            pending_size_line = None
+            continue
+
+        measurement_match = _SIZE_MEASUREMENT_RE.match(stripped)
+        if measurement_match:
+            measurement_sizes.append(_normalize_size(measurement_match.group(1)))
             pending_size_line = None
             continue
 
@@ -203,14 +214,50 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
             pending_size_line = None
             continue
 
-        if stripped.startswith("🏷️"):
+        if "🏷️" in stripped:
             price = _extract_price(stripped)
+            if price is not None and measurement_sizes:
+                stock_default = 0 if "під замовлення" in caption.lower() else 1
+                stock_qty = (
+                    1
+                    if caption_signals_in_stock(caption)
+                    else stock_default
+                )
+                for size in measurement_sizes:
+                    variants.append(
+                        ParsedVariant(
+                            size=size,
+                            price=price,
+                            stock_qty=stock_qty,
+                            is_available=True,
+                            color=current_color,
+                        )
+                    )
+                measurement_sizes.clear()
+                continue
+
             if price is not None:
                 variants.append(
                     ParsedVariant(
                         size="ONE SIZE",
                         price=price,
                         stock_qty=1 if caption_signals_in_stock(caption) else 0,
+                        is_available=True,
+                        color=current_color,
+                    )
+                )
+
+    if measurement_sizes:
+        price = _extract_price(caption)
+        if price is not None:
+            stock_default = 0 if "під замовлення" in caption.lower() else 1
+            stock_qty = 1 if caption_signals_in_stock(caption) else stock_default
+            for size in measurement_sizes:
+                variants.append(
+                    ParsedVariant(
+                        size=size,
+                        price=price,
+                        stock_qty=stock_qty,
                         is_available=True,
                         color=current_color,
                     )

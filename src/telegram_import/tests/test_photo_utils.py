@@ -1,9 +1,11 @@
 from io import BytesIO
+from pathlib import Path
 
 from django.test import TestCase
 from PIL import Image
 
 from src.telegram_import.services.photo_utils import (
+    is_likely_phone_screenshot,
     is_likely_size_chart,
     is_likely_spec_diagram,
     normalize_product_image,
@@ -67,3 +69,30 @@ class PhotoRankingTests(TestCase):
         with Image.open(BytesIO(normalized)) as result:
             self.assertLess(result.size[0], 400)
             self.assertLess(result.size[1], 500)
+
+    def test_phone_screenshot_filtered(self):
+        screenshot = ("screenshot.jpg", _jpeg_bytes(1178, 2560, "white"))
+        product = ("product.jpg", _jpeg_bytes(1920, 2560, "red"))
+        ranked = rank_photo_files(
+            [screenshot, product],
+            sizes=[(1178, 2560), (1920, 2560)],
+        )
+        self.assertEqual(ranked[0][0], "product.jpg")
+        self.assertEqual(len(ranked), 1)
+
+    def test_phone_screenshot_detected_with_real_seed_photo(self):
+        photo_path = (
+            Path(__file__).resolve().parents[3]
+            / "seed_data"
+            / "photos"
+            / "photo_161@10-07-2026_14-20-07.jpg"
+        )
+        if not photo_path.is_file():
+            self.skipTest("seed screenshot sample is missing")
+
+        content = photo_path.read_bytes()
+        self.assertTrue(is_likely_phone_screenshot(1178, 2560, content=content))
+        self.assertEqual(
+            rank_photo_files([("screenshot.jpg", content)], sizes=[(1178, 2560)]),
+            [],
+        )

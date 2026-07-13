@@ -8,6 +8,7 @@ from django.conf import settings
 from django.utils import timezone
 
 from src.telegram_import.models import TelegramSyncState
+from src.telegram_import.services.caption_selection import merge_message_captions
 from src.telegram_import.services.importer import ImportError, import_telegram_message
 from src.telegram_import.services.photo_utils import rank_photo_files
 
@@ -151,7 +152,7 @@ def _group_messages(messages: list[dict]) -> list[list[dict]]:
         caption = flatten_export_text(message.get("text", ""))
         has_photo = bool(message.get("photo") or message.get("file"))
 
-        if has_photo and not caption and album_buffer and ts == album_ts:
+        if has_photo and album_buffer and ts == album_ts:
             album_buffer.append(message)
             seen_ids.add(message_id)
             continue
@@ -168,12 +169,9 @@ def _group_messages(messages: list[dict]) -> list[list[dict]]:
 
 def _build_post(export_dir: Path, messages: list[dict]) -> ExportPost | None:
     primary = min(messages, key=lambda item: int(item["id"]))
-    caption = ""
-    for message in messages:
-        text = flatten_export_text(message.get("text", ""))
-        if text:
-            caption = text
-            break
+    caption = merge_message_captions(
+        [flatten_export_text(message.get("text", "")) for message in messages]
+    )
 
     photo_files, photo_sizes = _load_photo_files(export_dir, messages)
     photo_files = rank_photo_files(photo_files, sizes=photo_sizes)

@@ -92,6 +92,17 @@ one size
 🏷️999"""
 
 
+TOMMY_JEANS_CARDIGAN = """Tommy Jeans Cardigan
+
+Елегантний кардиган Tommy Jeans — універсальна модель для повсякденного гардероба.
+
+S — груди 88-92 см
+M — груди 92-96 см
+L — груди 96-100 см
+
+під замовлення 🏷️2999"""
+
+
 class ChannelCaptionParserTests(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -113,6 +124,10 @@ class ChannelCaptionParserTests(TestCase):
             defaults={"name": "Accessories"},
         )
         Brand.objects.get_or_create(name="Crocs", defaults={"slug": "crocs"})
+        Brand.objects.get_or_create(
+            name="Tommy Hilfiger",
+            defaults={"slug": "tommy-hilfiger"},
+        )
 
     def _parse(self, caption: str):
         return parse_caption(
@@ -200,3 +215,15 @@ class ChannelCaptionParserTests(TestCase):
         self.assertEqual(parsed.variants[0].size, "ONE SIZE")
         self.assertEqual(parsed.variants[0].price, Decimal("999"))
         self.assertEqual(parsed.variants[0].stock_qty, 1)
+
+    def test_tommy_jeans_cardigan_sizes_and_price(self):
+        parsed = self._parse(TOMMY_JEANS_CARDIGAN)
+        self.assertEqual(parsed.name, "Tommy Jeans Cardigan")
+        self.assertEqual(parsed.brand.name, "Tommy Hilfiger")
+        self.assertEqual(parsed.category.slug, "knitwear")
+        self.assertEqual(parsed.base_price, Decimal("2999"))
+        sizes = {variant.size for variant in parsed.variants}
+        self.assertEqual(sizes, {"S", "M", "L"})
+        for variant in parsed.variants:
+            self.assertEqual(variant.price, Decimal("2999"))
+            self.assertEqual(variant.stock_qty, 0)

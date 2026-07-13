@@ -11,6 +11,7 @@ from src.telegram_import.services.export_import import (
     import_telegram_export,
     load_export_posts,
 )
+from src.telegram_import.services.caption_selection import merge_message_captions
 
 
 SAMPLE_EXPORT = {
@@ -80,3 +81,68 @@ class TelegramExportImportTests(TestCase):
             product = Product.objects.get()
             self.assertEqual(product.name, "Coach Straw Tote Bag")
             self.assertEqual(product.base_price, Decimal("6050"))
+
+    def test_album_with_stock_note_stays_single_product(self):
+        export = {
+            "name": "Test Channel",
+            "type": "public_channel",
+            "id": 2876543210,
+            "messages": [
+                {
+                    "id": 113463,
+                    "type": "message",
+                    "date_unixtime": "1783683316",
+                    "text": "👜 Сумка-шопер Lacoste L.12.12\n\n🏷️3450",
+                    "photo": "photos/lacoste-main.jpg",
+                    "width": 800,
+                    "height": 1091,
+                },
+                {
+                    "id": 113464,
+                    "type": "message",
+                    "date_unixtime": "1783683316",
+                    "text": "коричневий в наявності один",
+                    "photo": "photos/lacoste-brown.jpg",
+                    "width": 800,
+                    "height": 1091,
+                },
+                {
+                    "id": 113465,
+                    "type": "message",
+                    "date_unixtime": "1783683316",
+                    "text": "",
+                    "photo": "photos/lacoste-extra.jpg",
+                    "width": 1773,
+                    "height": 2560,
+                },
+            ],
+        }
+
+        with tempfile.TemporaryDirectory() as tmp:
+            export_dir = Path(tmp)
+            photos_dir = export_dir / "photos"
+            photos_dir.mkdir()
+            for name in ("lacoste-main.jpg", "lacoste-brown.jpg", "lacoste-extra.jpg"):
+                (photos_dir / name).write_bytes(b"fake-image")
+
+            (export_dir / "result.json").write_text(
+                json.dumps(export),
+                encoding="utf-8",
+            )
+
+            posts = load_export_posts(export_dir)[1]
+            self.assertEqual(len(posts), 1)
+            self.assertEqual(posts[0].message_id, 113463)
+            self.assertIn("Lacoste", posts[0].caption)
+            self.assertIn("коричневий в наявності один", posts[0].caption)
+            self.assertEqual(len(posts[0].photo_files), 3)
+
+    def test_merge_message_captions_prefers_product_description(self):
+        merged = merge_message_captions(
+            [
+                "коричневий в наявності один",
+                "👜 Сумка-шопер Lacoste L.12.12\n\n🏷️3450",
+            ]
+        )
+        self.assertTrue(merged.startswith("👜"))
+        self.assertIn("коричневий в наявності один", merged)

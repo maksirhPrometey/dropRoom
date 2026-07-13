@@ -109,8 +109,90 @@ def _find_group_leader(
         media_group_id=media_group_id,
     ).order_by("message_id")
     if not caption:
+        leader = qs.filter(product_id__isnull=False).order_by("message_id").first()
+        if leader:
+            return leader
         return qs.exclude(raw_caption="").first()
     return qs.filter(raw_caption=caption).first() or qs.first()
+
+
+def _collect_group_photo_file_ids(channel_id: int, media_group_id: str) -> list[str]:
+    if not media_group_id:
+        return []
+
+    merged: list[str] = []
+    records = TelegramImport.objects.filter(
+        channel_id=channel_id,
+        media_group_id=media_group_id,
+    ).order_by("message_id")
+    for group_record in records:
+        for file_id in group_record.photo_file_ids:
+            if file_id and file_id not in merged:
+                merged.append(file_id)
+    return merged
+
+
+def _sync_group_images(
+    product: Product,
+    *,
+    channel_id: int,
+    media_group_id: str,
+    alt_text: str,
+) -> None:
+    file_ids = _collect_group_photo_file_ids(channel_id, media_group_id)
+    if not file_ids:
+        return
+
+    stub = TelegramImport(photo_file_ids=file_ids)
+    _sync_images(product, stub, alt_text)
+
+
+def _attach_pending_group_records(
+    *,
+    channel_id: int,
+    media_group_id: str,
+    product: Product,
+    imported_at,
+) -> None:
+    if not media_group_id:
+        return
+
+    TelegramImport.objects.filter(
+        channel_id=channel_id,
+        media_group_id=media_group_id,
+        product__isnull=True,
+    ).update(
+        product=product,
+        status=TelegramImport.STATUS_IMPORTED,
+        imported_at=imported_at,
+        error="",
+    )
+
+
+def _attach_record_to_group_product(
+    record: TelegramImport,
+    *,
+    leader: TelegramImport,
+    channel_id: int,
+    media_group_id: str,
+) -> None:
+    product = leader.product
+    if not product:
+        return
+
+    record.product = product
+    record.status = TelegramImport.STATUS_IMPORTED
+    record.imported_at = leader.imported_at or timezone.now()
+    record.error = ""
+    record.save(
+        update_fields=["status", "product", "imported_at", "error", "updated_at"]
+    )
+    _sync_group_images(
+        product,
+        channel_id=channel_id,
+        media_group_id=media_group_id,
+        alt_text=product.name,
+    )
 
 
 def _sync_variants(
@@ -260,28 +342,45 @@ def import_telegram_message(
         photo_file_ids=photo_file_ids,
     )
 
-    if media_group_id and not caption:
+    if media_group_id and not caption.strip():
         leader = _find_group_leader(channel_id, media_group_id, caption)
         if leader and leader.pk != record.pk and leader.product_id:
-            record.product = leader.product
-            record.status = TelegramImport.STATUS_IMPORTED
-            record.imported_at = leader.imported_at
-            record.save(update_fields=["status", "product", "imported_at", "updated_at"])
-            if leader.product_id and photo_file_ids:
-                _sync_images(leader.product, record, leader.product.name)
+            _attach_record_to_group_product(
+                record,
+                leader=leader,
+                channel_id=channel_id,
+                media_group_id=media_group_id,
+            )
             return record
 
-    if not photo_file_ids and not photo_files and not caption:
+        record.status = TelegramImport.STATUS_PENDING
+        record.error = "Очікує лідер-пост альбому"
+        record.save(update_fields=["status", "error", "updated_at"])
+        return record
+
+    if not photo_file_ids and not photo_files and not caption.strip():
         record.status = TelegramImport.STATUS_SKIPPED
         record.error = "Порожнє повідомлення"
         record.save(update_fields=["status", "error", "updated_at"])
         return record
 
     if photo_files:
-        photo_files = rank_photo_files(photo_files)
+        ranked_photos = rank_photo_files(photo_files)
+        if not ranked_photos and not photo_file_ids:
+            record.status = TelegramImport.STATUS_SKIPPED
+            record.error = "Лише скріншоти або службові зображення"
+            record.save(update_fields=["status", "error", "updated_at"])
+            return record
+        photo_files = ranked_photos
     if not photo_files and not photo_file_ids and not caption.strip():
         record.status = TelegramImport.STATUS_SKIPPED
         record.error = "Немає придатного фото"
+        record.save(update_fields=["status", "error", "updated_at"])
+        return record
+
+    if not caption.strip() and not media_group_id:
+        record.status = TelegramImport.STATUS_SKIPPED
+        record.error = "Фото без опису"
         record.save(update_fields=["status", "error", "updated_at"])
         return record
 
@@ -361,5 +460,20 @@ def import_telegram_message(
             "updated_at",
         ]
     )
+
+    if media_group_id:
+        _sync_group_images(
+            product,
+            channel_id=channel_id,
+            media_group_id=media_group_id,
+            alt_text=parsed.name,
+        )
+        _attach_pending_group_records(
+            channel_id=channel_id,
+            media_group_id=media_group_id,
+            product=product,
+            imported_at=record.imported_at,
+        )
+
     logger.info("Імпортовано товар %s з TG %s/%s", product.pk, channel_id, message_id)
     return record

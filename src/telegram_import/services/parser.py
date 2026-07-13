@@ -21,6 +21,10 @@ _SKIP_TITLE_RE = re.compile(
     r"^(?:розмір|обхват|света|там де)",
     re.IGNORECASE,
 )
+_STOCK_NOTE_TITLE_RE = re.compile(
+    r"^(?:коричнев|чорн|біл|сірий|синій|червон|рожев|зелен|бежев|оливков).*(?:в\s+наявності|наявності\s+один)",
+    re.IGNORECASE,
+)
 _AVAILABILITY_PREFIX_RE = re.compile(
     r"^(?:в\s+наявності|наявності|під\s+замовлення)\s+",
     re.IGNORECASE,
@@ -89,6 +93,8 @@ def _extract_title(caption: str) -> str:
         if stripped.startswith("|") or "см" in stripped.lower() and "—" in stripped:
             continue
         if _SKIP_TITLE_RE.match(stripped):
+            continue
+        if _STOCK_NOTE_TITLE_RE.match(stripped):
             continue
         if re.match(r"^[•✅❌🔹]", stripped):
             continue

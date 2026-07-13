@@ -8,6 +8,7 @@ from telethon import utils
 from telethon.tl.types import Message
 
 from src.telegram_import.models import TelegramSyncState
+from src.telegram_import.services.caption_selection import merge_message_captions
 from src.telegram_import.services.importer import ImportError, import_telegram_message
 from src.telegram_import.services.telethon_client import TelethonConfigError, get_telethon_client
 
@@ -104,12 +105,9 @@ async def _build_post(
 ) -> ChannelPost | None:
     primary = min(messages, key=lambda item: item.id)
     channel_id = int(primary.chat_id)
-    caption = ""
-    for message in messages:
-        text = _message_caption(message)
-        if text:
-            caption = text
-            break
+    caption = merge_message_captions(
+        [_message_caption(message) for message in messages]
+    )
 
     photo_files: list[tuple[str, bytes]] = []
     if not dry_run:

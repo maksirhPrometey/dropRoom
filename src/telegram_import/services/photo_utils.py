@@ -14,6 +14,10 @@ SPEC_DIAGRAM_MAX_RATIO = 1.2
 SPEC_DIAGRAM_MAX_SIDE = 820
 SPEC_DIAGRAM_WHITE_RATIO = 0.72
 SPEC_DIAGRAM_SAMPLE_MAX_PIXELS = 250_000
+PHONE_SCREENSHOT_MIN_RATIO = 1.85
+PHONE_SCREENSHOT_MAX_WIDTH = 1350
+PHONE_SCREENSHOT_TOP_RATIO = 0.045
+PHONE_SCREENSHOT_BOTTOM_RATIO = 0.07
 TRIM_PADDING_PX = 16
 TRIM_MIN_CONTENT_RATIO = 0.38
 
@@ -72,6 +76,62 @@ def is_likely_size_chart(
     return False
 
 
+def _region_is_ui_bar(region: Image.Image) -> bool:
+    pixels = list(region.getdata())
+    if not pixels:
+        return False
+
+    brightness = [sum(channel) / 3 for channel in pixels]
+    total = len(brightness)
+    average = sum(brightness) / total
+    variance = sum((value - average) ** 2 for value in brightness) / total
+    dark_ratio = sum(1 for value in brightness if value < 60) / total
+    light_ratio = sum(1 for value in brightness if value > 200) / total
+    mixed_icons = dark_ratio > 0.02 and light_ratio > 0.02
+
+    if variance < 350:
+        return True
+    if variance < 1400 and mixed_icons:
+        return True
+    return False
+
+
+def _has_screenshot_ui_bars(content: bytes) -> bool:
+    try:
+        with Image.open(io.BytesIO(content)) as image:
+            rgb = image.convert("RGB")
+            width, height = rgb.size
+            top_height = max(1, int(height * PHONE_SCREENSHOT_TOP_RATIO))
+            bottom_height = max(1, int(height * PHONE_SCREENSHOT_BOTTOM_RATIO))
+            top = rgb.crop((0, 0, width, top_height))
+            bottom = rgb.crop((0, height - bottom_height, width, height))
+            return _region_is_ui_bar(top) or _region_is_ui_bar(bottom)
+    except OSError:
+        return False
+
+
+def is_likely_phone_screenshot(
+    width: int,
+    height: int,
+    *,
+    content: bytes | None = None,
+) -> bool:
+    if width <= 0 or height <= 0:
+        return False
+
+    ratio = height / width
+    if ratio < PHONE_SCREENSHOT_MIN_RATIO or width > PHONE_SCREENSHOT_MAX_WIDTH:
+        return False
+
+    if ratio >= 1.95:
+        return True
+
+    if content and _has_screenshot_ui_bars(content):
+        return True
+
+    return False
+
+
 def is_likely_spec_diagram(
     width: int,
     height: int,
@@ -100,11 +160,14 @@ def photo_score(
     height: int,
     *,
     white_ratio: float | None = None,
+    content: bytes | None = None,
 ) -> int:
     if width <= 0 or height <= 0:
         return 0
     if is_likely_spec_diagram(width, height, white_ratio=white_ratio):
         return -1000
+    if is_likely_phone_screenshot(width, height, content=content):
+        return -2000
     ratio = width / height
     score = height
     if height >= width:
@@ -139,7 +202,11 @@ def rank_photo_files(
 
         ratio = _white_ratio(content)
         ranked.append(
-            (photo_score(width, height, white_ratio=ratio), filename, content)
+            (
+                photo_score(width, height, white_ratio=ratio, content=content),
+                filename,
+                content,
+            )
         )
 
     ranked.sort(key=lambda item: item[0], reverse=True)
