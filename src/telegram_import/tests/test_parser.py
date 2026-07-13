@@ -141,6 +141,7 @@ class ChannelCaptionParserTests(TestCase):
         self.assertEqual(len(parsed.variants), 1)
         self.assertEqual(parsed.variants[0].size, "ONE SIZE")
         self.assertEqual(parsed.variants[0].price, Decimal("6050"))
+        self.assertEqual(parsed.variants[0].stock_qty, 0)
 
     def test_bear_sweater_sizes_and_prices(self):
         parsed = self._parse(BEAR_SWEATER)
@@ -198,3 +199,4 @@ class ChannelCaptionParserTests(TestCase):
         self.assertEqual(len(parsed.variants), 1)
         self.assertEqual(parsed.variants[0].size, "ONE SIZE")
         self.assertEqual(parsed.variants[0].price, Decimal("999"))
+        self.assertEqual(parsed.variants[0].stock_qty, 1)

@@ -100,10 +100,10 @@
         </form>
 
         <div class="stock">
-          {% if item.variant.stock_qty > 0 %}
-            <span class="in">● В наявності</span><br>{{ item.variant.stock_qty }} шт. на складі
+          {% if item.variant.in_stock %}
+            <span class="in">● {{ item.variant.fulfillment_status }}</span><br>{{ item.variant.fulfillment_eta }}
           {% else %}
-            <span class="low">● Під замовлення</span>
+            <span class="low">● {{ item.variant.fulfillment_status }}</span><br>{{ item.variant.fulfillment_eta }}
           {% endif %}
         </div>
 

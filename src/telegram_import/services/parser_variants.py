@@ -2,6 +2,7 @@ import re
 from decimal import Decimal, InvalidOperation
 
 from .parser_types import ParsedVariant
+from .stock_signals import caption_signals_in_stock, line_signals_in_stock
 
 _SIZE_LETTER = r"(?:XXS|XXXL|XXL|XL|XS|[SML])"
 _PRICE_TAG_RE = re.compile(
@@ -68,7 +69,9 @@ def _extract_stock_qty(text: str, *, is_available: bool) -> int:
     match = _STOCK_NOTE_RE.search(text)
     if match:
         return int(match.group(1))
-    return 1
+    if line_signals_in_stock(text):
+        return 1
+    return 0
 
 
 def _normalize_size(raw: str) -> str:
@@ -207,7 +210,7 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
                     ParsedVariant(
                         size="ONE SIZE",
                         price=price,
-                        stock_qty=1,
+                        stock_qty=1 if caption_signals_in_stock(caption) else 0,
                         is_available=True,
                         color=current_color,
                     )
@@ -220,7 +223,7 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
                 ParsedVariant(
                     size="ONE SIZE",
                     price=price,
-                    stock_qty=1,
+                    stock_qty=1 if caption_signals_in_stock(caption) else 0,
                     is_available=True,
                 )
             )

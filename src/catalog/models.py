@@ -2,6 +2,8 @@ from django.db import models
 from django.urls import reverse
 from django.utils.text import slugify
 
+from src.catalog.fulfillment import fulfillment_eta_label, fulfillment_status_label
+
 
 class Brand(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -298,6 +300,14 @@ class ProductVariant(models.Model):
         if self.in_stock:
             return self.size
         return f"{self.size} - Під замовлення"
+
+    @property
+    def fulfillment_status(self) -> str:
+        return fulfillment_status_label(in_stock=self.in_stock)
+
+    @property
+    def fulfillment_eta(self) -> str:
+        return fulfillment_eta_label(in_stock=self.in_stock)
 
 
 class ProductImage(models.Model):

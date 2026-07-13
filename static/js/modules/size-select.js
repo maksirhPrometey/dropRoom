@@ -51,7 +51,9 @@ function applyVariantState(select, chosen) {
       dot.classList.toggle('out-of-stock', !inStock);
     }
     if (label) {
-      label.textContent = inStock ? 'В наявності' : 'Під замовлення';
+      const etaIn = stockStatus.dataset.etaInStock ?? 'Орієнтовно 3 робочі дні';
+      const etaPre = stockStatus.dataset.etaPreorder ?? 'Орієнтовно 14 днів';
+      label.textContent = inStock ? `В наявності · ${etaIn}` : `Під замовлення · ${etaPre}`;
     }
   }
 }

@@ -130,9 +130,10 @@ def rank_photo_files(
     if product_photos:
         return product_photos
 
-    if ranked:
-        best = max(ranked, key=lambda item: len(item[2]))
-        return [(best[1], best[2])]
+    viable = [(score, filename, content) for score, filename, content in ranked if score > -900]
+    if viable:
+        _score, filename, content = max(viable, key=lambda item: len(item[2]))
+        return [(filename, content)]
 
     return []
 

@@ -8,7 +8,7 @@ from src.catalog.models import Brand, Category
 class ParsedVariant:
     size: str
     price: Decimal
-    stock_qty: int = 1
+    stock_qty: int = 0
     is_available: bool = True
     color: str | None = None
     note: str = ""
