@@ -20,11 +20,19 @@ def _jpeg_bytes(width: int, height: int, color: str = "red") -> bytes:
 class PhotoRankingTests(TestCase):
     def test_size_chart_detected(self):
         self.assertTrue(is_likely_size_chart(1320, 666))
-        self.assertTrue(is_likely_size_chart(1114, 742))
+        self.assertTrue(is_likely_size_chart(1320, 666, white_ratio=0.93))
+        self.assertFalse(is_likely_size_chart(1114, 742, white_ratio=0.81))
+        self.assertFalse(is_likely_size_chart(1200, 800, white_ratio=0.87))
+
+    def test_landscape_product_photo_kept(self):
+        product = ("product.jpg", _jpeg_bytes(1200, 800))
+        ranked = rank_photo_files([product], sizes=[(1200, 800)])
+        self.assertEqual(ranked[0][0], "product.jpg")
+        self.assertEqual(len(ranked), 1)
 
     def test_size_chart_only_returns_empty(self):
         chart = ("chart.jpg", _jpeg_bytes(1320, 666))
-        self.assertEqual(rank_photo_files([chart]), [])
+        self.assertEqual(rank_photo_files([chart], sizes=[(1320, 666)]), [])
 
     def test_product_photo_preferred(self):
         chart = ("chart.jpg", _jpeg_bytes(1320, 666))

@@ -6,7 +6,10 @@ from PIL import Image, ImageChops
 
 logger = logging.getLogger("src.telegram_import")
 
-SIZE_CHART_MAX_RATIO = 1.35
+SIZE_CHART_WIDE_RATIO = 1.75
+SIZE_CHART_COMPACT_RATIO = 1.55
+SIZE_CHART_COMPACT_MAX_SIDE = 700
+SIZE_CHART_WHITE_RATIO = 0.90
 SPEC_DIAGRAM_MAX_RATIO = 1.2
 SPEC_DIAGRAM_MAX_SIDE = 820
 SPEC_DIAGRAM_WHITE_RATIO = 0.72
@@ -44,13 +47,29 @@ def _white_ratio(data: bytes) -> float | None:
         return None
 
 
-def is_likely_size_chart(width: int, height: int) -> bool:
+def is_likely_size_chart(
+    width: int,
+    height: int,
+    *,
+    white_ratio: float | None = None,
+) -> bool:
     if width <= 0 or height <= 0:
         return False
+
     ratio = width / height
-    if ratio >= SIZE_CHART_MAX_RATIO:
+    min_side = min(width, height)
+
+    if ratio >= SIZE_CHART_WIDE_RATIO:
         return True
-    return ratio >= SPEC_DIAGRAM_MAX_RATIO and min(width, height) < 900
+
+    if ratio >= SIZE_CHART_COMPACT_RATIO and min_side <= SIZE_CHART_COMPACT_MAX_SIDE:
+        if white_ratio is None or white_ratio >= SIZE_CHART_WHITE_RATIO:
+            return True
+
+    if ratio >= SPEC_DIAGRAM_MAX_RATIO and min_side < 900:
+        return bool(white_ratio is not None and white_ratio >= 0.92)
+
+    return False
 
 
 def is_likely_spec_diagram(
@@ -61,7 +80,7 @@ def is_likely_spec_diagram(
 ) -> bool:
     if width <= 0 or height <= 0:
         return False
-    if is_likely_size_chart(width, height):
+    if is_likely_size_chart(width, height, white_ratio=white_ratio):
         return True
     if white_ratio is None:
         return False

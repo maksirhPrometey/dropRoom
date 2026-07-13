@@ -16,6 +16,7 @@ BRANDS = [
     ("BOSS", "boss", "Germany"),
     ("Armani", "armani", "Italy"),
     ("Max Mara", "max-mara", "Italy"),
+    ("Miu Miu", "miu-miu", "Italy"),
     ("Massimo Dutti", "massimo-dutti", "Spain"),
     ("Tory Burch", "tory-burch", "USA"),
     ("On Running", "on-running", "Switzerland"),

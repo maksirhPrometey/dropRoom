@@ -10,16 +10,17 @@ from src.telegram_import.models import TelegramImport
 
 class Command(BaseCommand):
     help = (
-        "Активувати імпортовані з Telegram товари на сайті "
-        "і (опційно) оновити hero-слайдер з фото каталогу."
+        "Активувати імпортовані з Telegram товари на сайті. "
+        "Hero-банер за замовчуванням не змінюється — лише вручну в адмінці "
+        "або через --hero-slides."
     )
 
     def add_arguments(self, parser):
         parser.add_argument(
             "--hero-slides",
             type=int,
-            default=3,
-            help="Скільки слайдів hero зібрати з товарів (0 = не чіпати)",
+            default=0,
+            help="Скільки слайдів hero зібрати з товарів (0 = не чіпати, за замовч.)",
         )
         parser.add_argument(
             "--replace-hero",
