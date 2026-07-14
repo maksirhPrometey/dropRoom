@@ -195,6 +195,59 @@ def _attach_record_to_group_product(
     )
 
 
+def _build_variant_sku(
+    *,
+    channel_id: int,
+    message_id: int,
+    color_slug: str,
+    size: str,
+    index: int,
+    used: set[str],
+) -> str:
+    size_slug = slugify(size) or f"size-{index}"
+    channel_key = abs(int(channel_id))
+    candidates = [
+        f"TG-{channel_key}-{message_id}-{color_slug}-{size_slug}",
+        f"TG-{channel_key}-{message_id}-{index}-{size_slug}",
+        f"TG-{channel_key}-{message_id}-{index}-{size_slug}-{len(used) + 1}",
+    ]
+    for candidate in candidates:
+        sku = candidate[:64]
+        if sku not in used:
+            return sku
+    return f"TG-{channel_key}-{message_id}-{index}-{len(used)}"[:64]
+
+
+def _find_existing_variant(
+    product: Product,
+    *,
+    size: str,
+    color,
+    sku: str,
+) -> ProductVariant | None:
+    obj = ProductVariant.objects.filter(
+        product=product, size=size, color=color
+    ).first()
+    if obj:
+        return obj
+    if color is None:
+        obj = ProductVariant.objects.filter(
+            product=product, size=size, color__isnull=True
+        ).first()
+        if obj:
+            return obj
+    by_sku = ProductVariant.objects.filter(sku=sku).first()
+    if by_sku and by_sku.product_id == product.pk:
+        return by_sku
+    # Старий формат SKU: TG--5566…-ONE SIZE (від'ємний channel_id + пробіл у size)
+    return (
+        ProductVariant.objects.filter(product=product, size=size)
+        .filter(sku__startswith="TG-")
+        .order_by("pk")
+        .first()
+    )
+
+
 def _sync_variants(
     product: Product,
     *,
@@ -213,27 +266,50 @@ def _sync_variants(
             )
         ]
 
-    seen_skus: set[str] = set()
+    used_skus: set[str] = set(
+        ProductVariant.objects.exclude(product=product).values_list("sku", flat=True)
+    )
     keep_ids: list[int] = []
     for index, variant in enumerate(parsed_variants, start=1):
         color = _get_or_create_color(variant.color)
+        size = variant.size[:20]
         color_slug = slugify(variant.color or "default") or "default"
-        sku = f"TG-{channel_id}-{message_id}-{color_slug}-{variant.size}"[:64]
-        if sku in seen_skus:
-            sku = f"TG-{channel_id}-{message_id}-{index}"[:64]
-        seen_skus.add(sku)
-
-        obj, _ = ProductVariant.objects.update_or_create(
-            product=product,
-            size=variant.size[:20],
-            color=color,
-            defaults={
-                "sku": sku,
-                "price": variant.price,
-                "stock_qty": variant.stock_qty,
-                "is_available": variant.is_available,
-            },
+        sku = _build_variant_sku(
+            channel_id=channel_id,
+            message_id=message_id,
+            color_slug=color_slug,
+            size=size,
+            index=index,
+            used=used_skus,
         )
+        obj = _find_existing_variant(product, size=size, color=color, sku=sku)
+
+        if obj is None:
+            obj = ProductVariant(product=product)
+
+        obj.size = size
+        obj.color = color
+        # Якщо обраний SKU зайнятий іншим варіантом — згенерувати вільний.
+        if (
+            ProductVariant.objects.filter(sku=sku)
+            .exclude(pk=obj.pk or 0)
+            .exists()
+        ):
+            used_skus.add(sku)
+            sku = _build_variant_sku(
+                channel_id=channel_id,
+                message_id=message_id,
+                color_slug=color_slug,
+                size=size,
+                index=index,
+                used=used_skus,
+            )
+        obj.sku = sku
+        obj.price = variant.price
+        obj.stock_qty = variant.stock_qty
+        obj.is_available = variant.is_available
+        obj.save()
+        used_skus.add(sku)
         keep_ids.append(obj.pk)
 
     if keep_ids:
