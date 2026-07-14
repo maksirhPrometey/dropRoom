@@ -74,3 +74,40 @@ class SyncVariantsTests(TestCase):
         self.assertEqual(sizes, {"S", "M"})
         self.product.refresh_from_db()
         self.assertEqual(self.product.base_price, Decimal("3150"))
+
+    def test_sync_keeps_separate_one_size_colors(self):
+        _sync_variants(
+            self.product,
+            channel_id=-5566899151,
+            message_id=333,
+            parsed_variants=[
+                ParsedVariant(
+                    size="ONE SIZE",
+                    price=Decimal("5050"),
+                    color="Чорна",
+                    stock_qty=0,
+                ),
+                ParsedVariant(
+                    size="ONE SIZE",
+                    price=Decimal("4950"),
+                    color="М’ятна",
+                    stock_qty=0,
+                ),
+                ParsedVariant(
+                    size="ONE SIZE",
+                    price=Decimal("4890"),
+                    color="Коричнева",
+                    stock_qty=0,
+                ),
+            ],
+            default_price=Decimal("1000"),
+        )
+        variants = list(self.product.variants.select_related("color"))
+        self.assertEqual(len(variants), 3)
+        by_color = {v.color.name: v for v in variants}
+        self.assertEqual(set(by_color), {"Чорна", "М’ятна", "Коричнева"})
+        self.assertEqual(by_color["Чорна"].price, Decimal("5050"))
+        self.assertEqual(by_color["М’ятна"].price, Decimal("4950"))
+        self.assertEqual(by_color["Коричнева"].price, Decimal("4890"))
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.base_price, Decimal("4890"))

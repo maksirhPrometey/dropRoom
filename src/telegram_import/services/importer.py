@@ -230,22 +230,26 @@ def _find_existing_variant(
     ).first()
     if obj:
         return obj
+    # Null-color match лише коли новий варіант теж без кольору —
+    # інакше кілька ONE SIZE з різними кольорами зливаються в один.
     if color is None:
-        obj = ProductVariant.objects.filter(
-            product=product, size=size, color__isnull=True
-        ).first()
+        obj = (
+            ProductVariant.objects.filter(
+                product=product, size=size, color__isnull=True
+            )
+            .order_by("pk")
+            .first()
+        )
         if obj:
             return obj
     by_sku = ProductVariant.objects.filter(sku=sku).first()
     if by_sku and by_sku.product_id == product.pk:
-        return by_sku
-    # Старий формат SKU: TG--5566…-ONE SIZE (від'ємний channel_id + пробіл у size)
-    return (
-        ProductVariant.objects.filter(product=product, size=size)
-        .filter(sku__startswith="TG-")
-        .order_by("pk")
-        .first()
-    )
+        # Не перевикористовувати SKU іншого кольору
+        if (by_sku.color_id is None) == (color is None) and (
+            color is None or by_sku.color_id == color.pk
+        ):
+            return by_sku
+    return None
 
 
 def _sync_variants(

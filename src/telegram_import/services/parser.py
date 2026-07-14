@@ -5,19 +5,31 @@ from django.utils.text import slugify
 from src.catalog.models import Brand, Category
 
 from .parser_types import ParsedProduct
-from .parser_variants import extract_variants
+from .parser_variants import (
+    extract_variants,
+    is_color_price_line,
+)
 
 _VARIANT_SECTION_RE = re.compile(
-    r"^(?:📏\s*)?(?:розміри\s*(?:та\s*ціни)?|розмірна\s*сітка)\s*:?\s*$",
+    r"^(?:📏\s*)?(?:розміри\s*(?:та\s*ціни)?|розмірна\s*сітка|"
+    r"кольор(?:и|ів)?\s*(?:та\s*ціни)?)\s*:?\s*$",
+    re.IGNORECASE,
+)
+_BRAND_LINE_RE = re.compile(
+    r"^(?:бренд|brand)\s*[:：]\s*",
+    re.IGNORECASE,
+)
+_PHYSICAL_SIZE_RE = re.compile(
+    r"^розмір\s*[:：]\s*\d",
     re.IGNORECASE,
 )
 _TITLE_LEAD_RE = re.compile(r"^(.+?)\s+[—–-]\s+(.+)$")
 
 _TITLE_EMOJI_RE = re.compile(
-    r"^[\s✨⭐️🌟💫📏🏷️❤️🤍🖤💛💚💙🧡]+",
+    r"^[\s✨⭐️🌟💫📏🏷️❤️🤍🖤💛💚💙🧡🤎💜]+",
 )
 _TRAILING_EMOJI_RE = re.compile(
-    r"[\s✨⭐️🌟💫📏🏷️❤️🤍🖤💛💚💙🧡]+$",
+    r"[\s✨⭐️🌟💫📏🏷️❤️🤍🖤💛💚💙🧡🤎💜]+$",
 )
 _SKIP_TITLE_RE = re.compile(
     r"^(?:розмір|обхват|света|там де)",
@@ -169,7 +181,11 @@ def _extract_description(caption: str, title: str) -> str:
                     description_lines.append(lead)
             continue
 
+        if _BRAND_LINE_RE.match(stripped):
+            continue
         if _VARIANT_SECTION_RE.match(stripped):
+            break
+        if is_color_price_line(stripped):
             break
         if stripped.startswith("•") and "🏷️" in stripped:
             break
@@ -177,12 +193,17 @@ def _extract_description(caption: str, title: str) -> str:
             break
         if stripped.startswith("🏷️") and len(description_lines) > 0:
             break
-        if _is_probable_color_header(stripped):
+        if _is_probable_color_header(stripped) and not _PHYSICAL_SIZE_RE.match(stripped):
             break
 
         description_lines.append(stripped)
 
-    description = "\n".join(line for line in description_lines if line).strip()
+    cleaned_lines = [
+        line
+        for line in description_lines
+        if line and not _BRAND_LINE_RE.match(line)
+    ]
+    description = "\n".join(cleaned_lines).strip()
     return description or caption.strip()
 
 

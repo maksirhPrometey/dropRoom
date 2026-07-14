@@ -132,6 +132,18 @@ L — 50–52 (обхват грудей 100–104 см) — 3350 UAH
 XL — 52–54 (обхват грудей 104–108 см) — 3450 UAH"""
 
 
+MICHAEL_KORS_BAG = """Бренд: Michael Kors
+
+Елегантна шкіряна сумка Michael Kors Pratt Medium Satchel — стильна модель на кожен день. Виконана із зернистої натуральної шкіри, має два короткі ручки та знімний регульований плечовий ремінь. Просторе основне відділення дозволяє зручно розмістити всі необхідні речі, а мінімалістичний дизайн легко поєднується з будь-яким образом.
+
+Розмір : 29 * 22 * 13 см
+
+Кольори та ціни:
+🖤 Чорна — 🏷️ 5050 грн
+💚 М’ятна — 🏷️ 4950 грн
+🤎 Коричнева — 🏷️ 4890 грн"""
+
+
 class ChannelCaptionParserTests(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -145,6 +157,10 @@ class ChannelCaptionParserTests(TestCase):
         Brand.objects.get_or_create(name="Moon Boot", defaults={"slug": "moon-boot"})
         Brand.objects.get_or_create(
             name="Massimo Dutti", defaults={"slug": "massimo-dutti"}
+        )
+        Brand.objects.get_or_create(
+            name="Michael Kors",
+            defaults={"slug": "michael-kors"},
         )
         cls.knitwear, _ = Category.objects.get_or_create(
             slug="knitwear",
@@ -298,3 +314,27 @@ class ChannelCaptionParserTests(TestCase):
         self.assertEqual(by_size["L"].price, Decimal("3350"))
         self.assertEqual(by_size["XL"].price, Decimal("3450"))
         self.assertEqual(parsed.base_price, Decimal("3150"))
+
+    def test_michael_kors_bag_colors_and_prices(self):
+        parsed = self._parse(MICHAEL_KORS_BAG)
+        self.assertEqual(
+            parsed.name,
+            "Елегантна шкіряна сумка Michael Kors Pratt Medium Satchel",
+        )
+        self.assertEqual(parsed.brand.name, "Michael Kors")
+        self.assertEqual(parsed.category.slug, "bags")
+        self.assertIn("стильна модель на кожен день", parsed.description)
+        self.assertIn("29 * 22 * 13", parsed.description)
+        self.assertNotIn("Кольори", parsed.description)
+        self.assertNotIn("5050", parsed.description)
+        self.assertNotIn("М’ятна", parsed.description)
+        self.assertNotIn("Бренд:", parsed.description)
+        self.assertEqual(len(parsed.variants), 3)
+        by_color = {variant.color: variant for variant in parsed.variants}
+        self.assertEqual(set(by_color), {"Чорна", "М’ятна", "Коричнева"})
+        for variant in parsed.variants:
+            self.assertEqual(variant.size, "ONE SIZE")
+        self.assertEqual(by_color["Чорна"].price, Decimal("5050"))
+        self.assertEqual(by_color["М’ятна"].price, Decimal("4950"))
+        self.assertEqual(by_color["Коричнева"].price, Decimal("4890"))
+        self.assertEqual(parsed.base_price, Decimal("4890"))

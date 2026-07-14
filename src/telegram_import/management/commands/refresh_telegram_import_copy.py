@@ -2,13 +2,17 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from src.telegram_import.models import TelegramImport
-from src.telegram_import.services.importer import _default_brand, _default_category
+from src.telegram_import.services.importer import (
+    _default_brand,
+    _default_category,
+    _sync_variants,
+)
 from src.telegram_import.services.parser import parse_caption
 
 
 class Command(BaseCommand):
     help = (
-        "Перепарсити name, description, brand, category і base_price "
+        "Перепарсити name, description, brand, category, base_price і variants "
         "із збереженого raw_caption. Після змін у parser — без повторного імпорту фото."
     )
 
@@ -23,6 +27,11 @@ class Command(BaseCommand):
             "--dry-run",
             action="store_true",
             help="Показати зміни без запису в БД",
+        )
+        parser.add_argument(
+            "--skip-variants",
+            action="store_true",
+            help="Не пересинхронізовувати ProductVariant",
         )
 
     def handle(self, *args, **options):
@@ -48,6 +57,7 @@ class Command(BaseCommand):
             qs = qs.filter(message_id=message_id)
 
         dry_run = options["dry_run"]
+        skip_variants = options["skip_variants"]
         scanned = 0
         changed = 0
 
@@ -82,7 +92,31 @@ class Command(BaseCommand):
             ):
                 updates["base_price"] = parsed.base_price
 
-            if not updates:
+            will_sync_variants = False
+            if not skip_variants and parsed.variants:
+                parsed_key = sorted(
+                    (
+                        variant.size,
+                        (variant.color or "").casefold(),
+                        str(variant.price),
+                        variant.stock_qty,
+                        variant.is_available,
+                    )
+                    for variant in parsed.variants
+                )
+                existing_key = sorted(
+                    (
+                        variant.size,
+                        (variant.color.name if variant.color_id else "").casefold(),
+                        str(variant.price),
+                        variant.stock_qty,
+                        variant.is_available,
+                    )
+                    for variant in product.variants.select_related("color")
+                )
+                will_sync_variants = parsed_key != existing_key
+
+            if not updates and not will_sync_variants:
                 continue
 
             changed += 1
@@ -91,13 +125,26 @@ class Command(BaseCommand):
                 preview += f"\n  name: {product.name[:72]!r}"
                 preview += f"\n     → {updates['name']!r}"
             if "description" in updates:
-                preview += f"\n  description: {len(product.description)} → {len(updates['description'])} chars"
+                preview += (
+                    f"\n  description: {len(product.description)} → "
+                    f"{len(updates['description'])} chars"
+                )
             if "brand" in updates:
                 preview += f"\n  brand: {product.brand.name} → {updates['brand'].name}"
             if "category" in updates:
-                preview += f"\n  category: {product.category.slug} → {updates['category'].slug}"
+                preview += (
+                    f"\n  category: {product.category.slug} → "
+                    f"{updates['category'].slug}"
+                )
             if "base_price" in updates:
-                preview += f"\n  base_price: {product.base_price} → {updates['base_price']}"
+                preview += (
+                    f"\n  base_price: {product.base_price} → {updates['base_price']}"
+                )
+            if will_sync_variants:
+                preview += (
+                    f"\n  variants: sync {len(parsed.variants)} "
+                    f"(було {product.variants.count()})"
+                )
 
             if dry_run:
                 self.stdout.write(preview)
@@ -106,7 +153,16 @@ class Command(BaseCommand):
             with transaction.atomic():
                 for field, value in updates.items():
                     setattr(product, field, value)
-                product.save(update_fields=list(updates.keys()))
+                if updates:
+                    product.save(update_fields=list(updates.keys()))
+                if will_sync_variants:
+                    _sync_variants(
+                        product,
+                        channel_id=record.channel_id,
+                        message_id=record.message_id,
+                        parsed_variants=parsed.variants,
+                        default_price=parsed.base_price or product.base_price,
+                    )
 
             self.stdout.write(self.style.SUCCESS(preview))
 

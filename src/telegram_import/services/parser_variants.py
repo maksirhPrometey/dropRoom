@@ -21,7 +21,16 @@ _STOCK_NOTE_RE = re.compile(
     re.IGNORECASE,
 )
 _VARIANT_SECTION_RE = re.compile(
-    r"^(?:📏\s*)?(?:розміри\s*(?:та\s*ціни)?|розмірна\s*сітка)\s*:?\s*$",
+    r"^(?:📏\s*)?(?:розміри\s*(?:та\s*ціни)?|розмірна\s*сітка|"
+    r"кольор(?:и|ів)?\s*(?:та\s*ціни)?)\s*:?\s*$",
+    re.IGNORECASE,
+)
+_COLOR_EMOJI_PREFIX_RE = re.compile(
+    r"^[•\-\s]*(?:[\U0001F300-\U0001FAFF\u2600-\u27BF"
+    r"🤍🖤💛💚💙🧡❤️🤎💜🟡⚪🔴🔵🟢\uFE0F]+\s*)+",
+)
+_SIZE_TOKEN_ONLY_RE = re.compile(
+    rf"^(?:{_SIZE_LETTER}|\d{{2}}(?:[,.]\d)?)$",
     re.IGNORECASE,
 )
 _SIZE_LINE_RE = re.compile(
@@ -209,6 +218,60 @@ def _parse_variant_line(line: str, *, color: str | None) -> ParsedVariant | None
     )
 
 
+def normalize_color_label(raw: str) -> str | None:
+    """Зрізати emoji/булети; залишити коротку назву кольору."""
+    text = _COLOR_EMOJI_PREFIX_RE.sub("", raw.strip()).strip()
+    text = text.lstrip("•- ").strip()
+    if not text or len(text) > 40:
+        return None
+    lowered = text.lower()
+    if "цін" in lowered or "розмір" in lowered or "сітка" in lowered:
+        return None
+    if _SIZE_TOKEN_ONLY_RE.match(text) or re.search(r"\d", text):
+        return None
+    if len(text.split()) > 3:
+        return None
+    return text[0].upper() + text[1:] if text else None
+
+
+def parse_color_price_line(line: str) -> ParsedVariant | None:
+    """
+    Рядки формату «🖤 Чорна — 🏷️ 5050 грн» → ONE SIZE + color.
+    Не плутати з «• 38 — 🏷️ …».
+    """
+    stripped = line.strip()
+    if not stripped or _SIZE_LINE_RE.match(stripped):
+        return None
+    if _VARIANT_SECTION_RE.match(stripped):
+        return None
+    price = _extract_price(stripped)
+    if price is None:
+        return None
+    # Ліва частина до тире перед ціною
+    split = re.split(rf"\s*{_DASH}\s*", stripped, maxsplit=1)
+    if len(split) < 2:
+        return None
+    left, right = split[0], split[1]
+    if not ("🏷️" in right or _extract_price(right)):
+        return None
+    color = normalize_color_label(left)
+    if not color:
+        return None
+    sold_out = _is_sold_out(stripped)
+    return ParsedVariant(
+        size="ONE SIZE",
+        price=price,
+        stock_qty=0 if sold_out else _extract_stock_qty(stripped, is_available=True),
+        is_available=not sold_out,
+        color=color,
+        note=stripped,
+    )
+
+
+def is_color_price_line(line: str) -> bool:
+    return parse_color_price_line(line) is not None
+
+
 def _is_color_header(line: str, next_line: str | None) -> bool:
     stripped = line.strip().lstrip("•").strip()
     if not stripped or len(stripped) > 40:
@@ -308,6 +371,12 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
         variant = _parse_variant_line(stripped, color=current_color)
         if variant:
             variants.append(variant)
+            pending_size_line = None
+            continue
+
+        color_price = parse_color_price_line(stripped)
+        if color_price:
+            variants.append(color_price)
             pending_size_line = None
             continue
 
