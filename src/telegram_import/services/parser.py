@@ -38,6 +38,12 @@ _GENDER_RE = re.compile(
 _CATEGORY_KEYWORDS: list[tuple[str, str]] = [
     ("кардиган", "knitwear"),
     ("светр", "knitwear"),
+    ("moon boot", "footwear"),
+    ("moonboot", "footwear"),
+    ("чобіт", "footwear"),
+    ("черевик", "footwear"),
+    ("босоніж", "footwear"),
+    ("сандал", "footwear"),
     ("шльопанц", "footwear"),
     ("кросівк", "sneakers"),
     ("снікерс", "sneakers"),

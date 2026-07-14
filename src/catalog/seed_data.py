@@ -27,6 +27,7 @@ BRANDS = [
     ("UGG", "ugg", "USA"),
     ("Premiata", "premiata", "Italy"),
     ("Ralph Lauren", "ralph-lauren", "USA"),
+    ("Moon Boot", "moon-boot", "Italy"),
 ]
 
 CATEGORIES = [

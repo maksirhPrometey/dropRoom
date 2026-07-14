@@ -6,7 +6,7 @@ from .stock_signals import caption_signals_in_stock, line_signals_in_stock
 
 _SIZE_LETTER = r"(?:XXS|XXXL|XXL|XL|XS|[SML])"
 _PRICE_TAG_RE = re.compile(
-    r"🏷️\s*(\d[\d\s]*)|(\d[\d\s]*)\s*грн",
+    r"🏷️\s*(\d[\d\s]*)|(\d[\d\s]*)\s*грн?",
     re.IGNORECASE,
 )
 _SOLD_OUT_RE = re.compile(
@@ -25,14 +25,19 @@ _SIZE_LINE_RE = re.compile(
     rf"^[•\-\s]*(?:✅|❌)?\s*({_SIZE_LETTER}|\d{{2}}(?:[,.]\d)?)\s*[—–-]",
     re.IGNORECASE,
 )
+_SIZE_LETTER_EU_RANGE_RE = re.compile(
+    rf"^[•\-\s]*(?:✅|❌)?\s*({_SIZE_LETTER})\s*[—–-]\s*"
+    r"\d{{2}}(?:[,.]\d)?\s*[—–-]\s*\d{{2}}(?:[,.]\d)?",
+    re.IGNORECASE,
+)
 _SIZE_PRICE_INLINE_RE = re.compile(
     rf"^[•\-\s]*(?:✅|❌)?\s*({_SIZE_LETTER})\s*[—–-]\s*"
-    r"(?:Sold\s*Out|(\d[\d\s]*)(?:\s*грн)?)",
+    r"(?:Sold\s*Out|🏷️\s*(\d[\d\s]*)|(\d[\d\s]*)(?:\s*грн?)?)",
     re.IGNORECASE,
 )
 _SIZE_PRICE_SIMPLE_RE = re.compile(
     rf"^(?:✅|❌)?\s*({_SIZE_LETTER})\s*[—–-]\s*"
-    r"(?:Sold\s*Out|(\d[\d\s]*)(?:\s*грн)?)\s*$",
+    r"(?:Sold\s*Out|🏷️\s*(\d[\d\s]*)|(\d[\d\s]*)(?:\s*грн?)?)\s*$",
     re.IGNORECASE,
 )
 _SIZE_MEASUREMENT_RE = re.compile(
@@ -43,6 +48,7 @@ _COLOR_HEADER_RE = re.compile(
     r"^(?:коричнев|чорн|біл|бежев|син|зелен|рожев|червон|сірий|леопард|молочн|кремов)",
     re.IGNORECASE,
 )
+_MIN_BARE_PRICE = Decimal("100")
 
 
 def _to_decimal(raw: str) -> Decimal | None:
@@ -85,20 +91,43 @@ def _normalize_size(raw: str) -> str:
     return size
 
 
+def _next_nonempty_line(lines: list[str], index: int) -> str | None:
+    for line in lines[index + 1 :]:
+        stripped = line.strip()
+        if stripped:
+            return stripped
+    return None
+
+
+def _inline_price_raw(match: re.Match) -> str | None:
+    return match.group(2) or match.group(3)
+
+
+def _is_plausible_price(value: Decimal, *, has_currency_marker: bool) -> bool:
+    if has_currency_marker:
+        return value > 0
+    return value >= _MIN_BARE_PRICE
+
+
 def _parse_variant_line(line: str, *, color: str | None) -> ParsedVariant | None:
     stripped = line.strip()
     if not stripped or _VARIANT_SECTION_RE.match(stripped):
         return None
 
     sold_out = _is_sold_out(stripped)
-    price = _extract_price(stripped)
+    tagged_price = _extract_price(stripped)
+    price = tagged_price
+
+    if _SIZE_LETTER_EU_RANGE_RE.match(stripped) and tagged_price is None:
+        return None
 
     inline = _SIZE_PRICE_INLINE_RE.match(stripped) or _SIZE_PRICE_SIMPLE_RE.match(
         stripped
     )
-    if inline:
+    if inline and not _SIZE_LETTER_EU_RANGE_RE.match(stripped.splitlines()[0]):
         size = _normalize_size(inline.group(1))
-        if sold_out and not inline.group(2):
+        raw_price = _inline_price_raw(inline)
+        if sold_out and not raw_price and tagged_price is None:
             return ParsedVariant(
                 size=size,
                 price=Decimal("0"),
@@ -106,9 +135,14 @@ def _parse_variant_line(line: str, *, color: str | None) -> ParsedVariant | None
                 is_available=False,
                 color=color,
             )
-        if inline.group(2):
-            parsed_price = _to_decimal(inline.group(2))
-            if parsed_price is not None:
+        if raw_price and tagged_price is None:
+            parsed_price = _to_decimal(raw_price)
+            has_marker = "🏷️" in stripped or bool(
+                re.search(r"грн?", stripped, re.IGNORECASE)
+            )
+            if parsed_price is not None and _is_plausible_price(
+                parsed_price, has_currency_marker=has_marker
+            ):
                 price = parsed_price
 
     size_match = _SIZE_LINE_RE.match(stripped)
@@ -163,6 +197,20 @@ def _is_color_header(line: str, next_line: str | None) -> bool:
     return False
 
 
+def _should_wait_for_price_line(line: str, next_line: str | None) -> bool:
+    if "🏷️" in line or _extract_price(line):
+        return False
+    if not _SIZE_LINE_RE.match(line):
+        return False
+    if not next_line:
+        return False
+    if _SIZE_LINE_RE.match(next_line):
+        return False
+    if "🏷️" in next_line or _extract_price(next_line):
+        return True
+    return bool(_SIZE_LETTER_EU_RANGE_RE.match(line))
+
+
 def extract_variants(caption: str) -> list[ParsedVariant]:
     lines = caption.splitlines()
     variants: list[ParsedVariant] = []
@@ -175,7 +223,7 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
         if not stripped:
             continue
 
-        next_line = lines[index + 1].strip() if index + 1 < len(lines) else None
+        next_line = _next_nonempty_line(lines, index)
         if _is_color_header(stripped, next_line):
             current_color = stripped.lstrip("•").strip()
             pending_size_line = None
@@ -195,18 +243,30 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
             pending_size_line = None
             continue
 
-        if pending_size_line and "🏷️" in stripped:
-            combined = f"{pending_size_line}\n{stripped}"
-            variant = _parse_variant_line(combined, color=current_color)
+        if pending_size_line and ("🏷️" in stripped or _extract_price(stripped)):
+            sold_out = _is_sold_out(pending_size_line) or _is_sold_out(stripped)
+            price = _extract_price(stripped) or _extract_price(pending_size_line)
+            size_match = _SIZE_LINE_RE.match(pending_size_line)
             pending_size_line = None
-            if variant:
-                variants.append(variant)
+            if size_match and price is not None:
+                size = _normalize_size(size_match.group(1))
+                variants.append(
+                    ParsedVariant(
+                        size=size,
+                        price=price,
+                        stock_qty=0 if sold_out else _extract_stock_qty(
+                            stripped, is_available=True
+                        ),
+                        is_available=not sold_out,
+                        color=current_color,
+                        note=stripped,
+                    )
+                )
             continue
 
-        if _SIZE_LINE_RE.match(stripped) and "🏷️" not in stripped:
-            if next_line and "🏷️" in next_line and not _SIZE_LINE_RE.match(next_line):
-                pending_size_line = stripped
-                continue
+        if _should_wait_for_price_line(stripped, next_line):
+            pending_size_line = stripped
+            continue
 
         variant = _parse_variant_line(stripped, color=current_color)
         if variant:
@@ -214,7 +274,7 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
             pending_size_line = None
             continue
 
-        if "🏷️" in stripped:
+        if "🏷️" in stripped or _extract_price(stripped):
             price = _extract_price(stripped)
             if price is not None and measurement_sizes:
                 stock_default = 0 if "під замовлення" in caption.lower() else 1

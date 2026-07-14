@@ -103,6 +103,22 @@ L — груди 96-100 см
 під замовлення 🏷️2999"""
 
 
+MOON_BOOT = """Moon Boot
+Оригінальні Moon Boot із натуральної замші — культова модель, що поєднує стиль, тепло та комфорт. Ідеальний вибір для зимових образів.
+
+Розмірна сітка:
+• S — 35–38
+🏷️ 6050 грн
+
+• M — 39 - 41
+🏷️ 6290 грн
+
+• L — 42 - 44 ❌
+🏷️ 6550 гр
+
+Важливо вказати - 50 % та закинути там де знижки"""
+
+
 class ChannelCaptionParserTests(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -113,12 +129,14 @@ class ChannelCaptionParserTests(TestCase):
         Brand.objects.get_or_create(name="Coach", defaults={"slug": "coach"})
         Brand.objects.get_or_create(name="Zara", defaults={"slug": "zara"})
         Brand.objects.get_or_create(name="UGG", defaults={"slug": "ugg"})
+        Brand.objects.get_or_create(name="Moon Boot", defaults={"slug": "moon-boot"})
         cls.knitwear, _ = Category.objects.get_or_create(
             slug="knitwear",
             defaults={"name": "Knitwear"},
         )
         Category.objects.get_or_create(slug="bags", defaults={"name": "Bags"})
         Category.objects.get_or_create(slug="footwear", defaults={"name": "Footwear"})
+        Category.objects.get_or_create(slug="sneakers", defaults={"name": "Sneakers"})
         Category.objects.get_or_create(
             slug="accessories",
             defaults={"name": "Accessories"},
@@ -227,3 +245,18 @@ class ChannelCaptionParserTests(TestCase):
         for variant in parsed.variants:
             self.assertEqual(variant.price, Decimal("2999"))
             self.assertEqual(variant.stock_qty, 0)
+
+    def test_moon_boot_size_range_uses_tag_price_not_eu_size(self):
+        parsed = self._parse(MOON_BOOT)
+        self.assertEqual(parsed.name, "Moon Boot")
+        self.assertEqual(parsed.brand.name, "Moon Boot")
+        self.assertEqual(parsed.category.slug, "footwear")
+        by_size = {variant.size: variant for variant in parsed.variants}
+        self.assertEqual(set(by_size), {"S", "M", "L"})
+        self.assertEqual(by_size["S"].price, Decimal("6050"))
+        self.assertEqual(by_size["M"].price, Decimal("6290"))
+        self.assertEqual(by_size["L"].price, Decimal("6550"))
+        self.assertTrue(by_size["S"].is_available)
+        self.assertTrue(by_size["M"].is_available)
+        self.assertFalse(by_size["L"].is_available)
+        self.assertEqual(parsed.base_price, Decimal("6050"))
