@@ -119,6 +119,19 @@ MOON_BOOT = """Moon Boot
 Важливо вказати - 50 % та закинути там де знижки"""
 
 
+ZARA_JACKET = """Чоловіча куртка Zara (під замовлення)
+
+Стильна утеплена куртка від Zara у трендовому коричневому відтінку.
+
+Розміри: S, M, L, XL
+
+Розмірна сітка:
+S — 46–48 (обхват грудей 92–96 см) — 3150 UAH
+M — 48–50 (обхват грудей 96–100 см) — 3250 UAH
+L — 50–52 (обхват грудей 100–104 см) — 3350 UAH
+XL — 52–54 (обхват грудей 104–108 см) — 3450 UAH"""
+
+
 class ChannelCaptionParserTests(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -260,3 +273,16 @@ class ChannelCaptionParserTests(TestCase):
         self.assertTrue(by_size["M"].is_available)
         self.assertFalse(by_size["L"].is_available)
         self.assertEqual(parsed.base_price, Decimal("6050"))
+
+    def test_zara_jacket_trailing_uah_price_not_chest_size(self):
+        parsed = self._parse(ZARA_JACKET)
+        self.assertEqual(parsed.name, "Чоловіча куртка Zara (під замовлення)")
+        self.assertEqual(parsed.brand.name, "Zara")
+        self.assertEqual(parsed.category.slug, "outerwear")
+        by_size = {variant.size: variant for variant in parsed.variants}
+        self.assertEqual(set(by_size), {"S", "M", "L", "XL"})
+        self.assertEqual(by_size["S"].price, Decimal("3150"))
+        self.assertEqual(by_size["M"].price, Decimal("3250"))
+        self.assertEqual(by_size["L"].price, Decimal("3350"))
+        self.assertEqual(by_size["XL"].price, Decimal("3450"))
+        self.assertEqual(parsed.base_price, Decimal("3150"))

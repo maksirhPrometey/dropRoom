@@ -5,8 +5,11 @@ from .parser_types import ParsedVariant
 from .stock_signals import caption_signals_in_stock, line_signals_in_stock
 
 _SIZE_LETTER = r"(?:XXS|XXXL|XXL|XL|XS|[SML])"
+_DASH = r"[—–\-]"
 _PRICE_TAG_RE = re.compile(
-    r"🏷️\s*(\d[\d\s]*)|(\d[\d\s]*)\s*грн?",
+    r"🏷️\s*(\d[\d\s]*)|"
+    r"(\d[\d\s]*)\s*(?:UAH|грн|₴)|"
+    r"(\d[\d\s]*)\s*гр\b",
     re.IGNORECASE,
 )
 _SOLD_OUT_RE = re.compile(
@@ -22,27 +25,30 @@ _VARIANT_SECTION_RE = re.compile(
     re.IGNORECASE,
 )
 _SIZE_LINE_RE = re.compile(
-    rf"^[•\-\s]*(?:✅|❌)?\s*({_SIZE_LETTER}|\d{{2}}(?:[,.]\d)?)\s*[—–-]",
+    rf"^[•\-\s]*(?:✅|❌)?\s*({_SIZE_LETTER}|\d{{2}}(?:[,.]\d)?)\s*{_DASH}",
     re.IGNORECASE,
 )
 _SIZE_LETTER_EU_RANGE_RE = re.compile(
-    rf"^[•\-\s]*(?:✅|❌)?\s*({_SIZE_LETTER})\s*[—–-]\s*"
-    r"\d{{2}}(?:[,.]\d)?\s*[—–-]\s*\d{{2}}(?:[,.]\d)?",
+    rf"^[•\-\s]*(?:✅|❌)?\s*({_SIZE_LETTER})\s*{_DASH}\s*"
+    rf"\d{{2}}(?:[,.]\d)?\s*{_DASH}\s*\d{{2}}(?:[,.]\d)?",
     re.IGNORECASE,
 )
 _SIZE_PRICE_INLINE_RE = re.compile(
-    rf"^[•\-\s]*(?:✅|❌)?\s*({_SIZE_LETTER})\s*[—–-]\s*"
-    r"(?:Sold\s*Out|🏷️\s*(\d[\d\s]*)|(\d[\d\s]*)(?:\s*грн?)?)",
+    rf"^[•\-\s]*(?:✅|❌)?\s*({_SIZE_LETTER})\s*{_DASH}\s*"
+    r"(?:Sold\s*Out|🏷️\s*(\d[\d\s]*)|(\d[\d\s]*)(?:\s*(?:UAH|грн|₴|гр\b))?)",
     re.IGNORECASE,
 )
 _SIZE_PRICE_SIMPLE_RE = re.compile(
-    rf"^(?:✅|❌)?\s*({_SIZE_LETTER})\s*[—–-]\s*"
-    r"(?:Sold\s*Out|🏷️\s*(\d[\d\s]*)|(\d[\d\s]*)(?:\s*грн?)?)\s*$",
+    rf"^(?:✅|❌)?\s*({_SIZE_LETTER})\s*{_DASH}\s*"
+    r"(?:Sold\s*Out|🏷️\s*(\d[\d\s]*)|(\d[\d\s]*)(?:\s*(?:UAH|грн|₴|гр\b))?)\s*$",
     re.IGNORECASE,
 )
 _SIZE_MEASUREMENT_RE = re.compile(
-    rf"^(?:✅|❌)?\s*({_SIZE_LETTER})\s*[—–-]\s*(?:груди|ог|обхват)",
+    rf"^(?:✅|❌)?\s*({_SIZE_LETTER})\s*{_DASH}\s*(?:груди|ог|обхват)",
     re.IGNORECASE,
+)
+_SIZE_RANGE_AFTER_DASH_RE = re.compile(
+    rf"^{_DASH}\s*\d{{2}}(?:[,.]\d)?\s*{_DASH}\s*\d{{2}}",
 )
 _COLOR_HEADER_RE = re.compile(
     r"^(?:коричнев|чорн|біл|бежев|син|зелен|рожев|червон|сірий|леопард|молочн|кремов)",
@@ -60,11 +66,24 @@ def _to_decimal(raw: str) -> Decimal | None:
 
 
 def _extract_price(text: str) -> Decimal | None:
-    match = _PRICE_TAG_RE.search(text)
-    if not match:
+    matches = list(_PRICE_TAG_RE.finditer(text))
+    if not matches:
         return None
-    raw = match.group(1) or match.group(2)
+    # На рядках на кшталт «S — 46–48 … — 3150 UAH» беремо останню ціну.
+    match = matches[-1]
+    raw = next((group for group in match.groups() if group), None)
     return _to_decimal(raw) if raw else None
+
+
+def _has_currency_marker(text: str) -> bool:
+    return "🏷️" in text or bool(
+        re.search(r"(?:UAH|грн|₴)|\bгр\b", text, re.IGNORECASE)
+    )
+
+
+def _inline_looks_like_size_range(line: str, match: re.Match) -> bool:
+    tail = line[match.end() :]
+    return bool(_SIZE_RANGE_AFTER_DASH_RE.match(tail))
 
 
 def _is_sold_out(text: str) -> bool:
@@ -135,13 +154,15 @@ def _parse_variant_line(line: str, *, color: str | None) -> ParsedVariant | None
                 is_available=False,
                 color=color,
             )
-        if raw_price and tagged_price is None:
+        if (
+            raw_price
+            and tagged_price is None
+            and not _inline_looks_like_size_range(stripped, inline)
+        ):
             parsed_price = _to_decimal(raw_price)
-            has_marker = "🏷️" in stripped or bool(
-                re.search(r"грн?", stripped, re.IGNORECASE)
-            )
             if parsed_price is not None and _is_plausible_price(
-                parsed_price, has_currency_marker=has_marker
+                parsed_price,
+                has_currency_marker=_has_currency_marker(stripped),
             ):
                 price = parsed_price
 
