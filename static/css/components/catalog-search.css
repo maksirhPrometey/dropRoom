@@ -1,0 +1,118 @@
+.catalog-search {
+  --catalog-search-width: min(280px, 100%);
+  position: relative;
+  flex: 1 1 var(--catalog-search-width);
+  min-width: 0;
+  max-width: 320px;
+}
+
+.catalog-search__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.catalog-search__field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.catalog-search__field:focus-within {
+  border-color: var(--ink);
+  background: var(--bg);
+}
+
+.catalog-search__icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: var(--ink-2);
+}
+
+.catalog-search__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--ink);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  padding: 8px 0;
+}
+
+.catalog-search__input::placeholder {
+  color: var(--ink-3, var(--ink-2));
+  opacity: 0.85;
+}
+
+.catalog-search__status {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--line);
+  border-top-color: var(--ink);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.catalog-search__status.htmx-request {
+  opacity: 1;
+  animation: catalog-search-spin 0.7s linear infinite;
+}
+
+@keyframes catalog-search-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.catalog-results__meta {
+  margin-bottom: 14px;
+}
+
+#catalog-results.htmx-request .catalog-products {
+  opacity: 0.55;
+  transition: opacity 0.15s ease;
+}
+
+@media (max-width: 900px) {
+  .catalog-search {
+    max-width: none;
+    flex: 1 1 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .catalog-search__field {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .catalog-search__status.htmx-request {
+    animation: none;
+  }
+
+  #catalog-results.htmx-request .catalog-products {
+    transition: none;
+  }
+}

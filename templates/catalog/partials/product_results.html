@@ -1,0 +1,76 @@
+<div class="results catalog-results__meta">
+  {% if search_query %}
+    Знайдено <b>{{ page_obj.paginator.count }}</b>
+    за запитом «{{ search_query }}»
+    {% if page_obj.paginator.count %}
+      · показано <b>{{ page_obj.start_index }} — {{ page_obj.end_index }}</b>
+    {% endif %}
+  {% else %}
+    Показано <b>{{ page_obj.start_index }} — {{ page_obj.end_index }}</b>
+    з <b>{{ page_obj.paginator.count }}</b> позицій
+  {% endif %}
+</div>
+
+<div class="products catalog-products product-grid product-grid--catalog"
+     id="products">
+  {% for product in page_obj %}
+    {% if forloop.counter == 7 and not search_query %}
+      <div class="grid-banner">
+        <div>
+          <h3>Sneaker floor / <span class="accent">8 брендів</span></h3>
+          <p>Nike · On Running · Adidas · Crocs · Birkenstock · UGG. Відправляємо в день замовлення.</p>
+        </div>
+        <a href="{% url 'catalog:list' %}?category=sneakers">Дивитися всі →</a>
+      </div>
+    {% endif %}
+    {% include "partials/product_card.html" with product=product show_quick_add=True show_stock=True %}
+  {% empty %}
+    <div class="empty-state">
+      <p>{% if search_query %}Нічого не знайдено за «{{ search_query }}».{% else %}За вашим запитом нічого не знайдено.{% endif %}</p>
+      <a href="{% url 'catalog:list' %}" class="btn-ghost">Скинути фільтри</a>
+    </div>
+  {% endfor %}
+</div>
+
+{% if page_obj.has_other_pages %}
+  <nav class="pagination" aria-label="Пагінація">
+    <div class="info">Сторінка {{ page_obj.number }} з {{ page_obj.paginator.num_pages }} · {{ page_obj.start_index }}/{{ page_obj.paginator.count }}</div>
+    <div class="pages">
+      {% if page_obj.has_previous %}
+        <a href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.previous_page_number }}"
+           class="arrow"
+           hx-get="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.previous_page_number }}"
+           hx-target="#catalog-results"
+           hx-swap="innerHTML"
+           hx-push-url="true">←</a>
+      {% else %}
+        <span class="arrow disabled">←</span>
+      {% endif %}
+
+      {% for num in page_obj.paginator.page_range %}
+        {% if num == page_obj.number %}
+          <span class="on">{{ num|stringformat:"02d" }}</span>
+        {% elif num <= 3 or num >= page_obj.paginator.num_pages|add:"-2" or num == page_obj.number|add:"-1" or num == page_obj.number|add:"1" %}
+          <a href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ num }}"
+             hx-get="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ num }}"
+             hx-target="#catalog-results"
+             hx-swap="innerHTML"
+             hx-push-url="true">{{ num|stringformat:"02d" }}</a>
+        {% elif num == 4 or num == page_obj.paginator.num_pages|add:"-3" %}
+          <span>…</span>
+        {% endif %}
+      {% endfor %}
+
+      {% if page_obj.has_next %}
+        <a href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.next_page_number }}"
+           class="arrow"
+           hx-get="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.next_page_number }}"
+           hx-target="#catalog-results"
+           hx-swap="innerHTML"
+           hx-push-url="true">→</a>
+      {% else %}
+        <span class="arrow disabled">→</span>
+      {% endif %}
+    </div>
+  </nav>
+{% endif %}

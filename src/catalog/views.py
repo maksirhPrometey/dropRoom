@@ -52,6 +52,15 @@ class CatalogView(ListView):
         if drops:
             qs = qs.filter(drop__isnull=False)
 
+        query = self.request.GET.get("q", "").strip()
+        if query:
+            qs = qs.filter(
+                Q(name__icontains=query)
+                | Q(subtitle__icontains=query)
+                | Q(brand__name__icontains=query)
+                | Q(slug__icontains=query)
+            ).distinct()
+
         sort = self.request.GET.get("sort", "-created_at")
         allowed_sorts = {
             "-created_at": "-created_at",
@@ -61,6 +70,11 @@ class CatalogView(ListView):
         }
         qs = qs.order_by(allowed_sorts.get(sort, "-created_at"))
         return qs
+
+    def get_template_names(self):
+        if getattr(self.request, "htmx", False):
+            return ["catalog/partials/product_results.html"]
+        return [self.template_name]
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -81,6 +95,7 @@ class CatalogView(ListView):
         ctx["active_categories"] = self.request.GET.getlist("category")
         ctx["active_genders"] = self.request.GET.getlist("gender")
         ctx["active_brand_filters"] = self.request.GET.getlist("brand_filter")
+        ctx["search_query"] = self.request.GET.get("q", "").strip()
         brand_filter_initial = 10
         ctx["brand_filter_initial"] = brand_filter_initial
         ctx["brands_extra_count"] = max(0, ctx["brands"].count() - brand_filter_initial)

@@ -246,12 +246,24 @@ aside.filters::-webkit-scrollbar-thumb { background: var(--line); }
 /* ── Toolbar ── */
 main.col { min-width: 0; }
 
-.toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 24px; }
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+  gap: 12px 24px;
+}
 
 .results { font-size: 13px; color: var(--ink-2); }
 .results b { color: var(--ink); font-weight: 700; }
 
-.toolbar-right { display: flex; align-items: center; gap: 10px; }
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
 
 /* sort-picker styles: static/css/components/sort-picker.css */
 
@@ -476,8 +488,8 @@ main.col { min-width: 0; }
 }
 
 @media (max-width: 640px) {
-  .toolbar { flex-direction: column; align-items: flex-start; gap: 12px; }
-  .toolbar-right { width: 100%; justify-content: space-between; }
+  .toolbar { flex-direction: column; align-items: stretch; gap: 12px; }
+  .toolbar-right { width: 100%; margin-left: 0; justify-content: flex-end; }
   .pagination { flex-direction: column; gap: 18px; }
   .catalog-products {
     --grid-cols: 2;

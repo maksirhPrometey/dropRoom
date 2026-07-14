@@ -8,6 +8,7 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/pages/catalog.css' %}">
 <link rel="stylesheet" href="{% static 'css/components/sort-picker.css' %}">
+<link rel="stylesheet" href="{% static 'css/components/catalog-search.css' %}">
 {% endblock %}
 
 {% block extra_js %}
@@ -130,8 +131,34 @@
 
   <section class="col">
     <div class="toolbar">
-      <div class="results">
-        Показано <b>{{ page_obj.start_index }} — {{ page_obj.end_index }}</b> з <b>{{ page_obj.paginator.count }}</b> позицій
+      <div class="catalog-search" data-catalog-search>
+        <label class="catalog-search__label" for="catalog-search-input">Пошук товару</label>
+        <div class="catalog-search__field">
+          <svg class="catalog-search__icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.4"/>
+            <path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          </svg>
+          <input
+            type="search"
+            id="catalog-search-input"
+            class="catalog-search__input"
+            name="q"
+            form="filter-form"
+            value="{{ search_query }}"
+            placeholder="Пошук: бренд, назва…"
+            autocomplete="off"
+            enterkeyhint="search"
+            hx-get="{% url 'catalog:list' %}"
+            hx-trigger="keyup changed delay:300ms, search"
+            hx-target="#catalog-results"
+            hx-swap="innerHTML"
+            hx-push-url="true"
+            hx-include="#filter-form"
+            hx-indicator=".catalog-search__status, #catalog-results"
+            aria-controls="catalog-results"
+          >
+          <span class="catalog-search__status" aria-hidden="true"></span>
+        </div>
       </div>
       <div class="toolbar-right">
         <div class="sort-picker" data-sort-picker>
@@ -145,55 +172,9 @@
       </div>
     </div>
 
-    <div class="products catalog-products product-grid product-grid--catalog"
-         id="products">
-      {% for product in page_obj %}
-        {% if forloop.counter == 7 %}
-          <div class="grid-banner">
-            <div>
-              <h3>Sneaker floor / <span class="accent">8 брендів</span></h3>
-              <p>Nike · On Running · Adidas · Crocs · Birkenstock · UGG. Відправляємо в день замовлення.</p>
-            </div>
-            <a href="{% url 'catalog:list' %}?category=sneakers">Дивитися всі →</a>
-          </div>
-        {% endif %}
-        {% include "partials/product_card.html" with product=product show_quick_add=True show_stock=True %}
-      {% empty %}
-        <div class="empty-state">
-          <p>За вашим запитом нічого не знайдено.</p>
-          <a href="{% url 'catalog:list' %}" class="btn-ghost">Скинути фільтри</a>
-        </div>
-      {% endfor %}
+    <div id="catalog-results">
+      {% include "catalog/partials/product_results.html" %}
     </div>
-
-    {% if page_obj.has_other_pages %}
-      <nav class="pagination" aria-label="Пагінація">
-        <div class="info">Сторінка {{ page_obj.number }} з {{ page_obj.paginator.num_pages }} · {{ page_obj.start_index }}/{{ page_obj.paginator.count }}</div>
-        <div class="pages">
-          {% if page_obj.has_previous %}
-            <a href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.previous_page_number }}" class="arrow">←</a>
-          {% else %}
-            <span class="arrow disabled">←</span>
-          {% endif %}
-
-          {% for num in page_obj.paginator.page_range %}
-            {% if num == page_obj.number %}
-              <span class="on">{{ num|stringformat:"02d" }}</span>
-            {% elif num <= 3 or num >= page_obj.paginator.num_pages|add:"-2" or num == page_obj.number|add:"-1" or num == page_obj.number|add:"1" %}
-              <a href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ num }}">{{ num|stringformat:"02d" }}</a>
-            {% elif num == 4 or num == page_obj.paginator.num_pages|add:"-3" %}
-              <span>…</span>
-            {% endif %}
-          {% endfor %}
-
-          {% if page_obj.has_next %}
-            <a href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.next_page_number }}" class="arrow">→</a>
-          {% else %}
-            <span class="arrow disabled">→</span>
-          {% endif %}
-        </div>
-      </nav>
-    {% endif %}
   </section>
 </div>
 
