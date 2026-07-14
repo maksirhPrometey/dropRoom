@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="{% static 'css/pages/detail.css' %}">
 <link rel="stylesheet" href="{% static 'css/components/gallery-lightbox.css' %}">
 <link rel="stylesheet" href="{% static 'css/components/size-picker.css' %}">
+<link rel="stylesheet" href="{% static 'css/components/color-picker.css' %}">
 {% endblock %}
 
 {% block extra_js %}
@@ -107,29 +108,56 @@
         {% include "partials/stock_notice.html" with stock_notice_modifier="detail" %}
 
         {% if variants %}
-          <div class="size-block">
-            <div class="size-label">
-              <span>Розмір</span>
-              <a href="#" class="size-guide">Таблиця розмірів</a>
-            </div>
+          <div class="variant-block" data-variant-block{% if has_color_choice %} data-has-colors="true"{% endif %}>
+            {% if has_color_choice %}
+              <div class="color-block">
+                <div class="color-label">
+                  <span>Колір</span>
+                  <span class="color-label__value" data-color-label>—</span>
+                </div>
+                <div class="color-picker" data-color-select role="listbox" aria-label="Колір">
+                  {% for color in variant_colors %}
+                    <button type="button"
+                            class="color-picker__swatch"
+                            role="option"
+                            aria-selected="false"
+                            data-color-id="{{ color.pk }}"
+                            data-color-name="{{ color.name }}"
+                            data-color-hex="{{ color.hex_code|default:'#cccccc' }}"
+                            title="{{ color.name }}">
+                      <span class="color-picker__chip" aria-hidden="true"></span>
+                      <span class="color-picker__name">{{ color.name }}</span>
+                    </button>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
 
-            <select data-size-select class="size-select" aria-label="Розмір">
-              <option value="">— Обрати розмір</option>
-              {% for variant in variants %}
-                <option value="{{ variant.pk }}"
-                        data-variant-id="{{ variant.pk }}"
-                        data-price="{{ variant.price|floatformat:'0' }} ₴"
-                        data-in-stock="{{ variant.in_stock|lower }}">
-                  {{ variant.size_display }}{% if not variant.in_stock %} — Під замовлення{% endif %}
-                </option>
-              {% endfor %}
-            </select>
+            <div class="size-block">
+              <div class="size-label">
+                <span>Розмір</span>
+                <a href="#" class="size-guide">Таблиця розмірів</a>
+              </div>
 
-            <div class="stock-status" data-stock-status
-                 data-eta-in-stock="Орієнтовно 3 робочі дні"
-                 data-eta-preorder="Орієнтовно 14 днів">
-              <span class="stock-dot"></span>
-              <span data-stock-label>Оберіть розмір</span>
+              <select data-size-select class="size-select" aria-label="Розмір">
+                <option value="">— Обрати розмір</option>
+                {% for variant in variants %}
+                  <option value="{{ variant.pk }}"
+                          data-variant-id="{{ variant.pk }}"
+                          data-color-id="{{ variant.color_id|default_if_none:'' }}"
+                          data-price="{{ variant.price|floatformat:'0' }} ₴"
+                          data-in-stock="{{ variant.in_stock|lower }}">
+                    {{ variant.size_display }}{% if not variant.in_stock %} — Під замовлення{% endif %}
+                  </option>
+                {% endfor %}
+              </select>
+
+              <div class="stock-status" data-stock-status
+                   data-eta-in-stock="Орієнтовно 3 робочі дні"
+                   data-eta-preorder="Орієнтовно 14 днів">
+                <span class="stock-dot"></span>
+                <span data-stock-label>Оберіть розмір</span>
+              </div>
             </div>
           </div>
 

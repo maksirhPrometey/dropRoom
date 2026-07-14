@@ -124,8 +124,21 @@ class ProductDetailView(DetailView):
         ctx = super().get_context_data(**kwargs)
         product = self.object
 
-        variants = product.variants.filter(is_available=True).select_related("color").order_by("size")
+        variants = list(
+            product.variants.filter(is_available=True)
+            .select_related("color")
+            .order_by("color__name", "size")
+        )
         ctx["variants"] = variants
+
+        colors: list = []
+        seen_color_ids: set[int] = set()
+        for variant in variants:
+            if variant.color_id and variant.color_id not in seen_color_ids:
+                seen_color_ids.add(variant.color_id)
+                colors.append(variant.color)
+        ctx["variant_colors"] = colors
+        ctx["has_color_choice"] = len(colors) > 1
 
         similar = (
             Product.objects.filter(

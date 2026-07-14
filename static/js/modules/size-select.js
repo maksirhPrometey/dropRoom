@@ -53,7 +53,9 @@ function applyVariantState(select, chosen) {
     if (label) {
       const etaIn = stockStatus.dataset.etaInStock ?? 'Орієнтовно 3 робочі дні';
       const etaPre = stockStatus.dataset.etaPreorder ?? 'Орієнтовно 14 днів';
-      label.textContent = inStock ? `В наявності · ${etaIn}` : `Під замовлення · ${etaPre}`;
+      label.textContent = inStock
+        ? `В наявності · ${etaIn}`
+        : `Під замовлення · ${etaPre}`;
     }
   }
 }
@@ -64,6 +66,19 @@ function parseOptionLabel(text) {
     return { size: parts[0].trim(), suffix: parts.slice(1).join(' — ').trim() };
   }
   return { size: text.trim(), suffix: '' };
+}
+
+export function destroySizePicker(select) {
+  if (!select || select.dataset.pickerReady !== 'true') return;
+  const wrapper = select.closest('.size-picker');
+  if (!wrapper) {
+    select.dataset.pickerReady = 'false';
+    return;
+  }
+  wrapper.parentNode.insertBefore(select, wrapper);
+  wrapper.remove();
+  select.classList.remove('size-picker__native');
+  select.dataset.pickerReady = 'false';
 }
 
 function buildPicker(select) {
@@ -210,7 +225,9 @@ function buildPicker(select) {
 
   document.addEventListener('keydown', (event) => {
     if (list.hidden) return;
-    if (!wrapper.contains(document.activeElement) && document.activeElement !== trigger) return;
+    if (!wrapper.contains(document.activeElement) && document.activeElement !== trigger) {
+      return;
+    }
 
     if (event.key === 'Escape') {
       event.preventDefault();
@@ -245,6 +262,15 @@ function buildPicker(select) {
   });
 }
 
+export function refreshSizePicker(select) {
+  if (!select) return;
+  destroySizePicker(select);
+  buildPicker(select);
+  applyVariantState(select, select.options[select.selectedIndex]);
+}
+
 export function initSizeSelect() {
   document.querySelectorAll('[data-size-select]').forEach(buildPicker);
 }
+
+export { applyVariantState };
