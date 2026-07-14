@@ -8,8 +8,8 @@ from src.telegram_import.services.parser import parse_caption
 
 class Command(BaseCommand):
     help = (
-        "Перепарсити name і description товарів із збереженого raw_caption. "
-        "Потрібно після змін у parser.py без повторного імпорту фото."
+        "Перепарсити name, description, brand, category і base_price "
+        "із збереженого raw_caption. Після змін у parser — без повторного імпорту фото."
     )
 
     def add_arguments(self, parser):
@@ -70,6 +70,11 @@ class Command(BaseCommand):
                 updates["brand"] = parsed.brand
             if parsed.category and product.category_id != parsed.category.pk:
                 updates["category"] = parsed.category
+            if (
+                parsed.base_price is not None
+                and product.base_price != parsed.base_price
+            ):
+                updates["base_price"] = parsed.base_price
 
             if not updates:
                 continue
@@ -85,6 +90,8 @@ class Command(BaseCommand):
                 preview += f"\n  brand: {product.brand.name} → {updates['brand'].name}"
             if "category" in updates:
                 preview += f"\n  category: {product.category.slug} → {updates['category'].slug}"
+            if "base_price" in updates:
+                preview += f"\n  base_price: {product.base_price} → {updates['base_price']}"
 
             if dry_run:
                 self.stdout.write(preview)

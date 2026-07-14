@@ -15,8 +15,8 @@ from src.telegram_import.services.parser import parse_caption
 
 class Command(BaseCommand):
     help = (
-        "Перерахувати stock_qty варіантів із raw_caption. "
-        "За замовчуванням — під замовлення (0), наявність лише за явним сигналом у тексті."
+        "Перерахувати варіанти (ціна, stock, наявність) і base_price із raw_caption. "
+        "За замовчуванням stock — під замовлення (0), наявність лише за явним сигналом у тексті."
     )
 
     def add_arguments(self, parser):
@@ -59,18 +59,34 @@ class Command(BaseCommand):
             if not parsed.variants:
                 continue
 
-            db_stocks = list(
-                product.variants.order_by("size").values_list("size", "stock_qty")
+            db_variants = list(
+                product.variants.order_by("size", "color__name").values_list(
+                    "size", "stock_qty", "price", "is_available"
+                )
             )
-            parsed_stocks = sorted((v.size, v.stock_qty) for v in parsed.variants)
-            if db_stocks == parsed_stocks:
+            parsed_variants = sorted(
+                (
+                    v.size,
+                    v.stock_qty,
+                    v.price,
+                    v.is_available,
+                )
+                for v in parsed.variants
+            )
+            base_price = parsed.base_price
+            base_price_changed = (
+                base_price is not None and product.base_price != base_price
+            )
+            if db_variants == parsed_variants and not base_price_changed:
                 continue
 
             changed += 1
             preview = (
                 f"TG {record.message_id} · {product.pk} {product.name[:48]!r}\n"
-                f"  {db_stocks} → {parsed_stocks}"
+                f"  {db_variants} → {parsed_variants}"
             )
+            if base_price_changed:
+                preview += f"\n  base_price: {product.base_price} → {base_price}"
             if dry_run:
                 self.stdout.write(preview)
                 continue
@@ -83,6 +99,9 @@ class Command(BaseCommand):
                     parsed_variants=parsed.variants,
                     default_price=Decimal(settings.TELEGRAM_DEFAULT_PRICE),
                 )
+                if base_price_changed:
+                    product.base_price = base_price
+                    product.save(update_fields=["base_price"])
             self.stdout.write(self.style.SUCCESS(preview))
 
         suffix = " (dry-run)" if dry_run else ""
