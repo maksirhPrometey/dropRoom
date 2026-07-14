@@ -15,8 +15,8 @@ from src.telegram_import.services.parser import parse_caption
 
 class Command(BaseCommand):
     help = (
-        "Перерахувати варіанти (ціна, stock, наявність) і base_price із raw_caption. "
-        "За замовчуванням stock — під замовлення (0), наявність лише за явним сигналом у тексті."
+        "Перепарсити варіанти (ціна, stock, наявність) і base_price із raw_caption. "
+        "Для кожного товару береться найповніший caption (найдовший)."
     )
 
     def add_arguments(self, parser):
@@ -24,6 +24,16 @@ class Command(BaseCommand):
             "--dry-run",
             action="store_true",
             help="Показати зміни без запису в БД",
+        )
+        parser.add_argument(
+            "--force",
+            action="store_true",
+            help="Оновити навіть якщо значення виглядають такими ж",
+        )
+        parser.add_argument(
+            "--slug",
+            default="",
+            help="Оновити лише товар з цим slug",
         )
 
     def handle(self, *args, **options):
@@ -34,6 +44,8 @@ class Command(BaseCommand):
             return
 
         dry_run = options["dry_run"]
+        force = options["force"]
+        slug = (options["slug"] or "").strip()
         scanned = 0
         changed = 0
 
@@ -46,8 +58,17 @@ class Command(BaseCommand):
             .select_related("product")
             .order_by("message_id")
         )
+        if slug:
+            qs = qs.filter(product__slug=slug)
 
+        # Один товар може мати кілька TG-записів (альбом) — беремо найдовший caption.
+        best_by_product: dict[int, TelegramImport] = {}
         for record in qs.iterator():
+            current = best_by_product.get(record.product_id)
+            if current is None or len(record.raw_caption) > len(current.raw_caption):
+                best_by_product[record.product_id] = record
+
+        for record in best_by_product.values():
             scanned += 1
             product = record.product
             parsed = parse_caption(
@@ -57,6 +78,12 @@ class Command(BaseCommand):
                 default_gender=product.gender or "U",
             )
             if not parsed.variants:
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"TG {record.message_id} · {product.pk} {product.slug}: "
+                        f"варіанти не розпарсилися"
+                    )
+                )
                 continue
 
             db_variants = list(
@@ -77,16 +104,20 @@ class Command(BaseCommand):
             base_price_changed = (
                 base_price is not None and product.base_price != base_price
             )
-            if db_variants == parsed_variants and not base_price_changed:
+            if (
+                not force
+                and db_variants == parsed_variants
+                and not base_price_changed
+            ):
                 continue
 
             changed += 1
             preview = (
-                f"TG {record.message_id} · {product.pk} {product.name[:48]!r}\n"
-                f"  {db_variants} → {parsed_variants}"
+                f"TG {record.message_id} · {product.pk} {product.slug}\n"
+                f"  name: {product.name[:60]!r}\n"
+                f"  variants: {db_variants} → {parsed_variants}\n"
+                f"  base_price: {product.base_price} → {base_price}"
             )
-            if base_price_changed:
-                preview += f"\n  base_price: {product.base_price} → {base_price}"
             if dry_run:
                 self.stdout.write(preview)
                 continue
@@ -99,9 +130,6 @@ class Command(BaseCommand):
                     parsed_variants=parsed.variants,
                     default_price=Decimal(settings.TELEGRAM_DEFAULT_PRICE),
                 )
-                if base_price_changed:
-                    product.base_price = base_price
-                    product.save(update_fields=["base_price"])
             self.stdout.write(self.style.SUCCESS(preview))
 
         suffix = " (dry-run)" if dry_run else ""

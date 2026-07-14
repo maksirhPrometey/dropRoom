@@ -51,7 +51,13 @@ class Command(BaseCommand):
         scanned = 0
         changed = 0
 
+        best_by_product: dict[int, object] = {}
         for record in qs.iterator():
+            current = best_by_product.get(record.product_id)
+            if current is None or len(record.raw_caption) > len(current.raw_caption):
+                best_by_product[record.product_id] = record
+
+        for record in best_by_product.values():
             scanned += 1
             product = record.product
             parsed = parse_caption(

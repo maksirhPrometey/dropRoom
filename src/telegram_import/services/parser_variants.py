@@ -50,6 +50,10 @@ _SIZE_MEASUREMENT_RE = re.compile(
 _SIZE_RANGE_AFTER_DASH_RE = re.compile(
     rf"^{_DASH}\s*\d{{2}}(?:[,.]\d)?\s*{_DASH}\s*\d{{2}}",
 )
+_TRAILING_PRICE_RE = re.compile(
+    rf"{_DASH}\s*(\d[\d\s]*)\s*(?:UAH|грн|₴|гр\b)?\s*$",
+    re.IGNORECASE,
+)
 _COLOR_HEADER_RE = re.compile(
     r"^(?:коричнев|чорн|біл|бежев|син|зелен|рожев|червон|сірий|леопард|молочн|кремов)",
     re.IGNORECASE,
@@ -67,12 +71,24 @@ def _to_decimal(raw: str) -> Decimal | None:
 
 def _extract_price(text: str) -> Decimal | None:
     matches = list(_PRICE_TAG_RE.finditer(text))
-    if not matches:
+    if matches:
+        # На рядках на кшталт «S — 46–48 … — 3150 UAH» беремо останню ціну.
+        match = matches[-1]
+        raw = next((group for group in match.groups() if group), None)
+        price = _to_decimal(raw) if raw else None
+        if price is not None:
+            return price
+
+    trailing = _TRAILING_PRICE_RE.search(text.strip())
+    if not trailing:
         return None
-    # На рядках на кшталт «S — 46–48 … — 3150 UAH» беремо останню ціну.
-    match = matches[-1]
-    raw = next((group for group in match.groups() if group), None)
-    return _to_decimal(raw) if raw else None
+    price = _to_decimal(trailing.group(1))
+    if price is None:
+        return None
+    # Без валюти беремо лише правдоподібну ціну, не «46» з діапазону розміру.
+    if _has_currency_marker(text) or price >= _MIN_BARE_PRICE:
+        return price
+    return None
 
 
 def _has_currency_marker(text: str) -> bool:

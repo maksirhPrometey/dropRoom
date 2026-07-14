@@ -214,6 +214,7 @@ def _sync_variants(
         ]
 
     seen_skus: set[str] = set()
+    keep_ids: list[int] = []
     for index, variant in enumerate(parsed_variants, start=1):
         color = _get_or_create_color(variant.color)
         color_slug = slugify(variant.color or "default") or "default"
@@ -222,7 +223,7 @@ def _sync_variants(
             sku = f"TG-{channel_id}-{message_id}-{index}"[:64]
         seen_skus.add(sku)
 
-        ProductVariant.objects.update_or_create(
+        obj, _ = ProductVariant.objects.update_or_create(
             product=product,
             size=variant.size[:20],
             color=color,
@@ -233,6 +234,15 @@ def _sync_variants(
                 "is_available": variant.is_available,
             },
         )
+        keep_ids.append(obj.pk)
+
+    if keep_ids:
+        product.variants.exclude(pk__in=keep_ids).delete()
+
+    prices = [variant.price for variant in parsed_variants if variant.price is not None]
+    if prices:
+        product.base_price = min(prices)
+        product.save(update_fields=["base_price"])
 
 
 def _find_duplicate_product(
