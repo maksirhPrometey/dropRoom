@@ -28,6 +28,9 @@ BRANDS = [
     ("Premiata", "premiata", "Italy"),
     ("Ralph Lauren", "ralph-lauren", "USA"),
     ("Moon Boot", "moon-boot", "Italy"),
+    ("Katy Perry", "katy-perry", "USA"),
+    ("Calvin Klein", "calvin-klein", "USA"),
+    ("New Balance", "new-balance", "USA"),
 ]
 
 CATEGORIES = [

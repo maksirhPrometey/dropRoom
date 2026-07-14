@@ -1,5 +1,7 @@
 import re
 
+from django.utils.text import slugify
+
 from src.catalog.models import Brand, Category
 
 from .parser_types import ParsedProduct
@@ -30,6 +32,10 @@ _AVAILABILITY_PREFIX_RE = re.compile(
     re.IGNORECASE,
 )
 _BRAND_STOPWORDS = frozenset({"the", "and", "for", "new", "york"})
+_BRAND_LABEL_RE = re.compile(
+    r"^(?:бренд|brand)\s*[:：]\s*(.+?)\s*$",
+    re.IGNORECASE | re.MULTILINE,
+)
 _GENDER_RE = re.compile(
     r"(?:стать|gender)[:\s]*(W|M|U|жіноч|чоловіч|унісекс)",
     re.IGNORECASE,
@@ -203,7 +209,24 @@ def _parse_gender(text: str, default: str) -> str:
     return "U"
 
 
-def _match_brand(text: str) -> Brand | None:
+def _extract_brand_label(text: str) -> str:
+    match = _BRAND_LABEL_RE.search(text)
+    if not match:
+        return ""
+    return match.group(1).strip(" .·-|")
+
+
+def _match_brand_name(name: str) -> Brand | None:
+    cleaned = name.strip()
+    if not cleaned:
+        return None
+    exact = Brand.objects.filter(is_active=True, name__iexact=cleaned).first()
+    if exact:
+        return exact
+    return _match_brand_in_text(cleaned)
+
+
+def _match_brand_in_text(text: str) -> Brand | None:
     lowered = text.lower()
     brands = list(Brand.objects.filter(is_active=True))
     brands.sort(key=lambda brand: len(brand.name), reverse=True)
@@ -226,6 +249,45 @@ def _match_brand(text: str) -> Brand | None:
                 return brand
 
     return None
+
+
+def _match_brand(text: str) -> Brand | None:
+    label = _extract_brand_label(text)
+    if label:
+        branded = _match_brand_name(label)
+        if branded:
+            return branded
+    return _match_brand_in_text(text)
+
+
+def resolve_brand(
+    text: str,
+    *,
+    create_missing: bool = False,
+) -> Brand | None:
+    """Знайти бренд у caption; опційно створити з рядка «Бренд: …»."""
+    label = _extract_brand_label(text)
+    if label:
+        existing = _match_brand_name(label)
+        if existing:
+            return existing
+        if create_missing:
+            slug_base = slugify(label) or "brand"
+            slug = slug_base
+            counter = 1
+            while Brand.objects.filter(slug=slug).exclude(name__iexact=label).exists():
+                slug = f"{slug_base}-{counter}"
+                counter += 1
+            brand, _ = Brand.objects.get_or_create(
+                name=label[:120],
+                defaults={"slug": slug, "is_active": True},
+            )
+            if not brand.is_active:
+                brand.is_active = True
+                brand.save(update_fields=["is_active"])
+            return brand
+
+    return _match_brand_in_text(text)
 
 
 def _match_category(text: str) -> Category | None:
@@ -251,7 +313,7 @@ def parse_caption(
     normalized = caption.strip()
     name = _extract_title(normalized)
     description = _extract_description(normalized, name)
-    brand = _match_brand(normalized) or default_brand
+    brand = resolve_brand(normalized) or default_brand
     category = _match_category(normalized) or default_category
     gender = _parse_gender(normalized, default_gender)
     variants = extract_variants(normalized)
