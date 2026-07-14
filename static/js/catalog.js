@@ -5,15 +5,9 @@ import { initBrandFilterMore } from './modules/brand-filter-more.js';
 import { initSortPicker } from './modules/sort-picker.js';
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Спочатку колір (перебудовує size-picker), інакше звичайний size-select.
-  const hasColors = Boolean(
-    document.querySelector('[data-variant-block][data-has-colors="true"]'),
-  );
-  if (hasColors) {
-    initColorSelect();
-  } else {
-    initSizeSelect();
-  }
+  // Колір перебудовує size-picker; initSizeSelect безпечний, якщо picker вже готовий.
+  initColorSelect();
+  initSizeSelect();
   initFilterBlocks();
   initBrandFilterMore();
   initSortPicker();

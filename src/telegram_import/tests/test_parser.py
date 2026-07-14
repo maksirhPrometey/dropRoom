@@ -143,6 +143,9 @@ class ChannelCaptionParserTests(TestCase):
         Brand.objects.get_or_create(name="Zara", defaults={"slug": "zara"})
         Brand.objects.get_or_create(name="UGG", defaults={"slug": "ugg"})
         Brand.objects.get_or_create(name="Moon Boot", defaults={"slug": "moon-boot"})
+        Brand.objects.get_or_create(
+            name="Massimo Dutti", defaults={"slug": "massimo-dutti"}
+        )
         cls.knitwear, _ = Category.objects.get_or_create(
             slug="knitwear",
             defaults={"name": "Knitwear"},
@@ -273,6 +276,15 @@ class ChannelCaptionParserTests(TestCase):
         self.assertTrue(by_size["M"].is_available)
         self.assertFalse(by_size["L"].is_available)
         self.assertEqual(parsed.base_price, Decimal("6050"))
+
+    def test_title_strips_name_label_prefix(self):
+        parsed = self._parse(
+            "Назва: Стьобаний бомбер Massimo Dutti\n"
+            "Бренд: Massimo Dutti\n\n"
+            "🏷️2650 грн"
+        )
+        self.assertEqual(parsed.name, "Стьобаний бомбер Massimo Dutti")
+        self.assertNotIn("Назва", parsed.name)
 
     def test_zara_jacket_trailing_uah_price_not_chest_size(self):
         parsed = self._parse(ZARA_JACKET)

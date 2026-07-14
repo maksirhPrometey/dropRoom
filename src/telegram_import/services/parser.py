@@ -31,6 +31,10 @@ _AVAILABILITY_PREFIX_RE = re.compile(
     r"^(?:в\s+наявності|наявності|під\s+замовлення)\s+",
     re.IGNORECASE,
 )
+_TITLE_FIELD_PREFIX_RE = re.compile(
+    r"^(?:назва|name|title)\s*[:：]\s*",
+    re.IGNORECASE,
+)
 _BRAND_STOPWORDS = frozenset({"the", "and", "for", "new", "york"})
 _BRAND_LABEL_RE = re.compile(
     r"^(?:бренд|brand)\s*[:：]\s*(.+?)\s*$",
@@ -71,6 +75,7 @@ _CATEGORY_KEYWORDS: list[tuple[str, str]] = [
 def _clean_title_line(line: str) -> str:
     cleaned = _TITLE_EMOJI_RE.sub("", line).strip()
     cleaned = _TRAILING_EMOJI_RE.sub("", cleaned).strip()
+    cleaned = _TITLE_FIELD_PREFIX_RE.sub("", cleaned).strip()
     return cleaned.strip("—–-: ")
 
 
@@ -107,6 +112,8 @@ def _extract_title(caption: str) -> str:
         if _SKIP_TITLE_RE.match(stripped):
             continue
         if _STOCK_NOTE_TITLE_RE.match(stripped):
+            continue
+        if _BRAND_LABEL_RE.match(stripped):
             continue
         if re.match(r"^[•✅❌🔹]", stripped):
             continue
