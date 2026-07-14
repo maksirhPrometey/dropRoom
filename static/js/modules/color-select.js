@@ -1,4 +1,4 @@
-import { applyVariantState, refreshSizePicker } from './size-select.js';
+import { applyVariantState, destroySizePicker, refreshSizePicker } from './size-select.js';
 
 function cloneOptions(select) {
   return [...select.options].map((option) => option.cloneNode(true));
@@ -6,16 +6,18 @@ function cloneOptions(select) {
 
 export function initColorSelect() {
   const block = document.querySelector('[data-variant-block][data-has-colors="true"]');
-  if (!block) return;
+  if (!block) return false;
 
   const colorRoot = block.querySelector('[data-color-select]');
   const sizeSelect = block.querySelector('[data-size-select]');
   const colorLabel = block.querySelector('[data-color-label]');
-  if (!colorRoot || !sizeSelect) return;
+  if (!colorRoot || !sizeSelect) return false;
 
   const buttons = [...colorRoot.querySelectorAll('[data-color-id]')];
-  if (!buttons.length) return;
+  if (!buttons.length) return false;
 
+  // Знімаємо picker ДО клонування опцій, щоб не чіпати зібраний UI.
+  destroySizePicker(sizeSelect);
   const allOptions = cloneOptions(sizeSelect);
 
   buttons.forEach((button) => {
@@ -33,9 +35,11 @@ export function initColorSelect() {
       }
     });
 
+    destroySizePicker(sizeSelect);
+
     const placeholder = allOptions.find((option) => !option.value) || allOptions[0];
     const matching = allOptions.filter(
-      (option) => option.value && option.dataset.colorId === colorId,
+      (option) => option.value && String(option.dataset.colorId) === String(colorId),
     );
 
     sizeSelect.innerHTML = '';
@@ -58,4 +62,5 @@ export function initColorSelect() {
   });
 
   applyColor(buttons[0].dataset.colorId);
+  return true;
 }

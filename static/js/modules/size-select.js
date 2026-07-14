@@ -68,29 +68,51 @@ function parseOptionLabel(text) {
   return { size: text.trim(), suffix: '' };
 }
 
-export function destroySizePicker(select) {
-  if (!select || select.dataset.pickerReady !== 'true') return;
-  const wrapper = select.closest('.size-picker');
-  if (!wrapper) {
-    select.dataset.pickerReady = 'false';
-    return;
-  }
-  wrapper.parentNode.insertBefore(select, wrapper);
-  wrapper.remove();
+function isPickerMounted(select) {
+  const wrapper = select?.closest('.size-picker');
+  return Boolean(wrapper?.querySelector('.size-picker__trigger'));
+}
+
+function resetSelectVisualState(select) {
   select.classList.remove('size-picker__native');
+  select.removeAttribute('tabindex');
+  select.removeAttribute('aria-hidden');
   select.dataset.pickerReady = 'false';
+  if (select._sizePickerAbort) {
+    select._sizePickerAbort.abort();
+    select._sizePickerAbort = null;
+  }
+}
+
+export function destroySizePicker(select) {
+  if (!select) return;
+
+  const wrapper = select.closest('.size-picker');
+  if (wrapper) {
+    wrapper.parentNode?.insertBefore(select, wrapper);
+    wrapper.remove();
+  }
+  resetSelectVisualState(select);
 }
 
 function buildPicker(select) {
-  if (select.dataset.pickerReady === 'true') return;
-  select.dataset.pickerReady = 'true';
-  select.classList.add('size-picker__native');
-  select.removeAttribute('name');
+  if (!select?.parentNode) return;
+
+  // Відновлення після зламаного стану (клас native без обгортки).
+  if (select.dataset.pickerReady === 'true' && isPickerMounted(select)) {
+    return;
+  }
+  if (select.dataset.pickerReady === 'true' || select.classList.contains('size-picker__native')) {
+    destroySizePicker(select);
+  }
 
   const wrapper = document.createElement('div');
   wrapper.className = 'size-picker';
   select.parentNode.insertBefore(wrapper, select);
   wrapper.appendChild(select);
+  select.classList.add('size-picker__native');
+  select.setAttribute('tabindex', '-1');
+  select.setAttribute('aria-hidden', 'true');
 
   const placeholder = select.options[0]?.text?.trim() || '— Обрати розмір';
 
@@ -117,8 +139,7 @@ function buildPicker(select) {
   path.setAttribute('fill', 'none');
   chevron.appendChild(path);
 
-  trigger.appendChild(valueEl);
-  trigger.appendChild(chevron);
+  trigger.append(valueEl, chevron);
 
   const list = document.createElement('ul');
   list.className = 'size-picker__list';
@@ -146,16 +167,34 @@ function buildPicker(select) {
     badge.className = 'size-picker__badge';
     badge.textContent = suffix || (inStock ? 'В наявності' : 'Під замовлення');
 
-    li.appendChild(sizeSpan);
-    li.appendChild(badge);
+    li.append(sizeSpan, badge);
     list.appendChild(li);
     options.push({ li, option });
   });
 
-  wrapper.appendChild(trigger);
-  wrapper.appendChild(list);
+  wrapper.append(trigger, list);
+
+  const abort = new AbortController();
+  select._sizePickerAbort = abort;
+  const { signal } = abort;
 
   let focusedIndex = -1;
+
+  function syncTriggerFromSelect() {
+    const chosen = select.options[select.selectedIndex];
+    if (!chosen || !chosen.value) {
+      valueEl.textContent = placeholder;
+      valueEl.classList.add('is-placeholder');
+      options.forEach(({ li }) => li.classList.remove('is-selected'));
+      return;
+    }
+    const { size } = parseOptionLabel(chosen.text);
+    valueEl.textContent = size;
+    valueEl.classList.remove('is-placeholder');
+    options.forEach(({ li, option }) => {
+      li.classList.toggle('is-selected', option.value === chosen.value);
+    });
+  }
 
   function closePicker() {
     wrapper.classList.remove('is-open');
@@ -187,79 +226,96 @@ function buildPicker(select) {
     const entry = options[index];
     if (!entry) return;
 
-    const { option, li } = entry;
+    const { option } = entry;
     select.value = option.value;
     select.dispatchEvent(new Event('change', { bubbles: true }));
-
-    const { size } = parseOptionLabel(option.text);
-    valueEl.textContent = size;
-    valueEl.classList.remove('is-placeholder');
-
-    options.forEach(({ li: item }) => item.classList.remove('is-selected'));
-    li.classList.add('is-selected');
-
+    syncTriggerFromSelect();
     applyVariantState(select, option);
     closePicker();
     trigger.focus();
   }
 
-  trigger.addEventListener('click', () => {
-    if (wrapper.classList.contains('is-open')) {
-      closePicker();
-    } else {
-      openPicker();
-    }
-  });
+  trigger.addEventListener(
+    'click',
+    () => {
+      if (wrapper.classList.contains('is-open')) closePicker();
+      else openPicker();
+    },
+    { signal },
+  );
 
   options.forEach(({ li }, index) => {
-    li.addEventListener('click', () => selectOption(index));
-    li.addEventListener('mousemove', () => {
-      focusedIndex = index;
-      focusOption(index);
-    });
+    li.addEventListener('click', () => selectOption(index), { signal });
+    li.addEventListener(
+      'mousemove',
+      () => {
+        focusedIndex = index;
+        focusOption(index);
+      },
+      { signal },
+    );
   });
 
-  document.addEventListener('click', (event) => {
-    if (!wrapper.contains(event.target)) closePicker();
-  });
+  document.addEventListener(
+    'click',
+    (event) => {
+      if (!wrapper.contains(event.target)) closePicker();
+    },
+    { signal },
+  );
 
-  document.addEventListener('keydown', (event) => {
-    if (list.hidden) return;
-    if (!wrapper.contains(document.activeElement) && document.activeElement !== trigger) {
-      return;
-    }
+  document.addEventListener(
+    'keydown',
+    (event) => {
+      if (list.hidden) return;
+      if (
+        !wrapper.contains(document.activeElement)
+        && document.activeElement !== trigger
+      ) {
+        return;
+      }
 
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      closePicker();
-      trigger.focus();
-      return;
-    }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closePicker();
+        trigger.focus();
+        return;
+      }
 
-    if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      focusedIndex = Math.min(focusedIndex + 1, options.length - 1);
-      focusOption(focusedIndex);
-      return;
-    }
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        focusedIndex = Math.min(focusedIndex + 1, options.length - 1);
+        focusOption(focusedIndex);
+        return;
+      }
 
-    if (event.key === 'ArrowUp') {
-      event.preventDefault();
-      focusedIndex = Math.max(focusedIndex - 1, 0);
-      focusOption(focusedIndex);
-      return;
-    }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        focusedIndex = Math.max(focusedIndex - 1, 0);
+        focusOption(focusedIndex);
+        return;
+      }
 
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      if (focusedIndex >= 0) selectOption(focusedIndex);
-    }
-  });
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        if (focusedIndex >= 0) selectOption(focusedIndex);
+      }
+    },
+    { signal },
+  );
 
-  select.addEventListener('change', () => {
-    const chosen = select.options[select.selectedIndex];
-    applyVariantState(select, chosen);
-  });
+  select.addEventListener(
+    'change',
+    () => {
+      const chosen = select.options[select.selectedIndex];
+      syncTriggerFromSelect();
+      applyVariantState(select, chosen);
+    },
+    { signal },
+  );
+
+  syncTriggerFromSelect();
+  select.dataset.pickerReady = 'true';
 }
 
 export function refreshSizePicker(select) {
@@ -270,7 +326,14 @@ export function refreshSizePicker(select) {
 }
 
 export function initSizeSelect() {
-  document.querySelectorAll('[data-size-select]').forEach(buildPicker);
+  document.querySelectorAll('[data-size-select]').forEach((select) => {
+    try {
+      buildPicker(select);
+    } catch (error) {
+      console.error('size-picker init failed', error);
+      destroySizePicker(select);
+    }
+  });
 }
 
 export { applyVariantState };
