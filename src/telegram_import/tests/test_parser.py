@@ -304,6 +304,14 @@ class ChannelCaptionParserTests(TestCase):
         self.assertEqual(parsed.name, "Стьобаний бомбер Massimo Dutti")
         self.assertNotIn("Назва", parsed.name)
 
+    def test_ugg_clog_matches_footwear_category(self):
+        parsed = self._parse(
+            "UGG Goldenstar Clog\n"
+            "Бренд: UGG\n\n"
+            "🏷️4050 грн"
+        )
+        self.assertEqual(parsed.category.slug, "footwear")
+
     def test_zara_jacket_trailing_uah_price_not_chest_size(self):
         parsed = self._parse(ZARA_JACKET)
         self.assertEqual(parsed.name, "Чоловіча куртка Zara (під замовлення)")

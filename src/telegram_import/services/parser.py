@@ -72,6 +72,8 @@ _CATEGORY_KEYWORDS: list[tuple[str, str]] = [
     ("босоніж", "footwear"),
     ("сандал", "footwear"),
     ("шльопанц", "footwear"),
+    ("clog", "footwear"),
+    ("клог", "footwear"),
     ("кросівк", "sneakers"),
     ("снікерс", "sneakers"),
     ("рюкзак", "bags"),
