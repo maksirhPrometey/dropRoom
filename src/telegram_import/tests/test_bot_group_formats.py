@@ -201,6 +201,28 @@ class BotGroupFormatTests(TestCase):
             },
         )
 
+    def test_color_glued_to_sizes_label_keeps_own_variants(self):
+        parsed = self._parse(
+            "Сорочка COS\n"
+            "Бренд: COS\n\n"
+            "блакитна Розміри:\n"
+            "▫️S — 🏷️ 2550 грн\n"
+            "▫️M — 🏷️ 2750 грн\n"
+            "▫️L — 🏷️ 2950 грн\n\n"
+            "біла \n"
+            "Розміри:\n"
+            "▫️S — 🏷️ 2550 грн\n"
+            "▫️M — 🏷️ 2750 грн\n"
+            "▫️L — 🏷️ 2950 грн\n\n"
+            "чорна Розміри:\n"
+            "▫️S — 🏷️ 2550 грн\n"
+            "▫️M — 🏷️ 2750 грн\n"
+            "▫️L — 🏷️ 2950 грн\n"
+        )
+        colors = {v.color for v in parsed.variants}
+        self.assertEqual(colors, {"блакитна", "біла", "чорна"})
+        self.assertEqual(len(parsed.variants), 9)
+
     def test_color_strips_preorder_word(self):
         parsed = self._parse(
             "Пуховик Karl Lagerfeld\n"

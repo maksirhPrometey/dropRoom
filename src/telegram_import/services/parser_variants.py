@@ -154,10 +154,17 @@ def _normalize_size(raw: str) -> str:
         return size
     return size
 
+_COLOR_SIZE_LABEL_SUFFIX_RE = re.compile(
+    r"(?i)\s*розмір(?:и|на\s*сітка)\S*(?:\s*та\s*ціни)?\s*:?\s*$"
+)
+
 def _clean_color_header(raw: str) -> str:
     text = raw.lstrip("•▫▪◦").strip()
     text = re.sub(r"(?i)\s*[—–\-]?\s*під\s*замовлення\s*$", "", text).strip()
     text = re.sub(r"(?i)\s+під\s*замовлення\s*$", "", text).strip()
+    # «блакитна Розміри:» / «чорна Розмірна сітка:» — колір і мітка розділу
+    # злиті в один рядок; лишаємо тільки назву кольору.
+    text = _COLOR_SIZE_LABEL_SUFFIX_RE.sub("", text).strip()
     text = text.strip(" -—–")
     return text
 
