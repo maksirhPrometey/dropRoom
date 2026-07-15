@@ -240,21 +240,21 @@ class Command(BaseCommand):
             survivor.is_active = True
             survivor.save()
 
-        final = (
-            Product.objects.filter(pk=survivor.pk)
-            .annotate(vcount=Count("variants"), icount=Count("images"))
-            .first()
-        )
-        colors = list(
-            ProductVariant.objects.filter(product=final)
-            .exclude(color=None)
-            .values_list("color__name", flat=True)
-            .distinct()
+        final = Product.objects.get(pk=survivor.pk)
+        colors = sorted(
+            {
+                name
+                for name in ProductVariant.objects.filter(product=final)
+                .exclude(color=None)
+                .values_list("color__name", flat=True)
+                if name
+            }
         )
         self.stdout.write(
             self.style.SUCCESS(
                 f"OK product={final.pk} {final.name!r} slug={final.slug} "
                 f"cat={final.category.slug} base={final.base_price} "
-                f"variants={final.vcount} images={final.icount} colors={colors}"
+                f"variants={final.variants.count()} images={final.images.count()} "
+                f"colors={colors}"
             )
         )
