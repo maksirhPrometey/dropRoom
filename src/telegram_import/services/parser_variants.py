@@ -34,7 +34,7 @@ _SIZE_TOKEN_ONLY_RE = re.compile(
     re.IGNORECASE,
 )
 _SIZE_LINE_RE = re.compile(
-    rf"^[•\-\s]*(?:✅|❌)?\s*({_SIZE_LETTER}|\d{{2}}(?:[,.]\d)?)\s*{_DASH}",
+    rf"^[•\-\s🔹]*(?:✅|❌)?\s*({_SIZE_LETTER}|\d{{2}}(?:[,.]\d)?)\s*{_DASH}",
     re.IGNORECASE,
 )
 _SIZE_LETTER_EU_RANGE_RE = re.compile(
@@ -312,6 +312,12 @@ def _should_wait_for_price_line(line: str, next_line: str | None) -> bool:
 
 
 def extract_variants(caption: str) -> list[ParsedVariant]:
+    from .parser_list_formats import extract_list_format_variants
+
+    list_variants = extract_list_format_variants(caption)
+    if list_variants:
+        return list_variants
+
     lines = caption.splitlines()
     variants: list[ParsedVariant] = []
     current_color: str | None = None

@@ -146,3 +146,67 @@ class TelegramExportImportTests(TestCase):
         )
         self.assertTrue(merged.startswith("👜"))
         self.assertIn("коричневий в наявності один", merged)
+
+    def test_same_timestamp_different_captions_stay_separate(self):
+        """Bulk-forward: кілька товарів в одну секунду не зливаються."""
+        export = {
+            "name": "DropGoods",
+            "type": "private_group",
+            "id": 5540595444,
+            "messages": [
+                {
+                    "id": 1,
+                    "type": "message",
+                    "date_unixtime": "1784094712",
+                    "text": "Adidas One\n\nУ наявності: 37\n🏷️8200",
+                    "photo": "photos/a1.jpg",
+                    "width": 800,
+                    "height": 1000,
+                },
+                {
+                    "id": 2,
+                    "type": "message",
+                    "date_unixtime": "1784094712",
+                    "text": "",
+                    "photo": "photos/a2.jpg",
+                    "width": 800,
+                    "height": 1000,
+                },
+                {
+                    "id": 3,
+                    "type": "message",
+                    "date_unixtime": "1784094712",
+                    "text": "Nike Two\n\n39 — 5490 грн\n40 — 5690 грн",
+                    "photo": "photos/n1.jpg",
+                    "width": 800,
+                    "height": 1000,
+                },
+                {
+                    "id": 4,
+                    "type": "message",
+                    "date_unixtime": "1784094712",
+                    "text": "",
+                    "photo": "photos/n2.jpg",
+                    "width": 800,
+                    "height": 1000,
+                },
+            ],
+        }
+
+        with tempfile.TemporaryDirectory() as tmp:
+            export_dir = Path(tmp)
+            photos_dir = export_dir / "photos"
+            photos_dir.mkdir()
+            for name in ("a1.jpg", "a2.jpg", "n1.jpg", "n2.jpg"):
+                (photos_dir / name).write_bytes(b"fake-image")
+            (export_dir / "result.json").write_text(
+                json.dumps(export),
+                encoding="utf-8",
+            )
+
+            posts = load_export_posts(export_dir)[1]
+            self.assertEqual(len(posts), 2)
+            self.assertIn("Adidas", posts[0].caption)
+            self.assertEqual(len(posts[0].photo_files), 2)
+            self.assertIn("Nike", posts[1].caption)
+            self.assertEqual(len(posts[1].photo_files), 2)

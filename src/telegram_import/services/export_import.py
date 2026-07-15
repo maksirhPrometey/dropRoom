@@ -110,20 +110,51 @@ def _load_photo_files(
     return files, sizes
 
 
+def _normalize_caption_key(caption: str) -> str:
+    return re.sub(r"\s+", " ", caption).strip()
+
+
+def _is_album_sidecar_caption(caption: str, primary_caption: str) -> bool:
+    """Порожній текст, дубль caption або коротка stock-нота до поточного товару."""
+    from src.telegram_import.services.caption_selection import caption_quality_score
+
+    cleaned = caption.strip()
+    if not cleaned:
+        return True
+
+    primary = primary_caption.strip()
+    if not primary:
+        return False
+
+    if _normalize_caption_key(cleaned) == _normalize_caption_key(primary):
+        return True
+
+    primary_score = caption_quality_score(primary)
+    score = caption_quality_score(cleaned)
+    if score <= primary_score - 10 and score < 20:
+        return True
+    return False
+
+
 def _group_messages(messages: list[dict]) -> list[list[dict]]:
+    """
+    Caption-led групування: новий змістовний caption = новий товар.
+    Порожні фото / stock-ноти / дубль caption приєднуються до поточного.
+    (date_unixtime не використовуємо — bulk-forward зливає різні товари.)
+    """
     sorted_messages = sorted(messages, key=lambda item: int(item.get("id", 0)))
     batches: list[list[dict]] = []
     seen_ids: set[int] = set()
     seen_groups: set[int] = set()
     album_buffer: list[dict] = []
-    album_ts: str | None = None
+    primary_caption = ""
 
     def flush_album() -> None:
-        nonlocal album_buffer, album_ts
+        nonlocal album_buffer, primary_caption
         if album_buffer:
             batches.append(album_buffer)
         album_buffer = []
-        album_ts = None
+        primary_caption = ""
 
     for message in sorted_messages:
         message_id = int(message.get("id", 0))
@@ -148,20 +179,22 @@ def _group_messages(messages: list[dict]) -> list[list[dict]]:
             batches.append(sorted(group, key=lambda item: int(item["id"])))
             continue
 
-        ts = str(message.get("date_unixtime") or "")
         caption = flatten_export_text(message.get("text", ""))
         has_photo = bool(message.get("photo") or message.get("file"))
+        if not has_photo and not caption:
+            continue
 
-        if has_photo and album_buffer and ts == album_ts:
+        if album_buffer and _is_album_sidecar_caption(caption, primary_caption):
             album_buffer.append(message)
             seen_ids.add(message_id)
+            if not primary_caption and caption:
+                primary_caption = caption
             continue
 
         flush_album()
-        if has_photo or caption:
-            album_buffer = [message]
-            album_ts = ts
-            seen_ids.add(message_id)
+        album_buffer = [message]
+        primary_caption = caption
+        seen_ids.add(message_id)
 
     flush_album()
     return batches

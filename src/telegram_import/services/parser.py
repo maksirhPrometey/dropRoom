@@ -32,7 +32,11 @@ _TRAILING_EMOJI_RE = re.compile(
     r"[\s✨⭐️🌟💫📏🏷️❤️🤍🖤💛💚💙🧡🤎💜]+$",
 )
 _SKIP_TITLE_RE = re.compile(
-    r"^(?:розмір|обхват|света|там де)",
+    r"^(?:розмір|обхват|света|там де|"
+    r"(?:у|в)\s+наявності\s*📏|"
+    r"під\s+замовлення\s+від\s+\d|"
+    r"\d{2}(?:\s*[,.]\s*\d)?\s*;|"
+    r"(?:XXS|XXXL|XXL|XL|XS|[SML]|\d{2}(?:[,.]\d)?)\s*[—–\-].*(?:🏷️|\d{3,}))",
     re.IGNORECASE,
 )
 _STOCK_NOTE_TITLE_RE = re.compile(
@@ -40,7 +44,8 @@ _STOCK_NOTE_TITLE_RE = re.compile(
     re.IGNORECASE,
 )
 _AVAILABILITY_PREFIX_RE = re.compile(
-    r"^(?:в\s+наявності|наявності|під\s+замовлення)\s+",
+    r"^(?:(?:у|в)\s+)?(?:наявності|під\s+замовлення)\s+"
+    r"(?:[\U0001F300-\U0001FAFF\u2600-\u27BF🤍🖤💛💚💙🧡❤️🤎💜⭐️✨]+\s*)*",
     re.IGNORECASE,
 )
 _TITLE_FIELD_PREFIX_RE = re.compile(
