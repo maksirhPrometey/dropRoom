@@ -92,6 +92,7 @@ _CATEGORY_KEYWORDS: list[tuple[str, str]] = [
     ("сорочк", "tops"),
     ("лонгслів", "tops"),
     ("кардиган", "knitwear"),
+    ("cardigan", "knitwear"),
     ("светр", "knitwear"),
     ("світшот", "knitwear"),
     ("джемпер", "knitwear"),
@@ -402,6 +403,11 @@ def resolve_brand(
     return _match_brand_in_text(text)
 
 
+def _first_sentence(text: str) -> str:
+    match = re.split(r"(?<=[.!?])\s+", text.strip(), maxsplit=1)
+    return match[0] if match else text
+
+
 def _match_category(text: str) -> Category | None:
     """Категорія лише за ключовими словами / легітимним slug.
 
@@ -448,13 +454,16 @@ def parse_caption(
     name = _extract_title(normalized)
     description = _extract_description(normalized, name)
     brand = resolve_brand(normalized) or default_brand
-    # Спершу шукаємо за ключовим словом у назві — тіло тексту часто згадує
-    # інші категорії одягу в описовому контексті («…джинсів, костюмів…»).
-    # Резервний пошук — лише в описі (до блоку розмірів/цін), а не в усьому
-    # caption: деякі повідомлення містять «приклеєний» другий товар після
-    # блоку з цінами, і його ключові слова не повинні впливати на категорію.
+    # Спершу шукаємо за ключовим словом у назві. Якщо там нічого немає —
+    # перше речення опису (де завжди називається сам товар: «Стильний
+    # кардиган…»), а вже потім увесь опис як останній резерв: пізніші
+    # речення часто лише радять, з чим товар «поєднується» («…з джинсами,
+    # шортами…»), і ці слова не повинні переважати над реальною категорією.
+    # Повний caption НЕ використовуємо — деякі повідомлення містять
+    # «приклеєний» другий товар після блоку з цінами.
     category = (
         _match_category(name)
+        or _match_category(_first_sentence(description))
         or _match_category(description)
         or default_category
     )
