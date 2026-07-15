@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% load static grid_tags %}
 
-{% block title %}{{ product.brand.name }} {{ product.name }}{% endblock %}
-{% block description %}{{ product.brand.name }} {{ product.name }}. {{ product.subtitle }}. Купити в DropRoom.{% endblock %}
+{% block title %}{% if product.has_real_brand %}{{ product.brand.name }} {{ product.name }}{% else %}{{ product.name }}{% endif %}{% endblock %}
+{% block description %}{{ product.display_brand }}{% if product.has_real_brand %} {{ product.name }}{% endif %}. {{ product.subtitle }}. Купити в DropRoom.{% endblock %}
 
 {% block nav_catalog %}active{% endblock %}
 
@@ -79,7 +79,7 @@
     <div class="detail-info">
 
       <header class="detail-info__head">
-        <div class="detail-brand">{{ product.brand.name }}</div>
+        <div class="detail-brand">{{ product.display_brand }}</div>
         <h1 class="detail-name">{{ product.name }}</h1>
         {% if product.subtitle %}<p class="detail-sub">{{ product.subtitle }}</p>{% endif %}
 
@@ -212,7 +212,7 @@
 
       <div class="detail-meta">
         {% if product.brand %}
-          <div class="row"><span class="k">Бренд</span><span class="v">{{ product.brand.name }}</span></div>
+          <div class="row"><span class="k">Бренд</span><span class="v">{{ product.display_brand }}</span></div>
         {% endif %}
         {% if product.category %}
           <div class="row"><span class="k">Категорія</span><span class="v">{{ product.category.name }}</span></div>
@@ -253,7 +253,7 @@
   <section class="similar-products" aria-label="Схожі товари">
     <div class="row-head">
       <h2>Схожі /<br><span class="accent">товари</span></h2>
-      <a href="{% url 'catalog:list' %}?brand={{ product.brand.slug }}" class="all">Усі від {{ product.brand.name }} →</a>
+      <a href="{% if product.has_real_brand %}{% url 'catalog:list' %}?brand={{ product.brand.slug }}{% else %}{% url 'catalog:list' %}?category={{ product.category.slug }}{% endif %}" class="all">{% if product.has_real_brand %}Усі від {{ product.brand.name }} →{% else %}Усі в категорії →{% endif %}</a>
     </div>
     {% with n=similar_products|length %}
     <div class="products product-grid product-grid--cols-{{ n|ideal_cols:4 }}">

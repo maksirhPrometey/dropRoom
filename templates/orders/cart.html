@@ -68,7 +68,7 @@
           {% endif %}
         </a>
         <div class="body">
-          <span class="brand">{{ item.variant.product.brand.name }}</span>
+          <span class="brand">{{ item.variant.product.display_brand }}</span>
           <a href="{% url 'catalog:detail' item.variant.product.slug %}" class="name">{{ item.variant.product.name }}</a>
           <span class="sub">{{ item.variant.product.subtitle|default:"" }}</span>
           <div class="meta">
@@ -133,7 +133,7 @@
                 <div class="ph"></div>
               {% endif %}
               <div class="body">
-                <span class="brand">{{ item.product.brand.name }}</span>
+                <span class="brand">{{ item.product.display_brand }}</span>
                 <span class="name">{{ item.product.name }}</span>
                 <span class="price">{{ item.product.base_price|floatformat:"0" }} ₴</span>
               </div>

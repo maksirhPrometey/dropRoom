@@ -30,7 +30,7 @@ class HomeView(TemplateView):
         ctx["hero_promos"] = home_page.hero_promos.all()[:3]
 
         ctx["latest_drop"] = Drop.objects.order_by("-number").first()
-        ctx["brands"] = Brand.objects.filter(is_active=True).order_by("name")
+        ctx["brands"] = Brand.catalog_qs().order_by("name")
         ctx["brands_count"] = ctx["brands"].count()
 
         ctx["categories"] = (
@@ -105,7 +105,7 @@ class StoryView(TemplateView):
         ctx["timeline_events"] = story_page.timeline_events.all()
         ctx["team_members"] = story_page.team_members.filter(is_active=True)
 
-        ctx["brands"] = Brand.objects.filter(is_active=True).order_by("name")
+        ctx["brands"] = Brand.catalog_qs().order_by("name")
         ctx["brands_count"] = ctx["brands"].count()
         ctx["products_count"] = Product.objects.filter(is_active=True).count()
 
@@ -132,7 +132,7 @@ class ContactsView(FormView):
         ctx["stores"] = contacts_page.stores.filter(is_active=True)
         ctx["contact_channels"] = contacts_page.channels.filter(is_active=True)
         ctx["faq_items"] = contacts_page.faq_items.filter(is_active=True)
-        ctx["brands"] = Brand.objects.filter(is_active=True).order_by("name")
+        ctx["brands"] = Brand.catalog_qs().order_by("name")
         return ctx
 
     def form_valid(self, form):

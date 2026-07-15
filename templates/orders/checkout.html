@@ -177,7 +177,7 @@
                   <div class="co-ph" aria-hidden="true"></div>
                 {% endif %}
                 <div class="co-body">
-                  <span class="co-name">{{ item.variant.product.brand.name }} {{ item.variant.product.name }}</span>
+                  <span class="co-name">{{ item.variant.product.display_brand }}{% if item.variant.product.has_real_brand %} {{ item.variant.product.name }}{% endif %}</span>
                   <span class="co-sub">Розмір {{ item.variant.size_display }} · {{ item.quantity }} шт.</span>
                 </div>
                 <span class="co-price">{{ item.total_price|floatformat:"0" }} ₴</span>

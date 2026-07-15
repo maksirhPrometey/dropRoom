@@ -79,7 +79,7 @@ class CatalogView(ListView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
 
-        ctx["brands"] = Brand.objects.filter(is_active=True).annotate(
+        ctx["brands"] = Brand.catalog_qs().annotate(
             product_count=Count("products", filter=Q(products__is_active=True))
         ).order_by("name")
 

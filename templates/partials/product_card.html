@@ -43,12 +43,16 @@
     {% endif %}
   </div>
   <div class="product-body">
-    <div class="p-brand">{{ product.brand.name }}</div>
+    <div class="p-brand">{{ product.display_brand }}</div>
     <div class="product-footer">
       <div class="p-info">
         <div class="p-name-wrap">
-          <div class="p-name">{{ product.name }}</div>
-          {% if product.subtitle %}<div class="p-sub">{{ product.subtitle }}</div>{% endif %}
+          {% if product.has_real_brand %}
+            <div class="p-name">{{ product.name }}</div>
+          {% elif product.subtitle %}
+            <div class="p-name">{{ product.subtitle }}</div>
+          {% endif %}
+          {% if product.has_real_brand and product.subtitle %}<div class="p-sub">{{ product.subtitle }}</div>{% endif %}
         </div>
         <div class="p-price">
           {% if product.compare_price %}

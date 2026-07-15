@@ -271,18 +271,33 @@ def _match_brand_in_text(text: str) -> Brand | None:
     brands.sort(key=lambda brand: len(brand.name), reverse=True)
 
     for brand in brands:
+        # Не підставляти Crocs/unbranded «мовчки» — лише явна згадка
+        if brand.slug in {"crocs", "unbranded"}:
+            name = brand.name.lower()
+            if name not in lowered and brand.slug not in lowered:
+                continue
+
         name = brand.name.lower()
-        if name in lowered:
+        if re.search(
+            rf"(?<![a-zа-яіїєґ0-9]){re.escape(name)}(?![a-zа-яіїєґ0-9])",
+            lowered,
+        ):
             return brand
 
         tokens = [token for token in name.replace("-", " ").split() if len(token) > 2]
-        if len(tokens) >= 2 and all(token in lowered for token in tokens[-2:]):
+        if len(tokens) >= 2 and all(
+            re.search(
+                rf"(?<![a-zа-яіїєґ0-9]){re.escape(token)}(?![a-zа-яіїєґ0-9])",
+                lowered,
+            )
+            for token in tokens[-2:]
+        ):
             return brand
 
         if tokens:
             lead = tokens[0]
             if lead not in _BRAND_STOPWORDS and re.search(
-                rf"(?<![a-zа-яіїєґ]){re.escape(lead)}(?![a-zа-яіїєґ])",
+                rf"(?<![a-zа-яіїєґ0-9]){re.escape(lead)}(?![a-zа-яіїєґ0-9])",
                 lowered,
             ):
                 return brand

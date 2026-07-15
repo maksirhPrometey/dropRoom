@@ -6,6 +6,9 @@ from src.catalog.fulfillment import fulfillment_eta_label, fulfillment_status_la
 
 
 class Brand(models.Model):
+    # Не показувати у фільтрах / списках брендів на вітрині
+    STUB_SLUGS = frozenset({"crocs", "unbranded"})
+
     name = models.CharField(max_length=100, unique=True)
     slug = models.SlugField(max_length=100, unique=True)
     country = models.CharField(max_length=80, blank=True)
@@ -19,6 +22,10 @@ class Brand(models.Model):
 
     def __str__(self) -> str:
         return self.name
+
+    @classmethod
+    def catalog_qs(cls):
+        return cls.objects.filter(is_active=True).exclude(slug__in=cls.STUB_SLUGS)
 
     def get_absolute_url(self) -> str:
         return reverse("catalog:list") + f"?brand={self.slug}"
@@ -184,6 +191,21 @@ class Product(models.Model):
 
     def __str__(self) -> str:
         return f"{self.brand.name} — {self.name}"
+
+    @property
+    def has_real_brand(self) -> bool:
+        """Чи є справжній бренд (не заглушка Crocs / Без бренду)."""
+        if not self.brand_id:
+            return False
+        return self.brand.slug not in Brand.STUB_SLUGS
+
+    @property
+    def display_brand(self) -> str:
+        """Підпис бренду на вітрині: реальний бренд або назва товару."""
+        if self.has_real_brand:
+            return self.brand.name
+        name = (self.name or "").strip()
+        return name or self.brand.name
 
     def get_absolute_url(self) -> str:
         return reverse("catalog:detail", kwargs={"slug": self.slug})
