@@ -3,14 +3,30 @@ from django.db import transaction
 
 from src.catalog.models import Brand
 from src.telegram_import.models import TelegramImport
-from src.telegram_import.services.importer import _default_brand, _default_category
+from src.telegram_import.services.importer import _default_brand
 from src.telegram_import.services.parser import _match_category, resolve_brand
+
+
+def _false_default_brand_ids() -> set[int]:
+    """Бренди, які колись підставлялись як «дефолт» (env ID або старий first()/crocs)."""
+    ids: set[int] = set()
+    explicit = _default_brand()
+    if explicit:
+        ids.add(explicit.pk)
+        return ids
+
+    for brand in Brand.objects.filter(slug="crocs", is_active=True):
+        ids.add(brand.pk)
+    first = Brand.objects.filter(is_active=True).order_by("id").first()
+    if first:
+        ids.add(first.pk)
+    return ids
 
 
 class Command(BaseCommand):
     help = (
         "Виправити brand (і опційно category) товарів з Telegram за raw_caption. "
-        "Корисно після додавання брендів у seed / коли звалився fallback на Crocs."
+        "Корисно після fallback на Crocs / перший бренд у БД."
     )
 
     def add_arguments(self, parser):
@@ -22,7 +38,10 @@ class Command(BaseCommand):
         parser.add_argument(
             "--only-default",
             action="store_true",
-            help="Оновлювати лише товари з дефолтним брендом (зазвичай Crocs)",
+            help=(
+                "Лише товари з «фальшивим» дефолтним брендом "
+                "(TELEGRAM_DEFAULT_BRAND_ID, або crocs / найстаріший brand)"
+            ),
         )
         parser.add_argument(
             "--create-missing",
@@ -32,7 +51,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--with-category",
             action="store_true",
-            help="Також оновити категорію з caption",
+            help="Також оновити категорію з caption (keyword match)",
         )
         parser.add_argument(
             "--slug",
@@ -41,26 +60,21 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        # --only-default: явний ID з .env або історичний fallback Crocs
-        default_brand = _default_brand()
-        if options["only_default"] and not default_brand:
-            default_brand = Brand.objects.filter(slug="crocs", is_active=True).first()
-            if not default_brand:
-                self.stderr.write(
-                    self.style.ERROR(
-                        "Для --only-default задай TELEGRAM_DEFAULT_BRAND_ID "
-                        "або май бренд зі slug=crocs"
-                    )
-                )
-                return
-
-        default_category = _default_category()
-
         dry_run = options["dry_run"]
         only_default = options["only_default"]
         create_missing = options["create_missing"]
         with_category = options["with_category"]
         slug = (options["slug"] or "").strip()
+
+        false_default_ids = _false_default_brand_ids() if only_default else set()
+        if only_default and not false_default_ids:
+            self.stderr.write(
+                self.style.ERROR(
+                    "Нема кандидатів для --only-default "
+                    "(нема Brand у БД / TELEGRAM_DEFAULT_BRAND_ID)"
+                )
+            )
+            return
 
         qs = (
             TelegramImport.objects.filter(
@@ -83,21 +97,19 @@ class Command(BaseCommand):
         scanned = 0
         changed = 0
         skipped_no_brand = 0
+        category_only = 0
 
         for record in best_by_product.values():
             scanned += 1
             product = record.product
 
-            if only_default and (
-                not default_brand or product.brand_id != default_brand.pk
-            ):
+            if only_default and product.brand_id not in false_default_ids:
                 continue
 
             brand = resolve_brand(
                 record.raw_caption,
                 create_missing=create_missing and not dry_run,
             )
-            # dry-run: показати потенційне створення без запису
             if brand is None and create_missing and dry_run:
                 from src.telegram_import.services.parser import _extract_brand_label
 
@@ -108,21 +120,22 @@ class Command(BaseCommand):
                         f"створив би бренд {label!r}"
                     )
 
-            if brand is None:
-                skipped_no_brand += 1
-                continue
-
             updates: dict[str, object] = {}
-            if product.brand_id != brand.pk:
+            if brand is not None and product.brand_id != brand.pk:
                 updates["brand"] = brand
+            elif brand is None:
+                skipped_no_brand += 1
 
-            if with_category and default_category:
+            if with_category:
                 category = _match_category(record.raw_caption)
                 if category and product.category_id != category.pk:
                     updates["category"] = category
 
             if not updates:
                 continue
+
+            if "brand" not in updates and "category" in updates:
+                category_only += 1
 
             changed += 1
             preview = f"TG {record.message_id} · {product.pk} {product.slug}"
@@ -148,7 +161,8 @@ class Command(BaseCommand):
         suffix = " (dry-run)" if dry_run else ""
         self.stdout.write(
             self.style.SUCCESS(
-                f"Готово{suffix}: переглянуто {scanned}, оновлено {changed}, "
+                f"Готово{suffix}: переглянуто {scanned}, оновлено {changed} "
+                f"(з них лише category: {category_only}), "
                 f"без бренду в тексті {skipped_no_brand}"
             )
         )

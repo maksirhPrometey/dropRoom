@@ -56,6 +56,32 @@ class FixTelegramBrandsTests(TestCase):
         self.assertEqual(self.product.brand_id, self.katy.pk)
         self.assertIn("Katy Perry", out.getvalue())
 
+    def test_with_category_updates_without_env_default(self):
+        sneakers, _ = Category.objects.get_or_create(
+            slug="sneakers",
+            defaults={"name": "Sneakers"},
+        )
+        footwear = Category.objects.get(slug="footwear")
+        self.product.category = sneakers
+        self.product.brand = self.crocs
+        self.product.save(update_fields=["category", "brand"])
+
+        TelegramImport.objects.filter(product=self.product).update(
+            raw_caption=(
+                "Босоніжки Katy Perry\nБренд: Katy Perry\n\n"
+                "🏷️999 грн"
+            )
+        )
+        call_command(
+            "fix_telegram_brands",
+            "--with-category",
+            "--slug",
+            self.product.slug,
+        )
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.brand_id, self.katy.pk)
+        self.assertEqual(self.product.category_id, footwear.pk)
+
     def test_create_missing_brand_from_label(self):
         Brand.objects.filter(slug="unknown-label").delete()
         product = Product.objects.create(
