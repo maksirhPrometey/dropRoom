@@ -42,6 +42,9 @@ _RULER_STOCK_RE = re.compile(
     rf"^📏\s*(?P<size>\d{{2}}(?:[,.]\d)?)\s*{_DASH}\s*(?P<rest>.+)$",
     re.IGNORECASE,
 )
+_SIZE_WITH_NOTE_PRICE_RE = re.compile(
+    rf"^(?P<size>\d{{2}}(?:[,.]\d)?)\s*\([^)]*\)\s*{_DASH}\s*(?P<rest>.+)$",
+)
 
 
 def parse_multi_size_price_line(
@@ -164,6 +167,29 @@ def parse_ruler_stock_line(
     )
 
 
+def parse_size_with_note_price_line(
+    line: str, *, color: str | None = None
+) -> ParsedVariant | None:
+    """«35 (22,5 см) — 7250 грн» — розмір з приміткою (довжина стопи) + ціна."""
+    stripped = line.strip()
+    match = _SIZE_WITH_NOTE_PRICE_RE.match(stripped)
+    if not match:
+        return None
+    price = _extract_price(match.group("rest")) or _extract_price(stripped)
+    if price is None:
+        return None
+    sold_out = _is_sold_out(stripped)
+    stock = 0 if sold_out else _extract_stock_qty(stripped, is_available=True)
+    return ParsedVariant(
+        size=_normalize_size(match.group("size")),
+        price=price,
+        stock_qty=stock,
+        is_available=not sold_out,
+        color=color,
+        note=stripped,
+    )
+
+
 def parse_color_size_price_line(
     line: str, *, fallback_color: str | None = None
 ) -> ParsedVariant | None:
@@ -208,6 +234,9 @@ def try_parse_extra_variant_line(
     multi = parse_multi_size_price_line(line, color=color)
     if multi:
         return multi
+    size_note = parse_size_with_note_price_line(line, color=color)
+    if size_note:
+        return [size_note]
     color_size = parse_color_size_price_line(line, fallback_color=color)
     if color_size:
         return [color_size]

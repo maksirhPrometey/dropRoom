@@ -44,8 +44,9 @@ _VARIANT_SECTION_RE = re.compile(
     r"кольор(?:и|ів)?\s*(?:та\s*ціни)?)\s*:?\s*$",
     re.IGNORECASE,
 )
+_BULLET_CLASS = "•\\-\\s🔹📏▫▪◦\uFE0F"
 _COLOR_EMOJI_PREFIX_RE = re.compile(
-    r"^[•\-\s]*(?:[\U0001F300-\U0001FAFF\u2600-\u27BF"
+    r"^[•\-▫▪◦\s]*(?:[\U0001F300-\U0001FAFF\u2600-\u27BF"
     r"🤍🖤💛💚💙🧡❤️🤎💜🟡⚪🔴🔵🟢\uFE0F]+\s*)+",
 )
 _SIZE_TOKEN_ONLY_RE = re.compile(
@@ -53,16 +54,16 @@ _SIZE_TOKEN_ONLY_RE = re.compile(
     re.IGNORECASE,
 )
 _SIZE_LINE_RE = re.compile(
-    rf"^[•\-\s🔹📏]*(?:✅|❌)?\s*({_SIZE_LETTER}|\d{{2}}(?:[,.]\d)?)\s*{_DASH}",
+    rf"^[{_BULLET_CLASS}]*(?:✅|❌)?\s*({_SIZE_LETTER}|\d{{2}}(?:[,.]\d)?)\s*{_DASH}",
     re.IGNORECASE,
 )
 _SIZE_LETTER_EU_RANGE_RE = re.compile(
-    rf"^[•\-\s]*(?:✅|❌)?\s*({_SIZE_LETTER})\s*{_DASH}\s*"
+    rf"^[{_BULLET_CLASS}]*(?:✅|❌)?\s*({_SIZE_LETTER})\s*{_DASH}\s*"
     rf"\d{{2}}(?:[,.]\d)?\s*{_DASH}\s*\d{{2}}(?:[,.]\d)?",
     re.IGNORECASE,
 )
 _SIZE_PRICE_INLINE_RE = re.compile(
-    rf"^[•\-\s]*(?:✅|❌)?\s*({_SIZE_LETTER})\s*{_DASH}\s*"
+    rf"^[{_BULLET_CLASS}]*(?:✅|❌)?\s*({_SIZE_LETTER})\s*{_DASH}\s*"
     r"(?:Sold\s*Out|🏷️\s*(\d[\d\s]*)|(\d[\d\s]*)(?:\s*(?:UAH|грн|₴|гр\b))?)",
     re.IGNORECASE,
 )
@@ -83,7 +84,9 @@ _TRAILING_PRICE_RE = re.compile(
     re.IGNORECASE,
 )
 _COLOR_HEADER_RE = re.compile(
-    r"^(?:коричнев|чорн|біл|бежев|син|зелен|рожев|червон|сірий|леопард|молочн|кремов)",
+    r"^(?:коричнев|чорн|біл|бежев|син|зелен|рожев|червон|сірий|леопард|молочн|кремов|"
+    r"шоколад|бордо|хакі|оливков|пудров|м.ятн|лавандов|бузков|жовт|оранжев|фіолетов|"
+    r"срібн|золот|графіт)",
     re.IGNORECASE,
 )
 _MIN_BARE_PRICE = Decimal("100")
@@ -150,7 +153,7 @@ def _normalize_size(raw: str) -> str:
     return size
 
 def _clean_color_header(raw: str) -> str:
-    text = raw.lstrip("•").strip()
+    text = raw.lstrip("•▫▪◦").strip()
     text = re.sub(r"(?i)\s*[—–\-]?\s*під\s*замовлення\s*$", "", text).strip()
     text = re.sub(r"(?i)\s+під\s*замовлення\s*$", "", text).strip()
     text = text.strip(" -—–")
@@ -238,7 +241,7 @@ def _parse_variant_line(line: str, *, color: str | None) -> ParsedVariant | None
 def normalize_color_label(raw: str) -> str | None:
     """Зрізати emoji/булети; залишити коротку назву кольору."""
     text = _COLOR_EMOJI_PREFIX_RE.sub("", raw.strip()).strip()
-    text = text.lstrip("•- ").strip()
+    text = text.lstrip("•▫▪◦- ").strip()
     text = _clean_color_header(text)
     if not text or len(text) > 40:
         return None
@@ -294,7 +297,7 @@ def is_color_price_line(line: str) -> bool:
 def _is_color_header(line: str, next_line: str | None) -> bool:
     from .parser_variant_extras import _CYR_SIZE_PREORDER_PRICE_RE
 
-    stripped = _clean_color_header(line.strip().lstrip("•").strip())
+    stripped = _clean_color_header(line.strip().lstrip("•▫▪◦").strip())
     if not stripped or len(stripped) > 40:
         return False
     lowered = stripped.lower()
@@ -356,7 +359,7 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
 
         next_line = _next_nonempty_line(lines, index)
         if _is_color_header(stripped, next_line):
-            current_color = _clean_color_header(stripped.lstrip("•").strip()) or None
+            current_color = _clean_color_header(stripped.lstrip("•▫▪◦").strip()) or None
             pending_size_line = None
             continue
 

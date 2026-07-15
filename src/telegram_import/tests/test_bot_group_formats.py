@@ -134,6 +134,45 @@ class BotGroupFormatTests(TestCase):
         )
         self.assertEqual(parsed.category.slug, "loungewear")
 
+    def test_square_bullet_size_lines_not_treated_as_colors(self):
+        parsed = self._parse(
+            "Бомбер Massimo Dutti 🤍\n"
+            "Бренд: Massimo Dutti\n\n"
+            "▫️XS — 🏷️ 2450 грн\n"
+            "▫️S — 🏷️ 2590 грн\n"
+            "▫️M — 🏷️ 2790 грн\n"
+            "▫️L — 🏷️ 2950 грн\n"
+        )
+        sizes = [v.size for v in parsed.variants]
+        self.assertEqual(sorted(sizes), ["L", "M", "S", "XS"])
+        self.assertEqual(len(sizes), len(set(sizes)))
+        self.assertTrue(all(v.color is None for v in parsed.variants))
+
+    def test_size_with_foot_length_note_and_color_sections(self):
+        parsed = self._parse(
+            "Сапоги Massimo Dutti\n"
+            "Бренд: Massimo Dutti\n\n"
+            "Шоколадні \n\n"
+            "Ціна:\n\n"
+            "35 (22,5 см) — 7250 грн\n"
+            "36 (23,0 см) — 7290 грн\n\n"
+            "чорні \n\n"
+            "Ціна:\n\n"
+            "35 (22,5 см) — 7250 грн\n"
+            "36 (23,0 см) — 7290 грн\n"
+        )
+        pairs = {(v.size, v.color) for v in parsed.variants}
+        self.assertEqual(
+            pairs,
+            {
+                ("35", "Шоколадні"),
+                ("36", "Шоколадні"),
+                ("35", "чорні"),
+                ("36", "чорні"),
+            },
+        )
+        self.assertEqual(len(parsed.variants), 4)
+
     def test_color_strips_preorder_word(self):
         parsed = self._parse(
             "Пуховик Karl Lagerfeld\n"
