@@ -72,23 +72,41 @@ class CleanupTelegramTaxonomyTests(TestCase):
         self.assertTrue(Brand.objects.filter(slug="sandro").exists())
         self.assertIn("переміщено", out.getvalue())
 
-    def test_deactivate_no_brand(self):
-        product = Product.objects.create(
+    def test_deactivate_only_junk_names(self):
+        junk = Product.objects.create(
             brand=self.crocs,
             category=self.bags,
-            name="Невідома річ",
-            slug="unknown-thing",
+            name="Товар з Telegram",
+            slug="junk-tg",
             base_price=Decimal("100"),
             gender="U",
             is_active=True,
         )
         TelegramImport.objects.create(
             channel_id=-1,
-            message_id=1,
-            raw_caption="Невідома річ без бренду\n🏷️100",
+            message_id=2,
+            raw_caption="Товар з Telegram\n🏷️100",
             status=TelegramImport.STATUS_IMPORTED,
-            product=product,
+            product=junk,
+        )
+        good = Product.objects.create(
+            brand=self.crocs,
+            category=self.bags,
+            name="Saint Laurent Black SL 553",
+            slug="ysl-sl-553",
+            base_price=Decimal("5000"),
+            gender="U",
+            is_active=True,
+        )
+        TelegramImport.objects.create(
+            channel_id=-1,
+            message_id=3,
+            raw_caption="Saint Laurent Black SL 553\n🏷️5000",
+            status=TelegramImport.STATUS_IMPORTED,
+            product=good,
         )
         call_command("cleanup_telegram_taxonomy", "--deactivate-no-brand")
-        product.refresh_from_db()
-        self.assertFalse(product.is_active)
+        junk.refresh_from_db()
+        good.refresh_from_db()
+        self.assertFalse(junk.is_active)
+        self.assertTrue(good.is_active)

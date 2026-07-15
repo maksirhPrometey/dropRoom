@@ -1,5 +1,7 @@
 """Очищення taxonomy після помилкового імпорту Telegram."""
 
+import re
+
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.db.models import Count
@@ -75,8 +77,8 @@ class Command(BaseCommand):
             "--deactivate-no-brand",
             action="store_true",
             help=(
-                "Деактивувати товари з брендом crocs (або найстарішим Brand), "
-                "якщо в caption немає бренду"
+                "Деактивувати лише junk на crocs/першому бренді: "
+                "«Товар з Telegram», Sold out у назві тощо"
             ),
         )
 
@@ -141,12 +143,26 @@ class Command(BaseCommand):
             crocs = Brand.objects.filter(slug="crocs").first()
             first = Brand.objects.filter(is_active=True).order_by("id").first()
             suspect_ids = {b.pk for b in (crocs, first) if b}
+            junk_name = re.compile(
+                r"(?i)^(?:товар\s+з\s+telegram|.*"
+                r"sold\s*out.*|"
+                r"\d{2}\s*[❌🏷️])",
+            )
             qs = Product.objects.filter(
                 brand_id__in=suspect_ids, is_active=True
             ).select_related("brand")
             for product in qs.iterator():
                 caption = _best_caption(product)
+                # Не чіпати, якщо caption/назва вже резолвиться в бренд
                 if resolve_brand(caption) is not None:
+                    continue
+                if resolve_brand(product.name or "") is not None:
+                    continue
+                # Лише явний junk / повна відсутність змістовного title
+                name = (product.name or "").strip()
+                if not junk_name.search(name) and len(name) > 12:
+                    # Є нормальна назва, але бренду немає в БД —
+                    # лишаємо активним для ручного/пізнішого fix
                     continue
                 deactivated += 1
                 preview = (
