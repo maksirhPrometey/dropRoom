@@ -22,16 +22,18 @@ class ImportError(Exception):
 
 
 def _default_brand() -> Brand | None:
+    """Лише явний TELEGRAM_DEFAULT_BRAND_ID з .env. Без fallback на «перший у БД»."""
     brand_id = settings.TELEGRAM_DEFAULT_BRAND_ID
     if not brand_id:
-        return Brand.objects.filter(is_active=True).order_by("id").first()
+        return None
     return Brand.objects.filter(pk=brand_id, is_active=True).first()
 
 
 def _default_category() -> Category | None:
+    """Лише явний TELEGRAM_DEFAULT_CATEGORY_ID з .env. Без fallback на першу категорію."""
     category_id = settings.TELEGRAM_DEFAULT_CATEGORY_ID
     if not category_id:
-        return Category.objects.order_by("sort_order", "id").first()
+        return None
     return Category.objects.filter(pk=category_id).first()
 
 
@@ -476,11 +478,6 @@ def import_telegram_message(
 
     default_brand = _default_brand()
     default_category = _default_category()
-    if not default_brand or not default_category:
-        record.status = TelegramImport.STATUS_FAILED
-        record.error = "Не знайдено дефолтний бренд або категорію"
-        record.save(update_fields=["status", "error", "updated_at"])
-        raise ImportError(record.error)
 
     parsed = parse_caption(
         caption or record.raw_caption,
@@ -489,9 +486,15 @@ def import_telegram_message(
         default_gender=settings.TELEGRAM_DEFAULT_GENDER,
     )
 
-    if not parsed.brand or not parsed.category:
+    if not parsed.brand:
         record.status = TelegramImport.STATUS_FAILED
-        record.error = "Не вдалося визначити бренд або категорію"
+        record.error = "Не вдалося визначити бренд з caption"
+        record.save(update_fields=["status", "error", "updated_at"])
+        raise ImportError(record.error)
+
+    if not parsed.category:
+        record.status = TelegramImport.STATUS_FAILED
+        record.error = "Не вдалося визначити категорію з caption"
         record.save(update_fields=["status", "error", "updated_at"])
         raise ImportError(record.error)
 

@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
+from src.catalog.models import Brand
 from src.telegram_import.models import TelegramImport
 from src.telegram_import.services.importer import _default_brand, _default_category
 from src.telegram_import.services.parser import _match_category, resolve_brand
@@ -40,11 +41,20 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        # --only-default: явний ID з .env або історичний fallback Crocs
         default_brand = _default_brand()
+        if options["only_default"] and not default_brand:
+            default_brand = Brand.objects.filter(slug="crocs", is_active=True).first()
+            if not default_brand:
+                self.stderr.write(
+                    self.style.ERROR(
+                        "Для --only-default задай TELEGRAM_DEFAULT_BRAND_ID "
+                        "або май бренд зі slug=crocs"
+                    )
+                )
+                return
+
         default_category = _default_category()
-        if not default_brand:
-            self.stderr.write(self.style.ERROR("Не знайдено дефолтний бренд"))
-            return
 
         dry_run = options["dry_run"]
         only_default = options["only_default"]
@@ -78,7 +88,9 @@ class Command(BaseCommand):
             scanned += 1
             product = record.product
 
-            if only_default and product.brand_id != default_brand.pk:
+            if only_default and (
+                not default_brand or product.brand_id != default_brand.pk
+            ):
                 continue
 
             brand = resolve_brand(

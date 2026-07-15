@@ -42,9 +42,6 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         default_brand = _default_brand()
         default_category = _default_category()
-        if not default_brand or not default_category:
-            self.stderr.write(self.style.ERROR("Не знайдено дефолтний бренд або категорію"))
-            return
 
         dry_run = options["dry_run"]
         groups: dict[str, list[TelegramImport]] = defaultdict(list)
@@ -55,7 +52,7 @@ class Command(BaseCommand):
                 status=TelegramImport.STATUS_IMPORTED,
             )
             .exclude(raw_caption="")
-            .select_related("product", "product__brand")
+            .select_related("product", "product__brand", "product__category")
             .order_by("message_id")
         )
         for record in qs:
@@ -82,20 +79,23 @@ class Command(BaseCommand):
 
             parsed = parse_caption(
                 caption,
-                default_brand=default_brand,
-                default_category=default_category,
+                default_brand=default_brand or survivor.product.brand,
+                default_category=default_category or survivor.product.category,
                 default_gender=survivor.product.gender or "U",
             )
+
+            new_brand = parsed.brand or survivor.product.brand
+            new_category = parsed.category or survivor.product.category
 
             preview = (
                 f"caption: {caption[:60]!r}…\n"
                 f"  keep product {survivor.product_id} (TG {survivor.message_id})\n"
                 f"  remove: {[r.product_id for r in duplicates]}"
             )
-            if parsed.name != survivor.product.name or parsed.brand != survivor.product.brand:
+            if parsed.name != survivor.product.name or new_brand != survivor.product.brand:
                 preview += (
                     f"\n  rename: {survivor.product.name!r} → {parsed.name!r}\n"
-                    f"  brand: {survivor.product.brand.name} → {parsed.brand.name}"
+                    f"  brand: {survivor.product.brand.name} → {new_brand.name}"
                 )
 
             if dry_run:
@@ -106,8 +106,8 @@ class Command(BaseCommand):
 
             with transaction.atomic():
                 product = survivor.product
-                product.brand = parsed.brand
-                product.category = parsed.category
+                product.brand = new_brand
+                product.category = new_category
                 product.name = parsed.name
                 product.description = parsed.description
                 product.save()

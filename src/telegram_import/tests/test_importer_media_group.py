@@ -110,3 +110,22 @@ class MediaGroupImportTests(TestCase):
         self.assertEqual(record.status, TelegramImport.STATUS_SKIPPED)
         self.assertEqual(record.error, "Фото без опису")
         self.assertEqual(Product.objects.count(), 0)
+
+    @patch("src.telegram_import.services.importer.download_photo")
+    def test_unmatched_brand_fails_without_env_default(self, download_photo_mock):
+        download_photo_mock.side_effect = lambda file_id: _fake_photo(file_id)
+        from src.telegram_import.services.importer import ImportError as TGImportError
+
+        with self.settings(
+            TELEGRAM_DEFAULT_BRAND_ID=0,
+            TELEGRAM_DEFAULT_CATEGORY_ID=0,
+        ):
+            with self.assertRaises(TGImportError) as ctx:
+                import_telegram_message(
+                    channel_id=self.channel_id,
+                    message_id=800,
+                    caption="Невідома річ XYZ\n\n🏷️2500",
+                    photo_file_ids=["photo-u"],
+                )
+        self.assertIn("бренд", str(ctx.exception).lower())
+        self.assertEqual(Product.objects.count(), 0)

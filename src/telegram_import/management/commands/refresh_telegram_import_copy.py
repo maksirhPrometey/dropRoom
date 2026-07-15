@@ -37,11 +37,6 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         default_brand = _default_brand()
         default_category = _default_category()
-        if not default_brand or not default_category:
-            self.stderr.write(
-                self.style.ERROR("Не знайдено дефолтний бренд або категорію")
-            )
-            return
 
         qs = (
             TelegramImport.objects.filter(
@@ -72,8 +67,8 @@ class Command(BaseCommand):
             product = record.product
             parsed = parse_caption(
                 record.raw_caption,
-                default_brand=default_brand,
-                default_category=default_category,
+                default_brand=default_brand or product.brand,
+                default_category=default_category or product.category,
                 default_gender=product.gender or "U",
             )
 
