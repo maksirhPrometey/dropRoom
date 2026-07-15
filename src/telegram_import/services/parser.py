@@ -420,7 +420,10 @@ def parse_caption(
     name = _extract_title(normalized)
     description = _extract_description(normalized, name)
     brand = resolve_brand(normalized) or default_brand
-    category = _match_category(normalized) or default_category
+    # Спершу шукаємо за ключовим словом у назві — тіло тексту часто згадує
+    # інші категорії одягу в описовому контексті («…джинсів, костюмів…»),
+    # тож повний caption перевіряємо лише як резерв, якщо назва не дала збігу.
+    category = _match_category(name) or _match_category(normalized) or default_category
     gender = _parse_gender(normalized, default_gender)
     variants = extract_variants(normalized)
 
