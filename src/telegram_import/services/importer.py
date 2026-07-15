@@ -311,7 +311,7 @@ def _sync_variants(
                 used=used_skus,
             )
         obj.sku = sku
-        obj.price = variant.price
+        obj.price = variant.price if variant.price and variant.price > 0 else default_price
         obj.stock_qty = variant.stock_qty
         obj.is_available = variant.is_available
         obj.save()

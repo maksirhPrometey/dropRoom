@@ -1,0 +1,223 @@
+"""Додаткові формати розмірів/кольорів з caption (бот-група)."""
+
+from __future__ import annotations
+
+import re
+from decimal import Decimal
+
+from .parser_types import ParsedVariant
+from .parser_variants import (
+    _DASH,
+    _clean_color_header,
+    _extract_price,
+    _extract_stock_qty,
+    _is_sold_out,
+    _normalize_size,
+    _SIZE_LINE_RE,
+    _to_decimal,
+    normalize_color_label,
+)
+from .stock_signals import line_signals_in_stock
+
+_SIZE_TOKEN_CAPTURE = (
+    r"(?:XXS|XXXL|XXL|XL|XS|2XL|3XL|[SML]|ХХЛ|ХЛ|[СМЛсмл]|\d{2}(?:[,.]\d)?)"
+)
+_MULTI_SIZE_PRICE_RE = re.compile(
+    rf"^(?P<prefix>.*?)"
+    rf"(?P<sizes>{_SIZE_TOKEN_CAPTURE}"
+    rf"(?:\s*,\s*{_SIZE_TOKEN_CAPTURE})+)\s*"
+    rf"{_DASH}\s*(?P<rest>.+)$",
+    re.IGNORECASE,
+)
+_CYR_SIZE_PREORDER_PRICE_RE = re.compile(
+    rf"^(?P<size>[смлСМЛ]|хл|ххл|ХЛ|ХХЛ|[smlSML]|xl|xxl|XS|XL|XXL)\s+"
+    rf"під\s+замовлення\s+(?P<price>\d[\d\s]*)$",
+    re.IGNORECASE,
+)
+_CYR_SIZES_BLOCK_RE = re.compile(
+    r"^(?P<sizes>[смлСМЛ](?:\s*[,таіy]+\s*[смлСМЛ])+)\s+під\s+замовлення\s*$",
+    re.IGNORECASE,
+)
+_RULER_STOCK_RE = re.compile(
+    rf"^📏\s*(?P<size>\d{{2}}(?:[,.]\d)?)\s*{_DASH}\s*(?P<rest>.+)$",
+    re.IGNORECASE,
+)
+
+
+def parse_multi_size_price_line(
+    line: str, *, color: str | None = None
+) -> list[ParsedVariant] | None:
+    """«M, L, XL - 🏷️4350» або «Біла S, M, XL -🏷️1399»."""
+    stripped = line.strip()
+    if not stripped or "," not in stripped:
+        return None
+    match = _MULTI_SIZE_PRICE_RE.match(stripped)
+    if not match:
+        return None
+    price = _extract_price(match.group("rest")) or _extract_price(stripped)
+    if price is None:
+        return None
+    prefix = (match.group("prefix") or "").strip(" -—–·|")
+    sizes_raw = match.group("sizes")
+    sizes = [
+        _normalize_size(part.strip())
+        for part in re.split(r"\s*,\s*", sizes_raw)
+        if part.strip()
+    ]
+    if len(sizes) < 2:
+        return None
+    line_color = color
+    if prefix:
+        cleaned = normalize_color_label(prefix) or _clean_color_header(prefix)
+        if cleaned and "," not in cleaned:
+            line_color = cleaned
+    sold_out = _is_sold_out(stripped)
+    stock = (
+        0
+        if sold_out or "під замовлення" in stripped.lower()
+        else _extract_stock_qty(stripped, is_available=True)
+    )
+    return [
+        ParsedVariant(
+            size=size,
+            price=price,
+            stock_qty=stock,
+            is_available=not sold_out,
+            color=line_color,
+            note=stripped,
+        )
+        for size in sizes
+    ]
+
+
+def parse_cyrillic_preorder_price_line(
+    line: str, *, color: str | None = None
+) -> ParsedVariant | None:
+    """«с під замовлення  4050»."""
+    stripped = line.strip()
+    match = _CYR_SIZE_PREORDER_PRICE_RE.match(stripped)
+    if not match:
+        return None
+    price = _to_decimal(match.group("price"))
+    if price is None:
+        return None
+    return ParsedVariant(
+        size=_normalize_size(match.group("size")),
+        price=price,
+        stock_qty=0,
+        is_available=True,
+        color=color,
+        note=stripped,
+    )
+
+
+def parse_cyrillic_sizes_preorder_block(
+    line: str, *, caption: str, color: str | None = None
+) -> list[ParsedVariant] | None:
+    """«с , м та л  під замовлення» + 🏷️ з caption."""
+    stripped = line.strip()
+    match = _CYR_SIZES_BLOCK_RE.match(stripped)
+    if not match:
+        return None
+    price = _extract_price(caption)
+    if price is None:
+        return None
+    tokens = re.split(r"[\s,таіy]+", match.group("sizes"), flags=re.I)
+    sizes = [_normalize_size(tok) for tok in tokens if tok.strip()]
+    sizes = [size for size in sizes if size in {"S", "M", "L", "XL", "XXL", "XS"}]
+    if len(sizes) < 2:
+        return None
+    return [
+        ParsedVariant(
+            size=size,
+            price=price,
+            stock_qty=0,
+            is_available=True,
+            color=color,
+            note=stripped,
+        )
+        for size in sizes
+    ]
+
+
+def parse_ruler_stock_line(
+    line: str, *, caption: str, color: str | None = None
+) -> ParsedVariant | None:
+    """«📏38 - в наявності 1 пара» (ціна 0 → default на імпорті)."""
+    stripped = line.strip()
+    match = _RULER_STOCK_RE.match(stripped)
+    if not match:
+        return None
+    price = _extract_price(stripped) or _extract_price(caption) or Decimal("0")
+    rest = match.group("rest")
+    sold_out = _is_sold_out(rest)
+    stock = 0 if sold_out else _extract_stock_qty(rest, is_available=True)
+    if not sold_out and stock == 0 and line_signals_in_stock(rest):
+        stock = 1
+    return ParsedVariant(
+        size=_normalize_size(match.group("size")),
+        price=price,
+        stock_qty=stock,
+        is_available=not sold_out,
+        color=color,
+        note=stripped,
+    )
+
+
+def parse_color_size_price_line(
+    line: str, *, fallback_color: str | None = None
+) -> ParsedVariant | None:
+    """«Біла Л - 🏷️1150» — колір + один розмір + ціна."""
+    stripped = line.strip()
+    if not stripped or _SIZE_LINE_RE.match(stripped):
+        return None
+    match = re.match(
+        rf"^(?P<color>.+?)\s+(?P<size>{_SIZE_TOKEN_CAPTURE})\s*{_DASH}\s*(?P<rest>.+)$",
+        stripped,
+        re.IGNORECASE,
+    )
+    if not match:
+        return None
+    price = _extract_price(match.group("rest")) or _extract_price(stripped)
+    if price is None:
+        return None
+    color = normalize_color_label(match.group("color")) or fallback_color
+    sold_out = _is_sold_out(stripped)
+    stock = (
+        0
+        if sold_out or "під замовлення" in stripped.lower()
+        else _extract_stock_qty(stripped, is_available=True)
+    )
+    return ParsedVariant(
+        size=_normalize_size(match.group("size")),
+        price=price,
+        stock_qty=stock,
+        is_available=not sold_out,
+        color=color,
+        note=stripped,
+    )
+
+
+def try_parse_extra_variant_line(
+    line: str,
+    *,
+    caption: str,
+    color: str | None,
+) -> list[ParsedVariant]:
+    """Спробувати всі додаткові формати для одного рядка."""
+    multi = parse_multi_size_price_line(line, color=color)
+    if multi:
+        return multi
+    color_size = parse_color_size_price_line(line, fallback_color=color)
+    if color_size:
+        return [color_size]
+    cyr_line = parse_cyrillic_preorder_price_line(line, color=color)
+    if cyr_line:
+        return [cyr_line]
+    cyr_block = parse_cyrillic_sizes_preorder_block(line, caption=caption, color=color)
+    if cyr_block:
+        return cyr_block
+    ruler = parse_ruler_stock_line(line, caption=caption, color=color)
+    if ruler:
+        return [ruler]
+    return []

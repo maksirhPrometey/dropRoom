@@ -76,6 +76,7 @@ _CATEGORY_KEYWORDS: list[tuple[str, str]] = [
     ("клог", "footwear"),
     ("кросівк", "sneakers"),
     ("снікерс", "sneakers"),
+    ("кед", "sneakers"),
     ("рюкзак", "bags"),
     ("backpack", "bags"),
     ("сумк", "bags"),
@@ -86,15 +87,30 @@ _CATEGORY_KEYWORDS: list[tuple[str, str]] = [
     ("куртк", "outerwear"),
     ("пальт", "outerwear"),
     ("пуховик", "outerwear"),
+    ("жилет", "outerwear"),
+    ("безрукав", "outerwear"),
     ("accessor", "accessories"),
     ("легінс", "loungewear"),
     ("hoodie", "loungewear"),
+    ("худі", "loungewear"),
+    ("костюм", "loungewear"),
     ("футболк", "tops"),
     ("сукн", "dresses"),
     ("кепк", "accessories"),
     ("окуляр", "accessories"),
+    ("sunglasses", "accessories"),
     ("сонцезахисн", "accessories"),
 ]
+
+# Підписи бренду в caption → канонічна name з Brand/seed.
+_BRAND_ALIASES: dict[str, str] = {
+    "levis": "Levi's",
+    "levi's": "Levi's",
+    "levi’s": "Levi's",
+    "левіс": "Levi's",
+    "maison margiela": "Maison Margiela",
+    "margiela": "Maison Margiela",
+}
 
 
 def _clean_title_line(line: str) -> str:
@@ -261,6 +277,9 @@ def _match_brand_name(name: str) -> Brand | None:
     cleaned = name.strip()
     if not cleaned:
         return None
+    alias = _BRAND_ALIASES.get(cleaned.lower())
+    if alias:
+        cleaned = alias
     exact = Brand.objects.filter(is_active=True, name__iexact=cleaned).first()
     if exact:
         return exact
@@ -269,6 +288,15 @@ def _match_brand_name(name: str) -> Brand | None:
 
 def _match_brand_in_text(text: str) -> Brand | None:
     lowered = text.lower()
+    for alias, canonical in sorted(_BRAND_ALIASES.items(), key=lambda item: -len(item[0])):
+        if re.search(
+            rf"(?<![a-zа-яіїєґ0-9]){re.escape(alias)}(?![a-zа-яіїєґ0-9])",
+            lowered,
+        ):
+            brand = Brand.objects.filter(is_active=True, name__iexact=canonical).first()
+            if brand:
+                return brand
+
     brands = list(Brand.objects.filter(is_active=True))
     brands.sort(key=lambda brand: len(brand.name), reverse=True)
 

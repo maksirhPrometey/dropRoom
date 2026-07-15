@@ -50,6 +50,8 @@ BRANDS = [
     ("Vivienne Westwood", "vivienne-westwood", "UK"),
     ("DKNY", "dkny", "USA"),
     ("Elisabetta Franchi", "elisabetta-franchi", "Italy"),
+    ("Maison Margiela", "maison-margiela", "Italy"),
+    ("Levi's", "levis", "USA"),
     ("Без бренду", "unbranded", ""),
 ]
 

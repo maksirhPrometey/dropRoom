@@ -4,8 +4,27 @@ from decimal import Decimal, InvalidOperation
 from .parser_types import ParsedVariant
 from .stock_signals import caption_signals_in_stock, line_signals_in_stock
 
-_SIZE_LETTER = r"(?:XXS|XXXL|XXL|XL|XS|[SML])"
+_SIZE_LETTER = r"(?:XXS|XXXL|XXL|XL|XS|2XL|3XL|[SML]|ХХЛ|ХЛ|[СМЛсмл])"
 _DASH = r"[—–\-]"
+_CYR_SIZE_MAP = {
+    "с": "S",
+    "c": "S",
+    "м": "M",
+    "m": "M",
+    "л": "L",
+    "l": "L",
+    "хл": "XL",
+    "ххл": "XXL",
+    "xs": "XS",
+    "xxs": "XXS",
+    "xl": "XL",
+    "xxl": "XXL",
+    "2xl": "2XL",
+    "3xl": "3XL",
+    "s": "S",
+    "m": "M",
+    "l": "L",
+}
 _PRICE_TAG_RE = re.compile(
     r"🏷️\s*(\d[\d\s]*)|"
     r"(\d[\d\s]*)\s*(?:UAH|грн|₴)|"
@@ -34,7 +53,7 @@ _SIZE_TOKEN_ONLY_RE = re.compile(
     re.IGNORECASE,
 )
 _SIZE_LINE_RE = re.compile(
-    rf"^[•\-\s🔹]*(?:✅|❌)?\s*({_SIZE_LETTER}|\d{{2}}(?:[,.]\d)?)\s*{_DASH}",
+    rf"^[•\-\s🔹📏]*(?:✅|❌)?\s*({_SIZE_LETTER}|\d{{2}}(?:[,.]\d)?)\s*{_DASH}",
     re.IGNORECASE,
 )
 _SIZE_LETTER_EU_RANGE_RE = re.compile(
@@ -69,14 +88,12 @@ _COLOR_HEADER_RE = re.compile(
 )
 _MIN_BARE_PRICE = Decimal("100")
 
-
 def _to_decimal(raw: str) -> Decimal | None:
     cleaned = raw.replace(" ", "").replace(",", ".")
     try:
         return Decimal(cleaned)
     except InvalidOperation:
         return None
-
 
 def _extract_price(text: str) -> Decimal | None:
     matches = list(_PRICE_TAG_RE.finditer(text))
@@ -99,23 +116,19 @@ def _extract_price(text: str) -> Decimal | None:
         return price
     return None
 
-
 def _has_currency_marker(text: str) -> bool:
     return "🏷️" in text or bool(
         re.search(r"(?:UAH|грн|₴)|\bгр\b", text, re.IGNORECASE)
     )
 
-
 def _inline_looks_like_size_range(line: str, match: re.Match) -> bool:
     tail = line[match.end() :]
     return bool(_SIZE_RANGE_AFTER_DASH_RE.match(tail))
-
 
 def _is_sold_out(text: str) -> bool:
     if "❌" in text:
         return True
     return bool(_SOLD_OUT_RE.search(text))
-
 
 def _extract_stock_qty(text: str, *, is_available: bool) -> int:
     if not is_available:
@@ -127,13 +140,21 @@ def _extract_stock_qty(text: str, *, is_available: bool) -> int:
         return 1
     return 0
 
-
 def _normalize_size(raw: str) -> str:
     size = raw.strip().upper().replace(",", ".")
+    mapped = _CYR_SIZE_MAP.get(size.lower()) or _CYR_SIZE_MAP.get(raw.strip().lower())
+    if mapped:
+        return mapped
     if size.isdigit() or (size.replace(".", "", 1).isdigit() and size.count(".") <= 1):
         return size
     return size
 
+def _clean_color_header(raw: str) -> str:
+    text = raw.lstrip("•").strip()
+    text = re.sub(r"(?i)\s*[—–\-]?\s*під\s*замовлення\s*$", "", text).strip()
+    text = re.sub(r"(?i)\s+під\s*замовлення\s*$", "", text).strip()
+    text = text.strip(" -—–")
+    return text
 
 def _next_nonempty_line(lines: list[str], index: int) -> str | None:
     for line in lines[index + 1 :]:
@@ -142,16 +163,13 @@ def _next_nonempty_line(lines: list[str], index: int) -> str | None:
             return stripped
     return None
 
-
 def _inline_price_raw(match: re.Match) -> str | None:
     return match.group(2) or match.group(3)
-
 
 def _is_plausible_price(value: Decimal, *, has_currency_marker: bool) -> bool:
     if has_currency_marker:
         return value > 0
     return value >= _MIN_BARE_PRICE
-
 
 def _parse_variant_line(line: str, *, color: str | None) -> ParsedVariant | None:
     stripped = line.strip()
@@ -217,22 +235,25 @@ def _parse_variant_line(line: str, *, color: str | None) -> ParsedVariant | None
         note=stripped,
     )
 
-
 def normalize_color_label(raw: str) -> str | None:
     """Зрізати emoji/булети; залишити коротку назву кольору."""
     text = _COLOR_EMOJI_PREFIX_RE.sub("", raw.strip()).strip()
     text = text.lstrip("•- ").strip()
+    text = _clean_color_header(text)
     if not text or len(text) > 40:
         return None
     lowered = text.lower()
     if "цін" in lowered or "розмір" in lowered or "сітка" in lowered:
         return None
+    if "під замовлення" in lowered:
+        return None
     if _SIZE_TOKEN_ONLY_RE.match(text) or re.search(r"\d", text):
+        return None
+    if "," in text:
         return None
     if len(text.split()) > 3:
         return None
     return text[0].upper() + text[1:] if text else None
-
 
 def parse_color_price_line(line: str) -> ParsedVariant | None:
     """
@@ -267,17 +288,19 @@ def parse_color_price_line(line: str) -> ParsedVariant | None:
         note=stripped,
     )
 
-
 def is_color_price_line(line: str) -> bool:
     return parse_color_price_line(line) is not None
 
-
 def _is_color_header(line: str, next_line: str | None) -> bool:
-    stripped = line.strip().lstrip("•").strip()
+    from .parser_variant_extras import _CYR_SIZE_PREORDER_PRICE_RE
+
+    stripped = _clean_color_header(line.strip().lstrip("•").strip())
     if not stripped or len(stripped) > 40:
         return False
     lowered = stripped.lower()
     if "розмір" in lowered or "сітка" in lowered or "📏" in stripped:
+        return False
+    if "," in stripped:
         return False
     if _SIZE_LINE_RE.match(stripped) or _VARIANT_SECTION_RE.match(stripped):
         return False
@@ -290,12 +313,14 @@ def _is_color_header(line: str, next_line: str | None) -> bool:
     if next_line and (
         _SIZE_LINE_RE.match(next_line.strip())
         or "🏷️" in next_line
+        or _CYR_SIZE_PREORDER_PRICE_RE.match(next_line.strip())
     ):
         if not any(ch.isdigit() for ch in stripped) and len(stripped.split()) <= 3:
             if lowered.endswith(("і", "а", "е", "ові", "еві", "ий")):
                 return True
+            if _COLOR_HEADER_RE.match(stripped):
+                return True
     return False
-
 
 def _should_wait_for_price_line(line: str, next_line: str | None) -> bool:
     if "🏷️" in line or _extract_price(line):
@@ -310,9 +335,9 @@ def _should_wait_for_price_line(line: str, next_line: str | None) -> bool:
         return True
     return bool(_SIZE_LETTER_EU_RANGE_RE.match(line))
 
-
 def extract_variants(caption: str) -> list[ParsedVariant]:
     from .parser_list_formats import extract_list_format_variants
+    from .parser_variant_extras import try_parse_extra_variant_line
 
     list_variants = extract_list_format_variants(caption)
     if list_variants:
@@ -331,7 +356,7 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
 
         next_line = _next_nonempty_line(lines, index)
         if _is_color_header(stripped, next_line):
-            current_color = stripped.lstrip("•").strip()
+            current_color = _clean_color_header(stripped.lstrip("•").strip()) or None
             pending_size_line = None
             continue
 
@@ -340,6 +365,14 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
             continue
 
         if "розмірна сітка" in stripped.lower():
+            pending_size_line = None
+            continue
+
+        extras = try_parse_extra_variant_line(
+            stripped, caption=caption, color=current_color
+        )
+        if extras:
+            variants.extend(extras)
             pending_size_line = None
             continue
 
@@ -409,6 +442,13 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
                 continue
 
             if price is not None:
+                pure_price = re.fullmatch(
+                    r"🏷️?\s*\d[\d\s]*(?:\s*(?:UAH|грн|₴))?\s*$",
+                    stripped,
+                    re.IGNORECASE,
+                )
+                if pure_price and variants:
+                    continue
                 variants.append(
                     ParsedVariant(
                         size="ONE SIZE",
