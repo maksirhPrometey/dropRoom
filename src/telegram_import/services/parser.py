@@ -449,9 +449,15 @@ def parse_caption(
     description = _extract_description(normalized, name)
     brand = resolve_brand(normalized) or default_brand
     # Спершу шукаємо за ключовим словом у назві — тіло тексту часто згадує
-    # інші категорії одягу в описовому контексті («…джинсів, костюмів…»),
-    # тож повний caption перевіряємо лише як резерв, якщо назва не дала збігу.
-    category = _match_category(name) or _match_category(normalized) or default_category
+    # інші категорії одягу в описовому контексті («…джинсів, костюмів…»).
+    # Резервний пошук — лише в описі (до блоку розмірів/цін), а не в усьому
+    # caption: деякі повідомлення містять «приклеєний» другий товар після
+    # блоку з цінами, і його ключові слова не повинні впливати на категорію.
+    category = (
+        _match_category(name)
+        or _match_category(description)
+        or default_category
+    )
     gender = _parse_gender(normalized, default_gender)
     variants = extract_variants(normalized)
 
