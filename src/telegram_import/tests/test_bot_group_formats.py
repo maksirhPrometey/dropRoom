@@ -223,6 +223,76 @@ class BotGroupFormatTests(TestCase):
         self.assertEqual(colors, {"блакитна", "біла", "чорна"})
         self.assertEqual(len(parsed.variants), 9)
 
+    def test_size_word_prefix_is_not_treated_as_color(self):
+        parsed = self._parse(
+            "Футболка Coach Snoopy \n\n"
+            "Бренд: Coach\n\n"
+            "Розмір S - 🏷️ 3950 ( в наявності 1 штука ) \n"
+            "Розмір М, L, XL - 🏷️ 3699 ( під замовлення)\n"
+        )
+        by_size = {v.size: v for v in parsed.variants}
+        self.assertEqual(set(by_size), {"S", "M", "L", "XL"})
+        self.assertTrue(all(v.color is None for v in parsed.variants))
+        self.assertEqual(by_size["S"].price, Decimal("3950"))
+        self.assertEqual(by_size["S"].stock_qty, 1)
+        self.assertEqual(by_size["M"].price, Decimal("3699"))
+        self.assertEqual(by_size["M"].stock_qty, 0)
+
+    def test_old_price_in_parens_is_ignored(self):
+        parsed = self._parse(
+            "Adidas Adifom\n"
+            "Бренд: Adidas\n\n"
+            "Розмірна сітка:\n"
+            "▫️36 — 23,0 см 🏷️ 3250 грн (замість 6500 грн)\n"
+            "▫️38 — 24,0 см 🏷️ 3350 грн (замість 6700 грн)\n"
+        )
+        by_size = {v.size: v for v in parsed.variants}
+        self.assertEqual(by_size["36"].price, Decimal("3250"))
+        self.assertEqual(by_size["38"].price, Decimal("3350"))
+
+    def test_currency_prefixed_price_and_bare_preorder_size_list(self):
+        parsed = self._parse(
+            "Golden Goose Marathon Speed Sneakers Brown\n"
+            "Бренд: Golden Goose\n\n"
+            "₴15,600.00 ₴10,990.00\n\n"
+            "36, 37, 38, 39 під замовлення\n"
+        )
+        sizes = {v.size for v in parsed.variants}
+        self.assertEqual(sizes, {"36", "37", "38", "39"})
+        self.assertTrue(all(v.price == Decimal("10990") for v in parsed.variants))
+        self.assertTrue(all(v.stock_qty == 0 for v in parsed.variants))
+
+    def test_labeled_size_list_without_dash(self):
+        parsed = self._parse(
+            "Культова футболка Polo Ralph Lauren\n"
+            "Бренд: Polo Ralph Lauren\n\n"
+            "в наявності 📏S 🏷️1899\n\n"
+            "під замовлення хс , м , с , л 🏷️1999\n"
+        )
+        sizes = [v.size for v in parsed.variants]
+        # «хс , м , с , л» повторює S із рядка «в наявності» — це збіг у
+        # самому тексті капшена, а не втрата даних парсером.
+        self.assertEqual(set(sizes), {"S", "XS", "M", "L"})
+        by_size_last = {v.size: v for v in parsed.variants}
+        self.assertEqual(by_size_last["XS"].price, Decimal("1999"))
+        self.assertEqual(by_size_last["XS"].stock_qty, 0)
+        self.assertEqual(by_size_last["M"].price, Decimal("1999"))
+
+    def test_bulleted_measurement_size_grid(self):
+        parsed = self._parse(
+            "Гірськолижний костюм\n"
+            "Бренд: Zara\n\n"
+            "Розмірна сітка:\n"
+            "• XS — ОГ 80–84 см | ОС 86–90 см\n"
+            "• S — ОГ 84–88 см | ОС 90–94 см\n"
+            "• M — ОГ 88–92 см | ОС 94–98 см\n"
+            "• L — ОГ 92–96 см | ОС 98–102 см\n\n"
+            "🏷️5050\n"
+        )
+        sizes = {v.size for v in parsed.variants}
+        self.assertEqual(sizes, {"XS", "S", "M", "L"})
+        self.assertTrue(all(v.price == Decimal("5050") for v in parsed.variants))
+
     def test_color_strips_preorder_word(self):
         parsed = self._parse(
             "Пуховик Karl Lagerfeld\n"

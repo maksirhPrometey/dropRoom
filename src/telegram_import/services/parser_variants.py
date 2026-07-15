@@ -4,7 +4,7 @@ from decimal import Decimal, InvalidOperation
 from .parser_types import ParsedVariant
 from .stock_signals import caption_signals_in_stock, line_signals_in_stock
 
-_SIZE_LETTER = r"(?:XXS|XXXL|XXL|XL|XS|2XL|3XL|[SML]|ХХЛ|ХЛ|[СМЛсмл])"
+_SIZE_LETTER = r"(?:XXS|XXXL|XXL|XL|XS|2XL|3XL|[SML]|ХХЛ|ХЛ|ХС|[СМЛсмл])"
 _DASH = r"[—–\-]"
 _CYR_SIZE_MAP = {
     "с": "S",
@@ -26,11 +26,13 @@ _CYR_SIZE_MAP = {
     "l": "L",
     "2хл": "2XL",
     "3хл": "3XL",
+    "хс": "XS",
 }
 _PRICE_TAG_RE = re.compile(
     r"🏷️\s*(\d[\d\s]*)|"
     r"(\d[\d\s]*)\s*(?:UAH|грн|₴)|"
-    r"(\d[\d\s]*)\s*гр\b",
+    r"(\d[\d\s]*)\s*гр\b|"
+    r"₴\s*(\d[\d\s,]*(?:\.\d+)?)",
     re.IGNORECASE,
 )
 _SOLD_OUT_RE = re.compile(
@@ -75,7 +77,7 @@ _SIZE_PRICE_SIMPLE_RE = re.compile(
     re.IGNORECASE,
 )
 _SIZE_MEASUREMENT_RE = re.compile(
-    rf"^(?:✅|❌)?\s*({_SIZE_LETTER})\s*{_DASH}\s*(?:груди|ог|обхват)",
+    rf"^[{_BULLET_CLASS}]*(?:✅|❌)?\s*({_SIZE_LETTER})\s*{_DASH}\s*(?:груди|ог|обхват)",
     re.IGNORECASE,
 )
 _SIZE_RANGE_AFTER_DASH_RE = re.compile(
@@ -92,15 +94,23 @@ _COLOR_HEADER_RE = re.compile(
     re.IGNORECASE,
 )
 _MIN_BARE_PRICE = Decimal("100")
+_OLD_PRICE_PAREN_RE = re.compile(r"(?i)\(\s*замість\b[^)]*\)?")
 
 def _to_decimal(raw: str) -> Decimal | None:
-    cleaned = raw.replace(" ", "").replace(",", ".")
+    cleaned = raw.replace(" ", "")
+    if "." in cleaned and "," in cleaned:
+        # «15,600.00» — кома тут розділювач тисяч, а не десяткових.
+        cleaned = cleaned.replace(",", "")
+    else:
+        cleaned = cleaned.replace(",", ".")
     try:
         return Decimal(cleaned)
     except InvalidOperation:
         return None
 
 def _extract_price(text: str) -> Decimal | None:
+    # «🏷️ 3250 грн (замість 6500 грн)» — стара ціна не має впливати на вибір.
+    text = _OLD_PRICE_PAREN_RE.sub("", text)
     matches = list(_PRICE_TAG_RE.finditer(text))
     if matches:
         # На рядках на кшталт «S — 46–48 … — 3150 UAH» беремо останню ціну.

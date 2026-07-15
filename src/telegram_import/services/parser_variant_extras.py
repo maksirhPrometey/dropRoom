@@ -8,7 +8,6 @@ from decimal import Decimal
 from .parser_types import ParsedVariant
 from .parser_variants import (
     _DASH,
-    _clean_color_header,
     _extract_price,
     _extract_stock_qty,
     _is_sold_out,
@@ -20,7 +19,7 @@ from .parser_variants import (
 from .stock_signals import line_signals_in_stock
 
 _SIZE_TOKEN_CAPTURE = (
-    r"(?:XXS|XXXL|XXL|XL|XS|2XL|3XL|[SML]|ХХЛ|ХЛ|[СМЛсмл]|\d{2}(?:[,.]\d)?)"
+    r"(?:XXS|XXXL|XXL|XL|XS|2XL|3XL|[SML]|ХХЛ|ХЛ|ХС|[СМЛсмл]|\d{2}(?:[,.]\d)?)"
 )
 _MULTI_SIZE_PRICE_RE = re.compile(
     rf"^(?P<prefix>.*?)"
@@ -44,6 +43,12 @@ _RULER_STOCK_RE = re.compile(
 )
 _SIZE_WITH_NOTE_PRICE_RE = re.compile(
     rf"^(?P<size>\d{{2}}(?:[,.]\d)?)\s*\([^)]*\)\s*{_DASH}\s*(?P<rest>.+)$",
+)
+_LABELED_SIZE_LIST_PRICE_RE = re.compile(
+    r"^(?:в|у)?\s*(?:наявності|під\s+замовлення)\s+"
+    rf"(?:📏\s*)?(?P<sizes>{_SIZE_TOKEN_CAPTURE}(?:\s*,\s*{_SIZE_TOKEN_CAPTURE})*)"
+    rf"\s*(?:{_DASH}\s*)?(?P<rest>.+)$",
+    re.IGNORECASE,
 )
 
 
@@ -71,7 +76,11 @@ def parse_multi_size_price_line(
         return None
     line_color = color
     if prefix:
-        cleaned = normalize_color_label(prefix) or _clean_color_header(prefix)
+        # «Розмір М, L, XL — …» — «Розмір» тут службове слово, а не колір;
+        # _clean_color_header лише зрізає булети/«під замовлення» і не
+        # відкидає такі слова, тож для кольору довіряємо лише
+        # normalize_color_label (він явно відкидає «розмір»/«ціна»/тощо).
+        cleaned = normalize_color_label(prefix)
         if cleaned and "," not in cleaned:
             line_color = cleaned
     sold_out = _is_sold_out(stripped)
@@ -190,6 +199,45 @@ def parse_size_with_note_price_line(
     )
 
 
+def parse_labeled_size_list_price_line(
+    line: str, *, color: str | None = None
+) -> list[ParsedVariant] | None:
+    """
+    «в наявності 📏S 🏷️1899» / «під замовлення хс , м , с , л 🏷️1999» —
+    мітка наявності одразу перед списком розмірів, без тире.
+    """
+    stripped = line.strip()
+    match = _LABELED_SIZE_LIST_PRICE_RE.match(stripped)
+    if not match:
+        return None
+    price = _extract_price(match.group("rest")) or _extract_price(stripped)
+    if price is None:
+        return None
+    sizes = [
+        _normalize_size(part.strip())
+        for part in re.split(r"\s*,\s*", match.group("sizes"))
+        if part.strip()
+    ]
+    if not sizes:
+        return None
+    preorder = "замовлення" in stripped.lower()
+    sold_out = _is_sold_out(stripped)
+    stock = 0
+    if not sold_out and not preorder:
+        stock = _extract_stock_qty(stripped, is_available=True) or 1
+    return [
+        ParsedVariant(
+            size=size,
+            price=price,
+            stock_qty=stock,
+            is_available=not sold_out,
+            color=color,
+            note=stripped,
+        )
+        for size in sizes
+    ]
+
+
 def parse_color_size_price_line(
     line: str, *, fallback_color: str | None = None
 ) -> ParsedVariant | None:
@@ -231,6 +279,9 @@ def try_parse_extra_variant_line(
     color: str | None,
 ) -> list[ParsedVariant]:
     """Спробувати всі додаткові формати для одного рядка."""
+    labeled = parse_labeled_size_list_price_line(line, color=color)
+    if labeled:
+        return labeled
     multi = parse_multi_size_price_line(line, color=color)
     if multi:
         return multi

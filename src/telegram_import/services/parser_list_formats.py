@@ -46,6 +46,10 @@ _COLOR_SIZE_LIST_RE = re.compile(
     rf"^(?P<color>[^\d,\n]+?)\s+(?P<sizes>{_SIZE_TOKEN_RU}"
     rf"(?:\s*,\s*{_SIZE_TOKEN_RU})*)\s*$"
 )
+_BARE_SIZE_LIST_PREORDER_RE = re.compile(
+    r"(?im)^\s*(?P<sizes>\d{2}(?:[.,]\d)?(?:\s*,\s*\d{2}(?:[.,]\d)?)+)"
+    r"\s+під\s+замовлення\s*$"
+)
 
 
 def _parse_csv_size_entries(block: str) -> list[tuple[str, int]] | None:
@@ -257,6 +261,33 @@ def extract_availability_color_size_variants(caption: str) -> list[ParsedVariant
     return variants
 
 
+def extract_bare_size_list_preorder_variants(caption: str) -> list[ParsedVariant] | None:
+    """
+    ₴15,600.00 ₴10,990.00
+
+    36, 37, 38, 39 під замовлення
+
+    Ціна вже названа раніше в тексті — рядок з розмірами йде без неї.
+    """
+    match = _BARE_SIZE_LIST_PREORDER_RE.search(caption)
+    if not match:
+        return None
+    price = _extract_price(caption)
+    if price is None:
+        return None
+    sizes = [
+        _normalize_size(part.strip())
+        for part in re.split(r"\s*,\s*", match.group("sizes"))
+        if part.strip()
+    ]
+    if len(sizes) < 2:
+        return None
+    return [
+        ParsedVariant(size=size, price=price, stock_qty=0, is_available=True)
+        for size in sizes
+    ]
+
+
 def extract_list_format_variants(caption: str) -> list[ParsedVariant] | None:
     """Спробувати спеціалізовані формати export; None → звичайний line-парсер."""
     for extractor in (
@@ -264,6 +295,7 @@ def extract_list_format_variants(caption: str) -> list[ParsedVariant] | None:
         extract_kids_age_variants,
         extract_semicolon_tier_variants,
         extract_availability_color_size_variants,
+        extract_bare_size_list_preorder_variants,
     ):
         variants = extractor(caption)
         if variants:
