@@ -27,6 +27,14 @@ class ParsedProduct:
     def base_price(self) -> Decimal | None:
         if not self.variants:
             return None
-        available = [v.price for v in self.variants if v.is_available]
-        prices = available or [v.price for v in self.variants]
-        return min(prices)
+        available = [
+            v.price
+            for v in self.variants
+            if v.is_available and v.price is not None and v.price > 0
+        ]
+        if available:
+            return min(available)
+        priced = [
+            v.price for v in self.variants if v.price is not None and v.price > 0
+        ]
+        return min(priced) if priced else None

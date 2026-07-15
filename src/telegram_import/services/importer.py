@@ -321,7 +321,19 @@ def _sync_variants(
     if keep_ids:
         product.variants.exclude(pk__in=keep_ids).delete()
 
-    prices = [variant.price for variant in parsed_variants if variant.price is not None]
+    prices = [
+        variant.price
+        for variant in parsed_variants
+        if variant.price is not None
+        and variant.price > 0
+        and variant.is_available
+    ]
+    if not prices:
+        prices = [
+            variant.price
+            for variant in parsed_variants
+            if variant.price is not None and variant.price > 0
+        ]
     if prices:
         product.base_price = min(prices)
         product.save(update_fields=["base_price"])

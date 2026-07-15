@@ -224,6 +224,8 @@ class ChannelCaptionParserTests(TestCase):
         self.assertEqual(xs.stock_qty, 0)
         s = next(v for v in parsed.variants if v.size == "S")
         self.assertTrue(s.is_available)
+        # Sold Out з price=0 не повинен обнуляти вітрину
+        self.assertEqual(parsed.base_price, Decimal("4899"))
 
     def test_zara_slippers_colors_stock_and_sold_out(self):
         parsed = self._parse(ZARA_SLIPPERS)

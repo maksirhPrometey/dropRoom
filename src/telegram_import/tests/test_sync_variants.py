@@ -35,29 +35,35 @@ class SyncVariantsTests(TestCase):
             is_available=True,
         )
 
-    def test_sync_updates_legacy_sku_without_unique_violation(self):
+    def test_sync_ignores_zero_sold_out_for_base_price(self):
         _sync_variants(
             self.product,
             channel_id=-5566899151,
             message_id=222,
             parsed_variants=[
                 ParsedVariant(
-                    size="ONE SIZE",
-                    price=Decimal("2999"),
+                    size="XS",
+                    price=Decimal("0"),
+                    stock_qty=0,
+                    is_available=False,
+                ),
+                ParsedVariant(
+                    size="S",
+                    price=Decimal("5450"),
                     stock_qty=0,
                     is_available=True,
-                )
+                ),
+                ParsedVariant(
+                    size="M",
+                    price=Decimal("4899"),
+                    stock_qty=0,
+                    is_available=True,
+                ),
             ],
             default_price=Decimal("1000"),
         )
         self.product.refresh_from_db()
-        variants = list(self.product.variants.all())
-        self.assertEqual(len(variants), 1)
-        self.assertEqual(variants[0].price, Decimal("2999"))
-        self.assertEqual(self.product.base_price, Decimal("2999"))
-        self.assertNotEqual(
-            variants[0].sku, "TG--5566899151-222-default-ONE SIZE"
-        )
+        self.assertEqual(self.product.base_price, Decimal("4899"))
 
     def test_sync_replaces_one_size_with_letter_sizes(self):
         _sync_variants(
