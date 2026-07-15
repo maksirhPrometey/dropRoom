@@ -513,4 +513,19 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
                 )
             )
 
+    return _backfill_missing_prices(variants)
+
+
+def _backfill_missing_prices(
+    variants: list[ParsedVariant],
+) -> list[ParsedVariant]:
+    """«❌ XL — Sold Out» без власної ціни — підставляємо ціну сусіднього
+    варіанта того ж товару, щоб не показувати «0 грн» у каталозі."""
+    known_prices = [v.price for v in variants if v.price and v.price > 0]
+    if not known_prices:
+        return variants
+    fallback_price = known_prices[-1]
+    for variant in variants:
+        if not variant.price or variant.price <= 0:
+            variant.price = fallback_price
     return variants

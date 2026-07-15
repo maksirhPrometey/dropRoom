@@ -292,6 +292,21 @@ class BotGroupFormatTests(TestCase):
         self.assertEqual(by_size["M"].stock_qty, 2)
         self.assertTrue(by_size["M"].is_available)
 
+    def test_sold_out_size_without_price_borrows_sibling_price(self):
+        parsed = self._parse(
+            "Ralph Lauren Bear Sweater\n"
+            "Бренд: Ralph Lauren\n\n"
+            "Розміри та ціни:\n\n"
+            "❌ XS — Sold Out\n"
+            "✅ S — 5050 грн\n"
+            "✅ M — 4899 грн\n"
+            "✅ L — 5050 грн\n"
+        )
+        by_size = {v.size: v for v in parsed.variants}
+        self.assertGreater(by_size["XS"].price, 0)
+        self.assertFalse(by_size["XS"].is_available)
+        self.assertEqual(by_size["S"].price, Decimal("5050"))
+
     def test_bulleted_measurement_size_grid(self):
         parsed = self._parse(
             "Гірськолижний костюм\n"
