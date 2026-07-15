@@ -74,15 +74,21 @@ _CATEGORY_KEYWORDS: list[tuple[str, str]] = [
     ("шльопанц", "footwear"),
     ("кросівк", "sneakers"),
     ("снікерс", "sneakers"),
+    ("рюкзак", "bags"),
+    ("backpack", "bags"),
     ("сумк", "bags"),
     ("tote", "bags"),
     ("shopper", "bags"),
+    ("джінс", "denim"),
     ("джинс", "denim"),
     ("куртк", "outerwear"),
     ("пальт", "outerwear"),
+    ("пуховик", "outerwear"),
     ("accessor", "accessories"),
     ("легінс", "loungewear"),
     ("hoodie", "loungewear"),
+    ("футболк", "tops"),
+    ("сукн", "dresses"),
     ("кепк", "accessories"),
     ("окуляр", "accessories"),
     ("сонцезахисн", "accessories"),
@@ -324,14 +330,36 @@ def resolve_brand(
 
 
 def _match_category(text: str) -> Category | None:
+    """Категорія лише за ключовими словами / легітимним slug.
+
+    Category з іменем/slug як у Brand (напр. помилковий «Sandro») — ігноруємо.
+    """
     lowered = text.lower()
     for keyword, slug in _CATEGORY_KEYWORDS:
         if keyword in lowered:
             category = Category.objects.filter(slug=slug).first()
             if category:
                 return category
+
+    brand_slugs = {
+        slug.lower()
+        for slug in Brand.objects.filter(is_active=True).values_list("slug", flat=True)
+        if slug
+    }
+    brand_names = {
+        name.lower()
+        for name in Brand.objects.filter(is_active=True).values_list("name", flat=True)
+        if name
+    }
+
     for category in Category.objects.all():
-        if category.name.lower() in lowered or category.slug in lowered:
+        slug = (category.slug or "").lower()
+        name = (category.name or "").lower()
+        if slug in brand_slugs or name in brand_names:
+            continue
+        if name and name in lowered:
+            return category
+        if slug and slug in lowered:
             return category
     return None
 
