@@ -278,6 +278,20 @@ class BotGroupFormatTests(TestCase):
         self.assertEqual(by_size_last["XS"].stock_qty, 0)
         self.assertEqual(by_size_last["M"].price, Decimal("1999"))
 
+    def test_size_measurement_with_trailing_bare_price(self):
+        parsed = self._parse(
+            "Набір чоловічої білизни Calvin Klein\n"
+            "Бренд: Calvin Klein\n\n"
+            "M — талія 81–86 см ( 2 в наявності)  під замовлення немає ❌ 1650 \n"
+            "L — талія 86–91 см ( 2 в наявності) 1650\n"
+            "XL — талія 96–101 см 1650\n"
+        )
+        by_size = {v.size: v for v in parsed.variants}
+        self.assertEqual(set(by_size), {"M", "L", "XL"})
+        self.assertTrue(all(v.price == Decimal("1650") for v in parsed.variants))
+        self.assertEqual(by_size["M"].stock_qty, 2)
+        self.assertTrue(by_size["M"].is_available)
+
     def test_bulleted_measurement_size_grid(self):
         parsed = self._parse(
             "Гірськолижний костюм\n"

@@ -13,6 +13,8 @@ from .parser_variants import (
     _is_sold_out,
     _normalize_size,
     _SIZE_LINE_RE,
+    _STOCK_NOTE_GENERIC_RE,
+    _STOCK_NOTE_RE,
     _to_decimal,
     normalize_color_label,
 )
@@ -43,6 +45,11 @@ _RULER_STOCK_RE = re.compile(
 )
 _SIZE_WITH_NOTE_PRICE_RE = re.compile(
     rf"^(?P<size>\d{{2}}(?:[,.]\d)?)\s*\([^)]*\)\s*{_DASH}\s*(?P<rest>.+)$",
+)
+_SIZE_MEASUREMENT_TRAILING_PRICE_RE = re.compile(
+    rf"^(?P<size>{_SIZE_TOKEN_CAPTURE})\s*{_DASH}\s*"
+    r"(?:талія|груди|стегна|ог|обхват)\b.*?(?P<price>\d{3,6})\s*$",
+    re.IGNORECASE,
 )
 _LABELED_SIZE_LIST_PRICE_RE = re.compile(
     r"^(?:в|у)?\s*(?:наявності|під\s+замовлення)\s+"
@@ -238,6 +245,42 @@ def parse_labeled_size_list_price_line(
     ]
 
 
+def parse_size_measurement_trailing_price_line(
+    line: str, *, color: str | None = None
+) -> list[ParsedVariant] | None:
+    """
+    «M — талія 81–86 см ( 2 в наявності)  під замовлення немає ❌ 1650»
+    «XL — талія 96–101 см 1650»
+
+    Ціна тут — просте число в кінці рядка, без тире й без валюти.
+    """
+    stripped = line.strip()
+    match = _SIZE_MEASUREMENT_TRAILING_PRICE_RE.match(stripped)
+    if not match:
+        return None
+    price = _to_decimal(match.group("price"))
+    if price is None:
+        return None
+    size = _normalize_size(match.group("size"))
+    sold_out = _is_sold_out(stripped)
+    stock_match = _STOCK_NOTE_RE.search(stripped) or _STOCK_NOTE_GENERIC_RE.search(stripped)
+    if stock_match and int(stock_match.group(1)) > 0:
+        # «під замовлення немає» тут означає лише «немає можливості
+        # замовити ще» — товар уже є в наявності («2 в наявності»).
+        sold_out = False
+    stock = _extract_stock_qty(stripped, is_available=True) if not sold_out else 0
+    return [
+        ParsedVariant(
+            size=size,
+            price=price,
+            stock_qty=stock,
+            is_available=not sold_out,
+            color=color,
+            note=stripped,
+        )
+    ]
+
+
 def parse_color_size_price_line(
     line: str, *, fallback_color: str | None = None
 ) -> ParsedVariant | None:
@@ -279,6 +322,11 @@ def try_parse_extra_variant_line(
     color: str | None,
 ) -> list[ParsedVariant]:
     """Спробувати всі додаткові формати для одного рядка."""
+    measurement_trailing = parse_size_measurement_trailing_price_line(
+        line, color=color
+    )
+    if measurement_trailing:
+        return measurement_trailing
     labeled = parse_labeled_size_list_price_line(line, color=color)
     if labeled:
         return labeled

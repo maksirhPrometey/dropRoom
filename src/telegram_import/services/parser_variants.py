@@ -43,6 +43,10 @@ _STOCK_NOTE_RE = re.compile(
     r"(\d+)\s*пар[аи]?\s*(?:є\s*)?в\s*наявності",
     re.IGNORECASE,
 )
+_STOCK_NOTE_GENERIC_RE = re.compile(
+    r"(\d+)\s*(?:шт\.?\s*)?в\s*наявності",
+    re.IGNORECASE,
+)
 _VARIANT_SECTION_RE = re.compile(
     r"^(?:📏\s*)?(?:розміри\s*(?:та\s*ціни)?|розмірна\s*сітка|"
     r"кольор(?:и|ів)?\s*(?:та\s*ціни)?)\s*:?\s*$",
@@ -148,7 +152,7 @@ def _is_sold_out(text: str) -> bool:
 def _extract_stock_qty(text: str, *, is_available: bool) -> int:
     if not is_available:
         return 0
-    match = _STOCK_NOTE_RE.search(text)
+    match = _STOCK_NOTE_RE.search(text) or _STOCK_NOTE_GENERIC_RE.search(text)
     if match:
         return int(match.group(1))
     if line_signals_in_stock(text):
