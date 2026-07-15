@@ -173,6 +173,34 @@ class BotGroupFormatTests(TestCase):
         )
         self.assertEqual(len(parsed.variants), 4)
 
+    def test_availability_color_multisize_block(self):
+        parsed = self._parse(
+            "Поло Burberry\n"
+            "Бренд: Burberry\n\n"
+            "У наявності \n"
+            "Біле ХЛ\n"
+            "Чорне ХЛ\n"
+            "🏷️3600\n\n"
+            "Під замовлення \n"
+            "Біле М, Л, 2ХЛ\n"
+            "Чорне Л, ХЛ, 2ХЛ\n"
+            "🏷️ 3200\n"
+        )
+        pairs = {(v.size, v.color, v.price, v.stock_qty) for v in parsed.variants}
+        self.assertEqual(
+            pairs,
+            {
+                ("XL", "Біле", Decimal("3600"), 1),
+                ("XL", "Чорне", Decimal("3600"), 1),
+                ("M", "Біле", Decimal("3200"), 0),
+                ("L", "Біле", Decimal("3200"), 0),
+                ("2XL", "Біле", Decimal("3200"), 0),
+                ("L", "Чорне", Decimal("3200"), 0),
+                ("XL", "Чорне", Decimal("3200"), 0),
+                ("2XL", "Чорне", Decimal("3200"), 0),
+            },
+        )
+
     def test_color_strips_preorder_word(self):
         parsed = self._parse(
             "Пуховик Karl Lagerfeld\n"

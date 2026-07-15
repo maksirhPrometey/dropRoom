@@ -6,7 +6,13 @@ import re
 from decimal import Decimal
 
 from .parser_types import ParsedVariant
-from .parser_variants import _extract_price, _is_sold_out, _normalize_size, _to_decimal
+from .parser_variants import (
+    _extract_price,
+    _is_sold_out,
+    _normalize_size,
+    _to_decimal,
+    normalize_color_label,
+)
 
 _DASH = r"[—–\-]"
 _SIZE_TOKEN_RE = re.compile(
@@ -30,6 +36,15 @@ _KIDS_AGE_RE = re.compile(
 )
 _TIER_SIZE_CHUNK_RE = re.compile(
     r"(\d{2}(?:\s*[,.]\s*\d)?)",
+)
+_AVAIL_HEADER_RE = re.compile(r"(?i)^(?:у|в)\s+наявності\s*:?\s*$")
+_PREORDER_HEADER_RE = re.compile(r"(?i)^під\s+замовлення\s*:?\s*$")
+_SIZE_TOKEN_RU = (
+    r"(?:2ХЛ|3ХЛ|ХХЛ|ХЛ|2XL|3XL|XXL|XXS|XXXL|XL|XS|[СМЛSML])"
+)
+_COLOR_SIZE_LIST_RE = re.compile(
+    rf"^(?P<color>[^\d,\n]+?)\s+(?P<sizes>{_SIZE_TOKEN_RU}"
+    rf"(?:\s*,\s*{_SIZE_TOKEN_RU})*)\s*$"
 )
 
 
@@ -179,12 +194,76 @@ def extract_kids_age_variants(caption: str) -> list[ParsedVariant] | None:
     return variants
 
 
+def extract_availability_color_size_variants(caption: str) -> list[ParsedVariant] | None:
+    """
+    У наявності
+    Біле ХЛ
+    Чорне ХЛ
+    🏷️3600
+
+    Під замовлення
+    Біле М, Л, 2ХЛ
+    Чорне Л, ХЛ, 2ХЛ
+    🏷️ 3200
+    """
+    variants: list[ParsedVariant] = []
+    in_stock: bool | None = None
+    pending: list[tuple[str | None, list[str]]] = []
+
+    for line in caption.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if _AVAIL_HEADER_RE.match(stripped):
+            pending.clear()
+            in_stock = True
+            continue
+        if _PREORDER_HEADER_RE.match(stripped):
+            pending.clear()
+            in_stock = False
+            continue
+        if in_stock is None:
+            continue
+        color_size = _COLOR_SIZE_LIST_RE.match(stripped)
+        if color_size:
+            color = normalize_color_label(color_size.group("color"))
+            sizes = [
+                _normalize_size(token.strip())
+                for token in re.split(r"\s*,\s*", color_size.group("sizes"))
+                if token.strip()
+            ]
+            if sizes:
+                pending.append((color, sizes))
+            continue
+        price = _extract_price(stripped)
+        if price is not None and pending:
+            for color, sizes in pending:
+                for size in sizes:
+                    variants.append(
+                        ParsedVariant(
+                            size=size,
+                            price=price,
+                            stock_qty=1 if in_stock else 0,
+                            is_available=True,
+                            color=color,
+                        )
+                    )
+            pending.clear()
+            in_stock = None
+            continue
+
+    if len(variants) < 2:
+        return None
+    return variants
+
+
 def extract_list_format_variants(caption: str) -> list[ParsedVariant] | None:
     """Спробувати спеціалізовані формати export; None → звичайний line-парсер."""
     for extractor in (
         extract_stock_csv_variants,
         extract_kids_age_variants,
         extract_semicolon_tier_variants,
+        extract_availability_color_size_variants,
     ):
         variants = extractor(caption)
         if variants:

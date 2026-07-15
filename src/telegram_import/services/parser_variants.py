@@ -24,6 +24,8 @@ _CYR_SIZE_MAP = {
     "s": "S",
     "m": "M",
     "l": "L",
+    "2хл": "2XL",
+    "3хл": "3XL",
 }
 _PRICE_TAG_RE = re.compile(
     r"🏷️\s*(\d[\d\s]*)|"
