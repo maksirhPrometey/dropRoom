@@ -292,6 +292,65 @@ class BotGroupFormatTests(TestCase):
         self.assertEqual(by_size["M"].stock_qty, 2)
         self.assertTrue(by_size["M"].is_available)
 
+    def test_avail_preorder_bare_numeric_sizes_split_across_lines(self):
+        parsed = self._parse(
+            "Adidas Samba\n"
+            "Бренд: Adidas\n\n"
+            "Стильні кросівки.\n\n"
+            "У наявності 35\n"
+            "🏷️3450\n\n"
+            "Під замовлення \n"
+            "36.5, 37, 38.5 \n\n"
+            "🏷️3300\n"
+        )
+        by_size = {v.size: v for v in parsed.variants}
+        self.assertEqual(set(by_size), {"35", "36.5", "37", "38.5"})
+        self.assertEqual(by_size["35"].price, Decimal("3450"))
+        self.assertEqual(by_size["35"].stock_qty, 1)
+        self.assertEqual(by_size["37"].price, Decimal("3300"))
+        self.assertEqual(by_size["37"].stock_qty, 0)
+
+    def test_avail_color_header_on_own_line_then_size_list(self):
+        parsed = self._parse(
+            "Кеди Coach Signature\n"
+            "Бренд: Coach\n\n"
+            "Стильні кеди.\n\n"
+            "У наявності\n"
+            "Camel \n"
+            "35, 36 ( 3шт), 37 (4шт), 38 ( 7шт), 39 ( 4шт)\n\n"
+            "Brown 37 (3шт), 38 (2шт), 39 (7шт), 41 (2шт)\n\n"
+            "Black 37, 38, 39 (3шт)\n\n"
+            "🏷️4450\n"
+        )
+        by_key = {(v.color, v.size): v for v in parsed.variants}
+        colors = {v.color for v in parsed.variants}
+        self.assertEqual({c.lower() for c in colors}, {"camel", "brown", "black"})
+        camel_sizes = {size for color, size in by_key if color.lower() == "camel"}
+        brown_sizes = {size for color, size in by_key if color.lower() == "brown"}
+        black_sizes = {size for color, size in by_key if color.lower() == "black"}
+        self.assertEqual(camel_sizes, {"35", "36", "37", "38", "39"})
+        self.assertEqual(brown_sizes, {"37", "38", "39", "41"})
+        self.assertEqual(black_sizes, {"37", "38", "39"})
+        self.assertTrue(all(v.price == Decimal("4450") for v in parsed.variants))
+
+    def test_avail_single_size_then_preorder_list_next_line(self):
+        parsed = self._parse(
+            "Футболка Max Mara\n"
+            "Бренд: Max Mara\n\n"
+            "Стильна футболка.\n\n"
+            "В наявності L\n"
+            "🏷️4050\n\n"
+            "Під замовлення \n"
+            "ХS, S, M, L, XL\n"
+            "🏷️3799\n"
+        )
+        sizes = {v.size for v in parsed.variants}
+        self.assertEqual(sizes, {"L", "XS", "S", "M", "XL"})
+        by_size = {v.size: v for v in parsed.variants}
+        self.assertEqual(by_size["L"].price, Decimal("3799"))
+        self.assertEqual(by_size["XS"].price, Decimal("3799"))
+        self.assertEqual(by_size["XS"].stock_qty, 0)
+
     def test_sold_out_size_without_price_borrows_sibling_price(self):
         parsed = self._parse(
             "Ralph Lauren Bear Sweater\n"

@@ -37,15 +37,25 @@ _KIDS_AGE_RE = re.compile(
 _TIER_SIZE_CHUNK_RE = re.compile(
     r"(\d{2}(?:\s*[,.]\s*\d)?)",
 )
-_AVAIL_HEADER_RE = re.compile(r"(?i)^(?:у|в)\s+наявності\s*:?\s*$")
-_PREORDER_HEADER_RE = re.compile(r"(?i)^під\s+замовлення\s*:?\s*$")
 _SIZE_TOKEN_RU = (
-    r"(?:2ХЛ|3ХЛ|ХХЛ|ХЛ|2XL|3XL|XXL|XXS|XXXL|XL|XS|[СМЛSML])"
+    # «Х» кирилицею + «S»/«L» латиницею («ХS», «ХL») — поширена помилка
+    # набору, коли розкладку клавіатури перемкнули лише на половину слова.
+    r"(?:2ХЛ|3ХЛ|ХХЛ|ХЛ|ХС|ХS|хs|ХL|хl|2XL|3XL|XXL|XXS|XXXL|XL|XS|"
+    r"[СМЛсмлSML]|\d{2}(?:[.,]\d)?)"
 )
+_AVAIL_HEADER_RE = re.compile(
+    rf"(?i)^(?:у|в)\s+наявності\s*:?\s*(?P<inline>{_SIZE_TOKEN_RU})?\s*$"
+)
+_PREORDER_HEADER_RE = re.compile(
+    rf"(?i)^під\s+замовлення\s*:?\s*(?P<inline>{_SIZE_TOKEN_RU})?\s*$"
+)
+_SIZE_TOKEN_WITH_QTY_RU = rf"{_SIZE_TOKEN_RU}\s*(?:\(\s*\d+\s*шт\.?\s*\))?"
 _COLOR_SIZE_LIST_RE = re.compile(
-    rf"^(?P<color>[^\d,\n]+?)\s+(?P<sizes>{_SIZE_TOKEN_RU}"
-    rf"(?:\s*,\s*{_SIZE_TOKEN_RU})*)\s*$"
+    rf"^(?:(?P<color>[^\d,\n]+?)\s+)?(?P<sizes>{_SIZE_TOKEN_WITH_QTY_RU}"
+    rf"(?:\s*,\s*{_SIZE_TOKEN_WITH_QTY_RU})*)\s*$"
 )
+_COLOR_ONLY_LINE_RE = re.compile(r"^[^\d\n]{2,24}$")
+_SIZE_TOKEN_ONLY_RE = re.compile(rf"^{_SIZE_TOKEN_RU}", re.IGNORECASE)
 _BARE_SIZE_LIST_PREORDER_RE = re.compile(
     r"(?im)^\s*(?P<sizes>\d{2}(?:[.,]\d)?(?:\s*,\s*\d{2}(?:[.,]\d)?)+)"
     r"\s+під\s+замовлення\s*$"
@@ -198,6 +208,19 @@ def extract_kids_age_variants(caption: str) -> list[ParsedVariant] | None:
     return variants
 
 
+def _split_size_qty_tokens(raw: str) -> list[str]:
+    """«35, 36 ( 3шт), 37 (4шт)» → ['35', '36', '37'] (кількість — окремо)."""
+    sizes: list[str] = []
+    for token in re.split(r"\s*,\s*", raw):
+        token = token.strip()
+        if not token:
+            continue
+        match = _SIZE_TOKEN_ONLY_RE.match(token)
+        if match:
+            sizes.append(_normalize_size(match.group(0)))
+    return sizes
+
+
 def extract_availability_color_size_variants(caption: str) -> list[ParsedVariant] | None:
     """
     У наявності
@@ -209,36 +232,54 @@ def extract_availability_color_size_variants(caption: str) -> list[ParsedVariant
     Біле М, Л, 2ХЛ
     Чорне Л, ХЛ, 2ХЛ
     🏷️ 3200
+
+    Також варіанти без кольору («У наявності 35», список розмірів на
+    окремому рядку) і колір на своєму рядку окремо від списку розмірів.
     """
     variants: list[ParsedVariant] = []
     in_stock: bool | None = None
     pending: list[tuple[str | None, list[str]]] = []
+    current_color: str | None = None
 
     for line in caption.splitlines():
         stripped = line.strip()
         if not stripped:
             continue
-        if _AVAIL_HEADER_RE.match(stripped):
+
+        avail_match = _AVAIL_HEADER_RE.match(stripped)
+        if avail_match:
             pending.clear()
             in_stock = True
+            current_color = None
+            if avail_match.group("inline"):
+                pending.append((None, [_normalize_size(avail_match.group("inline"))]))
             continue
-        if _PREORDER_HEADER_RE.match(stripped):
+
+        preorder_match = _PREORDER_HEADER_RE.match(stripped)
+        if preorder_match:
             pending.clear()
             in_stock = False
+            current_color = None
+            if preorder_match.group("inline"):
+                pending.append((None, [_normalize_size(preorder_match.group("inline"))]))
             continue
+
         if in_stock is None:
             continue
+
         color_size = _COLOR_SIZE_LIST_RE.match(stripped)
         if color_size:
-            color = normalize_color_label(color_size.group("color"))
-            sizes = [
-                _normalize_size(token.strip())
-                for token in re.split(r"\s*,\s*", color_size.group("sizes"))
-                if token.strip()
-            ]
+            color = (
+                normalize_color_label(color_size.group("color"))
+                if color_size.group("color")
+                else current_color
+            )
+            sizes = _split_size_qty_tokens(color_size.group("sizes"))
             if sizes:
                 pending.append((color, sizes))
+                current_color = None
             continue
+
         price = _extract_price(stripped)
         if price is not None and pending:
             for color, sizes in pending:
@@ -254,6 +295,11 @@ def extract_availability_color_size_variants(caption: str) -> list[ParsedVariant
                     )
             pending.clear()
             in_stock = None
+            current_color = None
+            continue
+
+        if _COLOR_ONLY_LINE_RE.match(stripped):
+            current_color = normalize_color_label(stripped)
             continue
 
     if len(variants) < 2:
