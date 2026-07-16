@@ -285,7 +285,7 @@ _SIZE_FOOT_LENGTH_PRICE_RE = re.compile(
     rf"^[•▫▪◦\-\s🔹📏\uFE0F]*(?P<size>{_SIZE_TOKEN_CAPTURE})\s*"
     r"\([\d,.]+\s*см\)\s*"
     rf"{_DASH}\s*"
-    r"(?P<price>\d[\d\s]*)\s*(?:грн|UAH|₴)?\s*(?P<rest>.*)$",
+    r"(?:🏷️\s*)?(?P<price>\d[\d\s]*)\s*(?:грн|UAH|₴)?\s*(?P<rest>.*)$",
     re.IGNORECASE,
 )
 
