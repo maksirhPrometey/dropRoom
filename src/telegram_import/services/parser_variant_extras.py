@@ -62,6 +62,10 @@ _BARE_SIZE_PRICE_TAG_RE = re.compile(
     r"(?:🏷️\s*(?P<price1>\d[\d\s]*)|(?P<price2>\d[\d\s]*)\s*(?:грн|UAH|₴))\s*$",
     re.IGNORECASE,
 )
+_BARE_COLOR_LIST_PRICE_RE = re.compile(
+    r"^(?P<colors>[а-яіїєґ'’\s]+?)\s+(?P<price>\d{3,6})\s*$",
+    re.IGNORECASE,
+)
 
 
 def parse_multi_size_price_line(
@@ -276,6 +280,40 @@ def parse_bare_size_price_tag_line(
     )
 
 
+def parse_bare_color_list_price_line(
+    line: str, *, color: str | None = None
+) -> list[ParsedVariant] | None:
+    """
+    «чорна 3850» / «біла та коричнева 4050» — один чи кілька кольорів
+    підряд і гола ціна в кінці рядка, без тире й без валюти.
+    """
+    stripped = line.strip()
+    if not stripped or color is not None:
+        return None
+    match = _BARE_COLOR_LIST_PRICE_RE.match(stripped)
+    if not match:
+        return None
+    price = _to_decimal(match.group("price"))
+    if price is None or price < Decimal("100"):
+        return None
+    parts = re.split(r"\s*,\s*|\s+(?:та|і)\s+", match.group("colors").strip())
+    colors = [normalize_color_label(part) for part in parts if part.strip()]
+    colors = [c for c in colors if c]
+    if not colors:
+        return None
+    return [
+        ParsedVariant(
+            size="ONE SIZE",
+            price=price,
+            stock_qty=1,
+            is_available=True,
+            color=color_name,
+            note=stripped,
+        )
+        for color_name in colors
+    ]
+
+
 def parse_size_measurement_trailing_price_line(
     line: str, *, color: str | None = None
 ) -> list[ParsedVariant] | None:
@@ -364,6 +402,9 @@ def try_parse_extra_variant_line(
     bare_size_price = parse_bare_size_price_tag_line(line, color=color)
     if bare_size_price:
         return [bare_size_price]
+    bare_color_list = parse_bare_color_list_price_line(line, color=color)
+    if bare_color_list:
+        return bare_color_list
     multi = parse_multi_size_price_line(line, color=color)
     if multi:
         return multi

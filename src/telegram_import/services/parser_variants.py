@@ -346,7 +346,9 @@ def _is_color_header(line: str, next_line: str | None) -> bool:
         return False
     if stripped.endswith(":"):
         return False
-    if _COLOR_HEADER_RE.match(stripped):
+    # «чорна 3850» — гола ціна без валюти в кінці рядка; це рядок-варіант,
+    # не заголовок кольору (_COLOR_HEADER_RE ловить лише префікс слова).
+    if _COLOR_HEADER_RE.match(stripped) and not re.search(r"\d{3,6}\s*$", stripped):
         return True
     if next_line and (
         _SIZE_LINE_RE.match(next_line.strip())
