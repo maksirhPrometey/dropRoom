@@ -444,7 +444,10 @@ def _match_category(text: str) -> Category | None:
     """
     lowered = text.lower()
     for keyword, slug in _CATEGORY_KEYWORDS:
-        if keyword in lowered:
+        # Ліва межа слова обов'язкова: без неї короткі англ. ключові слова
+        # («tote», «bag», «dress») ловлять збіги посередині інших слів —
+        # напр. «tote» в «Toteme» чи «dress» в «address».
+        if re.search(rf"(?<![a-zа-яіїєґ0-9]){re.escape(keyword)}", lowered):
             category = Category.objects.filter(slug=slug).first()
             if category:
                 return category

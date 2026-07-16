@@ -130,14 +130,21 @@ def _extract_price(text: str) -> Decimal | None:
             return price
 
     trailing = _TRAILING_PRICE_RE.search(text.strip())
-    if not trailing:
+    if trailing:
+        price = _to_decimal(trailing.group(1))
+        if price is not None:
+            # Без валюти беремо лише правдоподібну ціну, не «46» з діапазону розміру.
+            if _has_currency_marker(text) or price >= _MIN_BARE_PRICE:
+                return price
         return None
-    price = _to_decimal(trailing.group(1))
-    if price is None:
-        return None
-    # Без валюти беремо лише правдоподібну ціну, не «46» з діапазону розміру.
-    if _has_currency_marker(text) or price >= _MIN_BARE_PRICE:
-        return price
+
+    # Рядок узагалі без тире й без валюти — лише число (можливо, зі старою
+    # ціною в дужках, яку вже зрізали вище): «7450 ( замість 12300 )».
+    bare = text.strip()
+    if re.fullmatch(r"\d[\d\s]*", bare):
+        price = _to_decimal(bare)
+        if price is not None and price >= _MIN_BARE_PRICE:
+            return price
     return None
 
 def _has_currency_marker(text: str) -> bool:
