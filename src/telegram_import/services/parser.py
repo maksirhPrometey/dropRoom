@@ -221,8 +221,16 @@ def _extract_title(caption: str) -> str:
             continue
         if _VARIANT_SECTION_RE.match(stripped):
             continue
-        name, _lead = _split_name_and_lead(stripped)
+        name, lead = _split_name_and_lead(stripped)
         title = _normalize_title(name or stripped)
+        if not lead and len(title) > 100:
+            # Немає ані тире, ані короткої назви — весь опис товару написаний
+            # одним реченням в один рядок («Стьобаний жилет COS у …. Легка
+            # утеплена модель…»). Беремо лише перше речення як назву, решта
+            # піде в description через _line_matches_title (title in cleaned).
+            first = _first_sentence(title)
+            if 15 <= len(first) < len(title):
+                title = first
         if title and len(title) > 2:
             return title[:255]
     return "Товар з Telegram"
