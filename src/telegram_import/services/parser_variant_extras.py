@@ -280,6 +280,44 @@ def parse_bare_size_price_tag_line(
     )
 
 
+_SIZE_FOOT_LENGTH_PRICE_RE = re.compile(
+    rf"^[•▫▪◦\-\s🔹📏\uFE0F]*(?P<size>{_SIZE_TOKEN_CAPTURE})\s*"
+    r"\([\d,.]+\s*см\)\s*"
+    rf"{_DASH}\s*"
+    r"(?P<price>\d[\d\s]*)\s*(?:грн|UAH|₴)?\s*(?P<rest>.*)$",
+    re.IGNORECASE,
+)
+
+
+def parse_size_foot_length_price_line(
+    line: str, *, color: str | None = None
+) -> ParsedVariant | None:
+    """«🔹 35 (22 см) — 4 950 грн 1 пара в наявності» — розмір із довжиною
+    стопи в дужках між розміром і тире, який звичний _SIZE_LINE_RE не бачить."""
+    stripped = line.strip()
+    match = _SIZE_FOOT_LENGTH_PRICE_RE.match(stripped)
+    if not match:
+        return None
+    price = _to_decimal(match.group("price"))
+    if price is None:
+        return None
+    sold_out = _is_sold_out(stripped)
+    rest = match.group("rest") or ""
+    stock = 0
+    if not sold_out:
+        stock = _extract_stock_qty(rest, is_available=True) or _extract_stock_qty(
+            stripped, is_available=True
+        ) or 1
+    return ParsedVariant(
+        size=_normalize_size(match.group("size")),
+        price=price,
+        stock_qty=stock,
+        is_available=not sold_out,
+        color=color,
+        note=stripped,
+    )
+
+
 def parse_bare_color_list_price_line(
     line: str, *, color: str | None = None
 ) -> list[ParsedVariant] | None:
@@ -399,6 +437,9 @@ def try_parse_extra_variant_line(
     labeled = parse_labeled_size_list_price_line(line, color=color)
     if labeled:
         return labeled
+    foot_length = parse_size_foot_length_price_line(line, color=color)
+    if foot_length:
+        return [foot_length]
     bare_size_price = parse_bare_size_price_tag_line(line, color=color)
     if bare_size_price:
         return [bare_size_price]

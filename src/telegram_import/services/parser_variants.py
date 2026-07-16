@@ -340,6 +340,10 @@ def _is_color_header(line: str, next_line: str | None) -> bool:
         return False
     if "," in stripped:
         return False
+    # «під замовлення недоступна» — примітка про статус, не колір;
+    # «золотиста фурнітура» — деталь/фурнітура в описі, не варіант кольору.
+    if "замовленн" in lowered or "недоступ" in lowered or "фурнітур" in lowered:
+        return False
     if _SIZE_LINE_RE.match(stripped) or _VARIANT_SECTION_RE.match(stripped):
         return False
     if _extract_price(stripped):
