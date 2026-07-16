@@ -107,6 +107,9 @@ _CATEGORY_KEYWORDS: list[tuple[str, str]] = [
     ("джінс", "denim"),
     ("джинс", "denim"),
     ("accessor", "accessories"),
+    ("аксесуар", "accessories"),
+    ("шарф", "accessories"),
+    ("scarf", "accessories"),
     ("кепк", "accessories"),
     ("бейсболк", "accessories"),
     ("панамк", "accessories"),
@@ -446,8 +449,12 @@ def _match_category(text: str) -> Category | None:
     for keyword, slug in _CATEGORY_KEYWORDS:
         # Ліва межа слова обов'язкова: без неї короткі англ. ключові слова
         # («tote», «bag», «dress») ловлять збіги посередині інших слів —
-        # напр. «tote» в «Toteme» чи «dress» в «address».
-        if re.search(rf"(?<![a-zа-яіїєґ0-9]){re.escape(keyword)}", lowered):
+        # напр. «dress» в «address». «tote» додатково не має збігатись як
+        # префікс бренду «Toteme».
+        pattern = re.escape(keyword)
+        if keyword == "tote":
+            pattern += r"(?!me)"
+        if re.search(rf"(?<![a-zа-яіїєґ0-9]){pattern}", lowered):
             category = Category.objects.filter(slug=slug).first()
             if category:
                 return category
@@ -468,9 +475,9 @@ def _match_category(text: str) -> Category | None:
         name = (category.name or "").lower()
         if slug in brand_slugs or name in brand_names:
             continue
-        if name and name in lowered:
+        if name and re.search(rf"(?<![a-zа-яіїєґ0-9]){re.escape(name)}", lowered):
             return category
-        if slug and slug in lowered:
+        if slug and re.search(rf"(?<![a-zа-яіїєґ0-9]){re.escape(slug)}", lowered):
             return category
     return None
 
