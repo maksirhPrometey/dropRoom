@@ -416,7 +416,6 @@ def _sync_images(
         )
 
 
-@transaction.atomic
 def import_telegram_message(
     *,
     channel_id: int,
@@ -519,42 +518,46 @@ def import_telegram_message(
     default_price = Decimal(settings.TELEGRAM_DEFAULT_PRICE)
     base_price = parsed.base_price or default_price
 
-    product = record.product or duplicate_product
-    if not product:
-        product = Product.objects.create(
-            brand=parsed.brand,
-            category=parsed.category,
-            name=parsed.name,
-            description=parsed.description,
-            gender=parsed.gender,
-            base_price=base_price,
-            is_active=settings.TELEGRAM_IMPORT_AS_ACTIVE,
-        )
-        record.product = product
-    else:
-        record.product = product
-        product.brand = parsed.brand
-        product.category = parsed.category
-        product.name = parsed.name
-        product.description = parsed.description
-        product.gender = parsed.gender
-        product.base_price = base_price
-        product.save()
+    # Атомарний блок лише навколо самого запису товару: якщо тут щось
+    # впаде, не хочемо ні напів-створеного Product, ні втраченого
+    # запису про помилку (record.save() вище вже поза цим блоком).
+    with transaction.atomic():
+        product = record.product or duplicate_product
+        if not product:
+            product = Product.objects.create(
+                brand=parsed.brand,
+                category=parsed.category,
+                name=parsed.name,
+                description=parsed.description,
+                gender=parsed.gender,
+                base_price=base_price,
+                is_active=settings.TELEGRAM_IMPORT_AS_ACTIVE,
+            )
+            record.product = product
+        else:
+            record.product = product
+            product.brand = parsed.brand
+            product.category = parsed.category
+            product.name = parsed.name
+            product.description = parsed.description
+            product.gender = parsed.gender
+            product.base_price = base_price
+            product.save()
 
-    _sync_variants(
-        product,
-        channel_id=channel_id,
-        message_id=message_id,
-        parsed_variants=parsed.variants,
-        default_price=default_price,
-    )
-    _sync_images(
-        product,
-        record,
-        parsed.name,
-        photo_files=photo_files,
-        merge_existing=bool(duplicate_product and photo_files),
-    )
+        _sync_variants(
+            product,
+            channel_id=channel_id,
+            message_id=message_id,
+            parsed_variants=parsed.variants,
+            default_price=default_price,
+        )
+        _sync_images(
+            product,
+            record,
+            parsed.name,
+            photo_files=photo_files,
+            merge_existing=bool(duplicate_product and photo_files),
+        )
 
     record.status = TelegramImport.STATUS_IMPORTED
     record.imported_at = timezone.now()

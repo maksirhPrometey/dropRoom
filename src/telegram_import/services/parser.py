@@ -129,6 +129,13 @@ _CATEGORY_KEYWORDS: list[tuple[str, str]] = [
     ("слайд", "footwear"),
     ("лофер", "footwear"),
     ("єтнамк", "footwear"),
+    ("trainer", "sneakers"),
+    ("sneaker", "sneakers"),
+    ("штани", "loungewear"),
+    ("брюк", "loungewear"),
+    ("повʼязк", "accessories"),
+    ("повязк", "accessories"),
+    ("headband", "accessories"),
 ]
 
 # Підписи бренду в caption → канонічна name з Brand/seed.
