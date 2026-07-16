@@ -131,12 +131,31 @@ _CATEGORY_KEYWORDS: list[tuple[str, str]] = [
     ("єтнамк", "footwear"),
     ("trainer", "sneakers"),
     ("sneaker", "sneakers"),
+    ("slide", "footwear"),
     ("штани", "loungewear"),
     ("брюк", "loungewear"),
     ("повʼязк", "accessories"),
     ("повязк", "accessories"),
     ("headband", "accessories"),
+    ("bag", "bags"),
+    ("phone case", "accessories"),
+    ("bottle", "accessories"),
 ]
+
+# Бренд/модель без жодного слова-типу товару («Adidas Vento XLG White»,
+# «New Balance 2002R») найчастіше зустрічається саме в постах з кросівками:
+# розміри там — суцільно числа у типовому євро-діапазоні взуття.
+_SHOE_SIZE_RE = re.compile(r"^\d{2}(?:[.,]5)?$")
+
+
+def _looks_like_shoe_sizes(variants: list) -> bool:
+    sizes = {v.size for v in variants if v.size and v.size != "ONE SIZE"}
+    if len(sizes) < 2:
+        return False
+    shoe_like = [s for s in sizes if _SHOE_SIZE_RE.match(s.replace(",", "."))]
+    if len(shoe_like) < max(2, int(len(sizes) * 0.6)):
+        return False
+    return all(34 <= float(s.replace(",", ".")) <= 47 for s in shoe_like)
 
 # Підписи бренду в caption → канонічна name з Brand/seed.
 _BRAND_ALIASES: dict[str, str] = {
@@ -468,14 +487,16 @@ def parse_caption(
     # шортами…»), і ці слова не повинні переважати над реальною категорією.
     # Повний caption НЕ використовуємо — деякі повідомлення містять
     # «приклеєний» другий товар після блоку з цінами.
+    variants = extract_variants(normalized)
     category = (
         _match_category(name)
         or _match_category(_first_sentence(description))
         or _match_category(description)
-        or default_category
     )
+    if not category and _looks_like_shoe_sizes(variants):
+        category = Category.objects.filter(slug="footwear").first()
+    category = category or default_category
     gender = _parse_gender(normalized, default_gender)
-    variants = extract_variants(normalized)
 
     return ParsedProduct(
         name=name,
