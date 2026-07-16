@@ -118,7 +118,7 @@ _CATEGORY_KEYWORDS: list[tuple[str, str]] = [
     ("сонцезахисн", "accessories"),
     ("годинник", "accessories"),
     ("ремін", "accessories"),
-    ("шкарпетк", "accessories"),
+    ("шкарпет", "accessories"),
     ("moon boot", "footwear"),
     ("moonboot", "footwear"),
     ("чобіт", "footwear"),
