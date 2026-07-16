@@ -436,6 +436,46 @@ def parse_named_color_in_stock_price_line(
     )
 
 
+_AGE_SIZE_PRICE_RE = re.compile(
+    r"^(?P<age>\d{1,2}(?:\s*[-–—]\s*\d{1,2})?)\s*(?P<unit>рік(?:ів)?|роки|років)\s*"
+    r"[—–\-]\s*(?:🏷️\s*)?(?P<price>\d[\d\s]*)\s*(?:грн|UAH|₴)?\s*"
+    r"[🤍🖤💛💚💙🧡❤️🤎💜\s]*$",
+    re.IGNORECASE,
+)
+
+
+def parse_age_size_price_line(
+    line: str, *, color: str | None = None
+) -> ParsedVariant | None:
+    """
+    «2 роки - 1050», «10–12 років — 1 350 грн» — дитячий одяг, розмір за
+    віком. Без цього «10–12» хибно розпізнається як звичайний числовий
+    розмір «10» (як у взутті), а решта вікових рядків без тире одразу
+    після числа взагалі не потрапляють у жоден варіант.
+    """
+    stripped = line.strip()
+    match = _AGE_SIZE_PRICE_RE.match(stripped)
+    if not match:
+        return None
+    price = _to_decimal(match.group("price"))
+    if price is None:
+        return None
+    age = re.sub(r"\s*[-–—]\s*", "-", match.group("age").strip())
+    size = f"{age} {match.group('unit')}"[:20]
+    sold_out = _is_sold_out(stripped)
+    stock = 0
+    if not sold_out:
+        stock = _extract_stock_qty(stripped, is_available=True) or 1
+    return ParsedVariant(
+        size=size,
+        price=price,
+        stock_qty=stock,
+        is_available=not sold_out,
+        color=color,
+        note=stripped,
+    )
+
+
 _COLOR_COLON_SIZE_LIST_PRICE_RE = re.compile(
     r"^(?P<color>[а-яіїєґ'’\s]+?)\s*:\s*"
     r"(?P<sizes>(?:хс|хл|ххл|[смл])(?:\s*(?:,|та|і)\s*(?:хс|хл|ххл|[смл]))*)\s+"
@@ -580,6 +620,9 @@ def try_parse_extra_variant_line(
     color: str | None,
 ) -> list[ParsedVariant]:
     """Спробувати всі додаткові формати для одного рядка."""
+    age_size = parse_age_size_price_line(line, color=color)
+    if age_size:
+        return [age_size]
     measurement_trailing = parse_size_measurement_trailing_price_line(
         line, color=color
     )

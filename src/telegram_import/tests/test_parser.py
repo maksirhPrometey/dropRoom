@@ -306,6 +306,19 @@ POLO_JACKET_COLORS_SIZES_PRICES = """Стьобана куртка  Polo Ralph L
 🏷️ 5 250 UAH"""
 
 
+KIDS_TSHIRT_AGE_SIZES_WITH_CURRENCY = """Дитяча футболка Polo Ralph Lauren
+
+2 роки — 1 050 грн
+3 роки — 1 100 грн
+4 роки — 1 150 грн
+5 років — 1 200 грн
+6 років — 1 250 грн
+7 років — 1 300 грн
+8 років — 1 350 грн
+8–10 років — 1 350 грн
+10–12 років — 1 350 грн 🤍"""
+
+
 PINKO_BAG_BARE_DIMENSIONS = """Сумка Pinko
 
 Бренд : pinko
@@ -697,6 +710,24 @@ class ChannelCaptionParserTests(TestCase):
         self.assertNotIn("Опис:", parsed.description)
         self.assertIn("ромбовидною прострочкою", parsed.description)
         self.assertNotIn("5 050", parsed.description)
+
+    def test_kids_tshirt_age_sizes_with_currency_suffix(self):
+        """«10–12 років — 1 350 грн» (з «грн») — раніше «10» хибно
+        розпізнавався як звичайний числовий розмір взуття, а решта
+        вікових рядків без «грн» злипались в один ONE SIZE-варіант."""
+        parsed = self._parse(KIDS_TSHIRT_AGE_SIZES_WITH_CURRENCY)
+        by_size = {v.size: v.price for v in parsed.variants}
+        self.assertEqual(
+            set(by_size),
+            {
+                "2 роки", "3 роки", "4 роки", "5 років", "6 років",
+                "7 років", "8 років", "8-10 років", "10-12 років",
+            },
+        )
+        self.assertEqual(by_size["2 роки"], Decimal("1050"))
+        self.assertEqual(by_size["10-12 років"], Decimal("1350"))
+        self.assertNotIn("10", by_size)
+        self.assertNotIn("ONE SIZE", by_size)
 
     def test_pinko_bag_bare_size_header_keeps_description(self):
         """Голе «Розміри:» (без «та ціни») — фізичні виміри сумки, не

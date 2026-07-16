@@ -98,8 +98,8 @@ class ListFormatVariantsTests(TestCase):
         parsed = self._parse(KIDS_POLO)
         self.assertTrue(parsed.name.startswith("Дитяча футболка"))
         sizes = {item.size for item in parsed.variants}
-        self.assertIn("2 р.", sizes)
-        self.assertIn("8-10 р.", sizes)
+        self.assertIn("2 роки", sizes)
+        self.assertIn("8-10 роки", sizes)
 
     def test_size_dash_still_works(self):
         parsed = self._parse(NIKE_SIZE_DASH)

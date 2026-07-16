@@ -32,7 +32,7 @@ _SIZE_DASH_PRICE_RE = re.compile(
 )
 _KIDS_AGE_RE = re.compile(
     rf"(?im)^(\d{{1,2}}(?:\s*{_DASH}\s*\d{{1,2}})?)\s*"
-    rf"рок(?:ів|и|і)\s*{_DASH}\s*(\d[\d ]*)$",
+    rf"(рік|рокі?в|роки)\s*{_DASH}\s*(\d[\d ]*)$",
 )
 _TIER_SIZE_CHUNK_RE = re.compile(
     r"(\d{2}(?:\s*[,.]\s*\d)?)",
@@ -189,8 +189,8 @@ def extract_kids_age_variants(caption: str) -> list[ParsedVariant] | None:
     for match in _KIDS_AGE_RE.finditer(caption):
         age_raw = re.sub(r"\s+", "", match.group(1))
         age_raw = age_raw.replace("—", "-").replace("–", "-")
-        size = f"{age_raw} р."[:20]
-        price = _to_decimal(match.group(2))
+        size = f"{age_raw} {match.group(2)}"[:20]
+        price = _to_decimal(match.group(3))
         if price is None:
             continue
         variants.append(
