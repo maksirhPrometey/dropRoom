@@ -43,7 +43,7 @@ class CheckoutFormTests(TestCase):
                     "last_name": "User",
                     "email": "t@example.com",
                     "phone": "+380501234567",
-                    "delivery_method": "pickup",
+                    "delivery_method": "nova_poshta",
                     "delivery_address": "Київ",
                     "payment_method": method,
                 }

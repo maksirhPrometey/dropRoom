@@ -80,19 +80,13 @@
                        {% if form.delivery_method.value|default:form.fields.delivery_method.initial == value %}checked{% endif %}>
                 <span class="opt-label">
                   <span class="opt-name">{{ label }}</span>
-                  {% if value == "nova_poshta" %}
-                    <span class="opt-desc">2–3 робочі дні</span>
-                  {% else %}
-                    <span class="opt-desc">Київ, Львів, Дніпро</span>
-                  {% endif %}
+                  <span class="opt-desc">2–3 робочі дні</span>
                 </span>
                 <span class="opt-price">
-                  {% if value == "pickup" or checkout_subtotal >= 3000 %}
+                  {% if checkout_subtotal >= 3000 %}
                     Безкоштовно
-                  {% elif value == "nova_poshta" %}
-                    110 ₴
                   {% else %}
-                    Безкоштовно
+                    110 ₴
                   {% endif %}
                 </span>
               </label>

@@ -10,7 +10,6 @@ class CheckoutForm(forms.Form):
     ]
     DELIVERY_CHOICES = [
         ("nova_poshta", "Нова Пошта"),
-        ("pickup", "Pickup з бутіку"),
     ]
 
     FREE_DELIVERY_THRESHOLD = Decimal("3000")
@@ -70,8 +69,6 @@ class CheckoutForm(forms.Form):
 
     @classmethod
     def delivery_cost_for(cls, subtotal: Decimal, delivery_method: str) -> Decimal:
-        if delivery_method == "pickup":
-            return Decimal("0")
         if subtotal >= cls.FREE_DELIVERY_THRESHOLD:
             return Decimal("0")
         return cls.NOVA_POSHTA_COST
