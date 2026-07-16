@@ -102,6 +102,11 @@ _COLOR_HEADER_RE = re.compile(
     r"срібн|золот|графіт)",
     re.IGNORECASE,
 )
+_COLOR_ALL_SIZES_PRICE_RE = re.compile(
+    rf"^(?P<color>[а-яіїєґ'’\s]+?)\s*{_DASH}\s*"
+    r"вс[іе]\s+розмір\w*\s+(?:🏷️\s*)?(?P<price>\d[\d\s]*)\s*(?:грн|UAH|₴)?\s*$",
+    re.IGNORECASE,
+)
 _MIN_BARE_PRICE = Decimal("100")
 _OLD_PRICE_PAREN_RE = re.compile(r"(?i)\(\s*замість\b[^)]*\)?")
 
@@ -456,6 +461,25 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
             variants.append(variant)
             pending_size_line = None
             continue
+
+        all_sizes_color = _COLOR_ALL_SIZES_PRICE_RE.match(stripped)
+        if all_sizes_color and measurement_sizes:
+            price = _to_decimal(all_sizes_color.group("price"))
+            color = normalize_color_label(all_sizes_color.group("color"))
+            if price is not None:
+                for size in measurement_sizes:
+                    variants.append(
+                        ParsedVariant(
+                            size=size,
+                            price=price,
+                            stock_qty=1 if caption_signals_in_stock(caption) else 0,
+                            is_available=True,
+                            color=color,
+                        )
+                    )
+                measurement_sizes.clear()
+                pending_size_line = None
+                continue
 
         color_price = parse_color_price_line(stripped)
         if color_price:

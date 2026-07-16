@@ -7,6 +7,7 @@ from decimal import Decimal
 
 from .parser_types import ParsedVariant
 from .parser_variants import (
+    _CYR_SIZE_MAP,
     _DASH,
     _extract_price,
     _extract_stock_qty,
@@ -318,6 +319,39 @@ def parse_size_foot_length_price_line(
     )
 
 
+_COLOR_COLON_SIZE_LIST_PRICE_RE = re.compile(
+    r"^(?P<color>[а-яіїєґ'’\s]+?)\s*:\s*"
+    r"(?P<sizes>(?:хс|хл|ххл|[смл])(?:\s*(?:,|та|і)\s*(?:хс|хл|ххл|[смл]))*)\s+"
+    r"(?:🏷️\s*)?(?P<price>\d[\d\s]*)\s*(?:грн|UAH|₴)?\s*$",
+    re.IGNORECASE,
+)
+
+
+def parse_color_colon_size_list_price_line(
+    line: str,
+) -> list[ParsedVariant] | None:
+    """«блакитна : с та м 🏷️1960» — колір із власним обмеженим списком
+    розмірів (кир. скорочення), а не всі розміри з попередньої таблиці."""
+    stripped = line.strip()
+    match = _COLOR_COLON_SIZE_LIST_PRICE_RE.match(stripped)
+    if not match:
+        return None
+    color = normalize_color_label(match.group("color"))
+    if not color:
+        return None
+    price = _to_decimal(match.group("price"))
+    if price is None:
+        return None
+    size_tokens = re.split(r"\s*(?:,|та|і)\s*", match.group("sizes").strip())
+    sizes = [_CYR_SIZE_MAP.get(t.lower(), t.upper()) for t in size_tokens if t.strip()]
+    if not sizes:
+        return None
+    return [
+        ParsedVariant(size=size, price=price, stock_qty=1, is_available=True, color=color)
+        for size in sizes
+    ]
+
+
 def parse_bare_color_list_price_line(
     line: str, *, color: str | None = None
 ) -> list[ParsedVariant] | None:
@@ -446,6 +480,10 @@ def try_parse_extra_variant_line(
     bare_color_list = parse_bare_color_list_price_line(line, color=color)
     if bare_color_list:
         return bare_color_list
+    if color is None:
+        colon_size_list = parse_color_colon_size_list_price_line(line)
+        if colon_size_list:
+            return colon_size_list
     multi = parse_multi_size_price_line(line, color=color)
     if multi:
         return multi
