@@ -57,6 +57,11 @@ _LABELED_SIZE_LIST_PRICE_RE = re.compile(
     rf"\s*(?:{_DASH}\s*)?(?P<rest>.+)$",
     re.IGNORECASE,
 )
+_BARE_SIZE_PRICE_TAG_RE = re.compile(
+    rf"^(?:📏\s*)?(?P<size>{_SIZE_TOKEN_CAPTURE})\s+"
+    r"(?:🏷️\s*(?P<price1>\d[\d\s]*)|(?P<price2>\d[\d\s]*)\s*(?:грн|UAH|₴))\s*$",
+    re.IGNORECASE,
+)
 
 
 def parse_multi_size_price_line(
@@ -245,6 +250,32 @@ def parse_labeled_size_list_price_line(
     ]
 
 
+def parse_bare_size_price_tag_line(
+    line: str, *, color: str | None = None
+) -> ParsedVariant | None:
+    """«39 🏷️4310» / «40 4299 грн» — розмір і ціна без тире між ними."""
+    stripped = line.strip()
+    match = _BARE_SIZE_PRICE_TAG_RE.match(stripped)
+    if not match:
+        return None
+    raw_price = match.group("price1") or match.group("price2")
+    price = _to_decimal(raw_price) if raw_price else None
+    if price is None:
+        return None
+    sold_out = _is_sold_out(stripped)
+    stock = 0
+    if not sold_out:
+        stock = _extract_stock_qty(stripped, is_available=True) or 1
+    return ParsedVariant(
+        size=_normalize_size(match.group("size")),
+        price=price,
+        stock_qty=stock,
+        is_available=not sold_out,
+        color=color,
+        note=stripped,
+    )
+
+
 def parse_size_measurement_trailing_price_line(
     line: str, *, color: str | None = None
 ) -> list[ParsedVariant] | None:
@@ -330,6 +361,9 @@ def try_parse_extra_variant_line(
     labeled = parse_labeled_size_list_price_line(line, color=color)
     if labeled:
         return labeled
+    bare_size_price = parse_bare_size_price_tag_line(line, color=color)
+    if bare_size_price:
+        return [bare_size_price]
     multi = parse_multi_size_price_line(line, color=color)
     if multi:
         return multi

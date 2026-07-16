@@ -87,6 +87,7 @@ _CATEGORY_KEYWORDS: list[tuple[str, str]] = [
     ("вітрівк", "outerwear"),
     ("сукн", "dresses"),
     ("сарафан", "dresses"),
+    ("dress", "dresses"),
     ("футболк", "tops"),
     ("поло", "tops"),
     ("сорочк", "tops"),
