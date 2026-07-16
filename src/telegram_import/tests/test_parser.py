@@ -268,6 +268,44 @@ PRL_SOCKS_ONE_SIZE = """Набір шкарпеток Polo Ralph Lauren one size
 One Size — 1290 грн"""
 
 
+LACOSTE_CAP_UNNAMED_COLORS = """Кепка Lacoste - 50 %
+
+Всі 5 кольорів 🏷️1780
+
+1 рожева є в наявності 🏷️1820"""
+
+
+KARL_LAGERFELD_PANTS_SIZE_AFTER_WORD = """Штани Karl Lagerfeld
+
+
+в наявності розмір S ( лише одні )
+
+🏷️2950"""
+
+
+POLO_JACKET_COLORS_SIZES_PRICES = """Стьобана куртка  Polo Ralph Lauren 🔥- 50 %
+
+Бренд: Polo Ralph Lauren
+
+Опис:
+
+Легка стьобана куртка Polo Ralph Lauren у класичному стилі. Модель із фірмовою ромбовидною прострочкою.
+
+Кольори:
+
+🖤 Темно-синій — під замовлення
+Розміри: XS, S, M, L, XL
+🏷️ 5 050 UAH
+
+🤎 Пісочний — під замовлення
+Розміри: XS, S, M, L, XL
+🏷️ 5 150 UAH
+
+💚 Хакі — під замовлення
+Розміри: XS, S, M, L, XL
+🏷️ 5 250 UAH"""
+
+
 PINKO_BAG_BARE_DIMENSIONS = """Сумка Pinko
 
 Бренд : pinko
@@ -617,6 +655,48 @@ class ChannelCaptionParserTests(TestCase):
         self.assertEqual(len(parsed.variants), 1)
         self.assertIsNone(parsed.variants[0].color)
         self.assertEqual(parsed.variants[0].size, "ONE SIZE")
+
+    def test_lacoste_cap_named_color_wins_over_unnamed_generic_price(self):
+        """«Всі 5 кольорів 🏷️1780» не називає кольори — не повинно давати
+        фантомний безколірний варіант; «1 рожева є в наявності 🏷️1820» —
+        єдиний конкретний, названий і підтверджений варіант."""
+        parsed = self._parse(LACOSTE_CAP_UNNAMED_COLORS)
+        self.assertEqual(len(parsed.variants), 1)
+        variant = parsed.variants[0]
+        self.assertEqual(variant.color, "Рожева")
+        self.assertEqual(variant.price, Decimal("1820"))
+        self.assertEqual(variant.stock_qty, 1)
+
+    def test_karl_lagerfeld_pants_size_letter_after_word_rozmir(self):
+        """«в наявності розмір S ( лише одні )» — літера розміру ПІСЛЯ
+        слова «розмір» (на відміну від «38 розмір» — число ПЕРЕД)."""
+        parsed = self._parse(KARL_LAGERFELD_PANTS_SIZE_AFTER_WORD)
+        self.assertEqual(len(parsed.variants), 1)
+        self.assertEqual(parsed.variants[0].size, "S")
+        self.assertEqual(parsed.variants[0].price, Decimal("2950"))
+
+    def test_polo_jacket_colors_with_size_list_and_own_price(self):
+        """«🖤 Темно-синій — під замовлення» + «Розміри: XS, S, M, L, XL» +
+        «🏷️ 5050 UAH» — 3 кольори, кожен зі своїми 5 розмірами й ціною;
+        раніше все це схлопувалось в один ONE SIZE-варіант."""
+        parsed = self._parse(POLO_JACKET_COLORS_SIZES_PRICES)
+        self.assertEqual(len(parsed.variants), 15)
+        by_color = {}
+        for variant in parsed.variants:
+            by_color.setdefault(variant.color, set()).add(variant.size)
+        self.assertEqual(
+            set(by_color), {"Темно-синій", "Пісочний", "Хакі"}
+        )
+        for sizes in by_color.values():
+            self.assertEqual(sizes, {"XS", "S", "M", "L", "XL"})
+        prices = {v.color: v.price for v in parsed.variants if v.size == "XS"}
+        self.assertEqual(prices["Темно-синій"], Decimal("5050"))
+        self.assertEqual(prices["Пісочний"], Decimal("5150"))
+        self.assertEqual(prices["Хакі"], Decimal("5250"))
+        self.assertEqual(parsed.base_price, Decimal("5050"))
+        self.assertNotIn("Опис:", parsed.description)
+        self.assertIn("ромбовидною прострочкою", parsed.description)
+        self.assertNotIn("5 050", parsed.description)
 
     def test_pinko_bag_bare_size_header_keeps_description(self):
         """Голе «Розміри:» (без «та ціни») — фізичні виміри сумки, не

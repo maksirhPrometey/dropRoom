@@ -77,6 +77,19 @@ _COLOR_STOCK_LINE_RE = re.compile(
 _NAMED_COLORS_SHARED_PRICE_RE = re.compile(
     r"(?im)^(?P<colors>[а-яіїєґ'’\s,]+?)\s+в\s+одну\s+ціну\s*$"
 )
+# «Всі 5 кольорів 🏷️1780» — кольори не названо, тож окремий безколірний
+# варіант з такого рядка створювати не варто (нижче майже завжди йде
+# конкретний названий колір зі своєю ціною); лишаємо лише як запасний
+# варіант — кінцевий фолбек функції все одно бере останню ціну з caption.
+_ALL_COLORS_GENERIC_PRICE_RE = re.compile(
+    r"(?i)^вс[іе]\s+\d+\s+кольор\w*\s+(?:🏷️\s*)?\d[\d\s]*\s*(?:грн|UAH|₴)?\s*$"
+)
+# «Розміри: XS, S, M, L, XL» — список розмірів для поточного кольору
+# (заголовок кольору вище, ціна на спільна для всіх цих розмірів рядком
+# нижче) — інший запис того самого «measurement_sizes» механізму.
+_SIZE_LIST_LABEL_RE = re.compile(
+    r"(?i)^розмір[иа]\s*:\s*(?P<sizes>.+)$"
+)
 _BULLET_CLASS = "•\\-\\s🔹📏▫▪◦\uFE0F"
 _COLOR_EMOJI_PREFIX_RE = re.compile(
     r"^[•\-▫▪◦\s]*(?:[\U0001F300-\U0001FAFF\u2600-\u27BF"
@@ -133,9 +146,11 @@ _CAPTION_WIDE_FOOT_LENGTH_SIZE_RE = re.compile(
 )
 # «1 в наявності 38 розмір ( 24 см )» — розмір названо просто в реченні про
 # наявність, а не в окремому рядку-варіанті; ціна — окремим бланком рядком
-# нижче («5499»), тож звичний pending_size_line її не підхоплює.
+# нижче («5499»), тож звичний pending_size_line її не підхоплює. Розмір може
+# стояти як ПЕРЕД словом «розмір» («38 розмір»), так і ПІСЛЯ нього
+# («в наявності розмір S») — підтримуємо обидва порядки.
 _CAPTION_WIDE_SIZE_MENTION_RE = re.compile(
-    r"(\d{2}(?:[,.]\d)?)\s*розмір",
+    rf"(?:(\d{{2}}(?:[,.]\d)?)\s*розмір|розмір\s+({_SIZE_LETTER}|\d{{2}}(?:[,.]\d)?))",
     re.IGNORECASE,
 )
 
@@ -145,16 +160,18 @@ def _wide_size_from_caption(caption: str) -> str | None:
         return _normalize_size(foot_length_match.group(1))
     size_mention_match = _CAPTION_WIDE_SIZE_MENTION_RE.search(caption)
     if size_mention_match:
-        return _normalize_size(size_mention_match.group(1))
+        raw_size = size_mention_match.group(1) or size_mention_match.group(2)
+        return _normalize_size(raw_size)
     return None
 _TRAILING_PRICE_RE = re.compile(
     rf"{_DASH}\s*(\d[\d\s]*)\s*(?:UAH|грн|₴|гр\b)?\s*$",
     re.IGNORECASE,
 )
 _COLOR_HEADER_RE = re.compile(
-    r"^(?:коричнев|чорн|біл|бежев|син|зелен|рожев|червон|сірий|леопард|молочн|кремов|"
+    r"^(?:темно-?\s*|світло-?\s*|яскраво-?\s*|ніжно-?\s*|насичено-?\s*|глибоко-?\s*)?"
+    r"(?:коричнев|чорн|біл|бежев|син|зелен|рожев|червон|сірий|леопард|молочн|кремов|"
     r"шоколад|бордо|хакі|оливков|пудров|м.ятн|лавандов|бузков|жовт|оранжев|фіолетов|"
-    r"срібн|золот|графіт)",
+    r"срібн|золот|графіт|пісочн)",
     re.IGNORECASE,
 )
 _BARE_LETTER_ONLY_RE = re.compile(
@@ -474,6 +491,7 @@ def _is_color_header(line: str, next_line: str | None) -> bool:
         _SIZE_LINE_RE.match(next_line.strip())
         or "🏷️" in next_line
         or _CYR_SIZE_PREORDER_PRICE_RE.match(next_line.strip())
+        or _SIZE_LIST_LABEL_RE.match(next_line.strip())
     ):
         if not any(ch.isdigit() for ch in stripped) and len(stripped.split()) <= 3:
             if lowered.endswith(("і", "а", "е", "ові", "еві", "ий")):
@@ -563,6 +581,10 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
             pending_size_line = None
             continue
 
+        if _ALL_COLORS_GENERIC_PRICE_RE.match(stripped):
+            pending_size_line = None
+            continue
+
         next_line = _next_nonempty_line(lines, index)
         if _is_color_header(stripped, next_line):
             current_color = _extract_color_header_name(stripped) or None
@@ -621,6 +643,15 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
         us_eu_cm_match = _SIZE_US_EU_CM_RE.match(stripped)
         if us_eu_cm_match:
             measurement_sizes.append(_normalize_size(us_eu_cm_match.group("size")))
+            pending_size_line = None
+            continue
+
+        size_list_match = _SIZE_LIST_LABEL_RE.match(stripped)
+        if size_list_match:
+            for token in re.split(r"\s*,\s*", size_list_match.group("sizes").strip()):
+                token = token.strip()
+                if _SIZE_TOKEN_ONLY_RE.match(token):
+                    measurement_sizes.append(_normalize_size(token))
             pending_size_line = None
             continue
 

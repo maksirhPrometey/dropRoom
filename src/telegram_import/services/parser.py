@@ -22,6 +22,10 @@ _BRAND_LINE_RE = re.compile(
     r"^(?:бренд|brand)\s*[:：]\s*",
     re.IGNORECASE,
 )
+_DESCRIPTION_LABEL_RE = re.compile(
+    r"^(?:опис|description)\s*[:：]\s*$",
+    re.IGNORECASE,
+)
 _PHYSICAL_SIZE_RE = re.compile(
     r"^розмір\s*[:：]\s*\d",
     re.IGNORECASE,
@@ -284,6 +288,8 @@ def _extract_description(caption: str, title: str) -> str:
 
         if _BRAND_LINE_RE.match(stripped):
             continue
+        if _DESCRIPTION_LABEL_RE.match(stripped):
+            continue
         if _VARIANT_SECTION_RE.match(stripped):
             break
         if is_color_price_line(stripped):
@@ -310,7 +316,7 @@ def _extract_description(caption: str, title: str) -> str:
     cleaned_lines = [
         line
         for line in description_lines
-        if line and not _BRAND_LINE_RE.match(line)
+        if line and not _BRAND_LINE_RE.match(line) and not _DESCRIPTION_LABEL_RE.match(line)
     ]
     description = "\n".join(cleaned_lines).strip()
     if description:

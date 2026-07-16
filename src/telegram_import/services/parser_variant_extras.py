@@ -7,6 +7,7 @@ from decimal import Decimal
 
 from .parser_types import ParsedVariant
 from .parser_variants import (
+    _COLOR_HEADER_RE,
     _CYR_SIZE_MAP,
     _DASH,
     _extract_price,
@@ -395,6 +396,46 @@ def parse_bare_sold_out_size_line(
     )
 
 
+_NAMED_COLOR_STOCK_PRICE_RE = re.compile(
+    r"^(?:\d+\s+)?(?P<color>[а-яіїєґ'’]+)\s+(?:є\s+)?в\s+наявності\s+"
+    r"(?:🏷️\s*(?P<price1>\d[\d\s]*)|(?P<price2>\d[\d\s]*)\s*(?:грн|UAH|₴)?)\s*$",
+    re.IGNORECASE,
+)
+
+
+def parse_named_color_in_stock_price_line(
+    line: str, *, color: str | None = None
+) -> ParsedVariant | None:
+    """
+    «1 рожева є в наявності 🏷️1820» — конкретний, названий колір із
+    підтвердженою кількістю в наявності і власною ціною (яка може
+    відрізнятись від загальної ціни «на всі кольори» вище).
+    """
+    stripped = line.strip()
+    match = _NAMED_COLOR_STOCK_PRICE_RE.match(stripped)
+    if not match:
+        return None
+    if not _COLOR_HEADER_RE.match(match.group("color")):
+        return None
+    color_name = normalize_color_label(match.group("color"))
+    if not color_name:
+        return None
+    raw_price = match.group("price1") or match.group("price2")
+    price = _to_decimal(raw_price) if raw_price else None
+    if price is None:
+        return None
+    qty_match = re.match(r"^(\d+)\s+", stripped)
+    stock_qty = int(qty_match.group(1)) if qty_match else 1
+    return ParsedVariant(
+        size="ONE SIZE",
+        price=price,
+        stock_qty=stock_qty,
+        is_available=True,
+        color=color_name,
+        note=stripped,
+    )
+
+
 _COLOR_COLON_SIZE_LIST_PRICE_RE = re.compile(
     r"^(?P<color>[а-яіїєґ'’\s]+?)\s*:\s*"
     r"(?P<sizes>(?:хс|хл|ххл|[смл])(?:\s*(?:,|та|і)\s*(?:хс|хл|ххл|[смл]))*)\s+"
@@ -556,6 +597,9 @@ def try_parse_extra_variant_line(
     bare_color_list = parse_bare_color_list_price_line(line, color=color)
     if bare_color_list:
         return bare_color_list
+    named_color_stock = parse_named_color_in_stock_price_line(line, color=color)
+    if named_color_stock:
+        return [named_color_stock]
     if color is None:
         colon_size_list = parse_color_colon_size_list_price_line(line)
         if colon_size_list:
