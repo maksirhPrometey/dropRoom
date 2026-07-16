@@ -687,6 +687,10 @@ class ChannelCaptionParserTests(TestCase):
         self.assertEqual(variant.color, "Рожева")
         self.assertEqual(variant.price, Decimal("1820"))
         self.assertEqual(variant.stock_qty, 1)
+        # Реального описового тексту в капшені немає — опис синтезується
+        # зі структурованих даних, а не лишається порожнім.
+        self.assertIn("5 кольорах", parsed.description)
+        self.assertIn("Рожева", parsed.description)
 
     def test_karl_lagerfeld_pants_size_letter_after_word_rozmir(self):
         """«в наявності розмір S ( лише одні )» — літера розміру ПІСЛЯ

@@ -514,6 +514,33 @@ def _match_category(text: str) -> Category | None:
     return None
 
 
+_ALL_COLORS_COUNT_RE = re.compile(r"(?i)вс[іе]\s+(\d+)\s+кольор\w*")
+
+
+def _synthesize_fallback_description(caption: str, variants: list) -> str:
+    """
+    Коли реального описового тексту в капшені немає взагалі (лише
+    ціна/розмір/колір — «Всі 5 кольорів 🏷️1780», «1 рожева є в наявності»),
+    синтезувати короткий, чесний рядок зі структурованих даних, щоб
+    покупець бачив хоча б кількість кольорів і який саме є в наявності,
+    замість зовсім порожнього опису.
+    """
+    parts: list[str] = []
+    count_match = _ALL_COLORS_COUNT_RE.search(caption)
+    if count_match:
+        parts.append(f"Доступний у {count_match.group(1)} кольорах.")
+    in_stock_colors = sorted(
+        {
+            variant.color
+            for variant in variants
+            if variant.color and variant.is_available and variant.stock_qty > 0
+        }
+    )
+    if in_stock_colors:
+        parts.append(f"В наявності: {', '.join(in_stock_colors)}.")
+    return " ".join(parts)
+
+
 def parse_caption(
     caption: str,
     *,
@@ -533,6 +560,8 @@ def parse_caption(
     # Повний caption НЕ використовуємо — деякі повідомлення містять
     # «приклеєний» другий товар після блоку з цінами.
     variants = extract_variants(normalized)
+    if not description:
+        description = _synthesize_fallback_description(normalized, variants)
     category = (
         _match_category(name)
         or _match_category(_first_sentence(description))
