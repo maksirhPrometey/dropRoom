@@ -319,6 +319,13 @@ KIDS_TSHIRT_AGE_SIZES_WITH_CURRENCY = """Дитяча футболка Polo Ralp
 10–12 років — 1 350 грн 🤍"""
 
 
+TOTEME_SCARF_BARE_OLD_PRICE = """Toteme Monogram Jacquard Wool Scarf Dark Beige
+
+Шарф Monogram Jacquard Wool Scarf від Toteme — це стильний і практичний аксесуар, який поєднує елегантний дизайн і комфорт.
+
+7450 ( замість 12300 )"""
+
+
 PINKO_BAG_BARE_DIMENSIONS = """Сумка Pinko
 
 Бренд : pinko
@@ -393,6 +400,7 @@ class ChannelCaptionParserTests(TestCase):
         Brand.objects.get_or_create(name="New Balance", defaults={"slug": "new-balance"})
         Brand.objects.get_or_create(name="Miu Miu", defaults={"slug": "miu-miu"})
         Brand.objects.get_or_create(name="Pinko", defaults={"slug": "pinko"})
+        Brand.objects.get_or_create(name="Toteme", defaults={"slug": "toteme"})
         Category.objects.get_or_create(slug="loungewear", defaults={"name": "Loungewear"})
         Category.objects.get_or_create(slug="tops", defaults={"name": "Tops"})
         Category.objects.get_or_create(slug="outerwear", defaults={"name": "Outerwear"})
@@ -728,6 +736,17 @@ class ChannelCaptionParserTests(TestCase):
         self.assertEqual(by_size["10-12 років"], Decimal("1350"))
         self.assertNotIn("10", by_size)
         self.assertNotIn("ONE SIZE", by_size)
+
+    def test_toteme_scarf_bare_old_price_not_in_description(self):
+        """«7450 ( замість 12300 )» без валютного маркера (грн/UAH/₴) на
+        цьому конкретному рядку — усе одно ціна, і не повинна лишатись
+        текстом в описі поруч із вже показаною закресленою ціною."""
+        parsed = self._parse(TOTEME_SCARF_BARE_OLD_PRICE)
+        self.assertEqual(parsed.base_price, Decimal("7450"))
+        self.assertEqual(parsed.compare_price, Decimal("12300"))
+        self.assertNotIn("7450", parsed.description)
+        self.assertNotIn("12300", parsed.description)
+        self.assertIn("елегантний дизайн", parsed.description)
 
     def test_pinko_bag_bare_size_header_keeps_description(self):
         """Голе «Розміри:» (без «та ціни») — фізичні виміри сумки, не

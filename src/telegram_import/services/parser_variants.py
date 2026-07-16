@@ -549,6 +549,11 @@ def looks_like_variant_line(
     # повинен лишатись ще й текстом в описі.
     if _has_currency_marker(stripped) and _extract_price(stripped) is not None:
         return True
+    # «7450 ( замість 12300 )» — гола ціна зі старою ціною в дужках, без
+    # валютного маркера на цьому конкретному рядку (він міг бути раніше в
+    # капшені); «замість»/«було» — достатньо однозначний маркер сам собою.
+    if _extract_old_price(stripped) is not None:
+        return True
     return False
 
 def extract_variants(caption: str) -> list[ParsedVariant]:
