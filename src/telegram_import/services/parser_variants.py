@@ -92,6 +92,18 @@ _SIZE_MEASUREMENT_RE = re.compile(
 _SIZE_RANGE_AFTER_DASH_RE = re.compile(
     rf"^{_DASH}\s*\d{{2}}(?:[,.]\d)?\s*{_DASH}\s*\d{{2}}",
 )
+_SIZE_FOOT_LENGTH_ONLY_RE = re.compile(
+    rf"^[{_BULLET_CLASS}]*(?:✅|❌)?\s*({_SIZE_LETTER}|\d{{2}}(?:[,.]\d)?)\s*"
+    r"\([\d,.]+\s*см\)\s*$",
+    re.IGNORECASE,
+)
+# «📏 В наявності: 40 (устілка 26 см) 1 пара» — розмір із довжиною стопи в
+# описовому реченні, коли ціна взагалі на іншому рядку далі по тексту й
+# рядкова прив'язка через pending_size_line до неї «не дотягується».
+_CAPTION_WIDE_FOOT_LENGTH_SIZE_RE = re.compile(
+    r"(\d{2}(?:[,.]\d)?)\s*\((?:устілка\s*)?[\d,.]+\s*см\)",
+    re.IGNORECASE,
+)
 _TRAILING_PRICE_RE = re.compile(
     rf"{_DASH}\s*(\d[\d\s]*)\s*(?:UAH|грн|₴|гр\b)?\s*$",
     re.IGNORECASE,
@@ -100,6 +112,14 @@ _COLOR_HEADER_RE = re.compile(
     r"^(?:коричнев|чорн|біл|бежев|син|зелен|рожев|червон|сірий|леопард|молочн|кремов|"
     r"шоколад|бордо|хакі|оливков|пудров|м.ятн|лавандов|бузков|жовт|оранжев|фіолетов|"
     r"срібн|золот|графіт)",
+    re.IGNORECASE,
+)
+_BARE_LETTER_ONLY_RE = re.compile(
+    rf"^📏\s*({_SIZE_LETTER})\s*$",
+    re.IGNORECASE,
+)
+_BARE_LETTER_LIST_RE = re.compile(
+    rf"^{_SIZE_LETTER}(?:\s+{_SIZE_LETTER})+$",
     re.IGNORECASE,
 )
 _COLOR_ALL_SIZES_PRICE_RE = re.compile(
@@ -374,9 +394,13 @@ def _is_color_header(line: str, next_line: str | None) -> bool:
 def _should_wait_for_price_line(line: str, next_line: str | None) -> bool:
     if "🏷️" in line or _extract_price(line):
         return False
-    if not _SIZE_LINE_RE.match(line):
-        return False
     if not next_line:
+        return False
+    # «🔹 35 (22 см)» без тире й ціни на цьому ж рядку — ціна («🏷️ 8450 грн»)
+    # може бути окремим рядком нижче, за порожнім рядком.
+    if _SIZE_FOOT_LENGTH_ONLY_RE.match(line):
+        return bool("🏷️" in next_line or _extract_price(next_line))
+    if not _SIZE_LINE_RE.match(line):
         return False
     if _SIZE_LINE_RE.match(next_line):
         return False
@@ -434,7 +458,9 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
         if pending_size_line and ("🏷️" in stripped or _extract_price(stripped)):
             sold_out = _is_sold_out(pending_size_line) or _is_sold_out(stripped)
             price = _extract_price(stripped) or _extract_price(pending_size_line)
-            size_match = _SIZE_LINE_RE.match(pending_size_line)
+            size_match = _SIZE_LINE_RE.match(
+                pending_size_line
+            ) or _SIZE_FOOT_LENGTH_ONLY_RE.match(pending_size_line)
             pending_size_line = None
             if size_match and price is not None:
                 size = _normalize_size(size_match.group(1))
@@ -442,9 +468,9 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
                     ParsedVariant(
                         size=size,
                         price=price,
-                        stock_qty=0 if sold_out else _extract_stock_qty(
-                            stripped, is_available=True
-                        ),
+                        stock_qty=0
+                        if sold_out
+                        else (_extract_stock_qty(stripped, is_available=True) or 1),
                         is_available=not sold_out,
                         color=current_color,
                         note=stripped,
@@ -454,6 +480,18 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
 
         if _should_wait_for_price_line(stripped, next_line):
             pending_size_line = stripped
+            continue
+
+        letter_only_match = _BARE_LETTER_ONLY_RE.match(stripped)
+        if letter_only_match:
+            measurement_sizes.append(_normalize_size(letter_only_match.group(1)))
+            pending_size_line = None
+            continue
+
+        if _BARE_LETTER_LIST_RE.match(stripped):
+            for token in stripped.split():
+                measurement_sizes.append(_normalize_size(token))
+            pending_size_line = None
             continue
 
         variant = _parse_variant_line(stripped, color=current_color)
@@ -517,9 +555,16 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
                 )
                 if pure_price and variants:
                     continue
+                size = "ONE SIZE"
+                if not variants:
+                    foot_length_match = _CAPTION_WIDE_FOOT_LENGTH_SIZE_RE.search(
+                        caption
+                    )
+                    if foot_length_match:
+                        size = _normalize_size(foot_length_match.group(1))
                 variants.append(
                     ParsedVariant(
-                        size="ONE SIZE",
+                        size=size,
                         price=price,
                         stock_qty=1 if caption_signals_in_stock(caption) else 0,
                         is_available=True,
@@ -546,9 +591,13 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
     if not variants:
         price = _extract_price(caption)
         if price is not None:
+            size = "ONE SIZE"
+            foot_length_match = _CAPTION_WIDE_FOOT_LENGTH_SIZE_RE.search(caption)
+            if foot_length_match:
+                size = _normalize_size(foot_length_match.group(1))
             variants.append(
                 ParsedVariant(
-                    size="ONE SIZE",
+                    size=size,
                     price=price,
                     stock_qty=1 if caption_signals_in_stock(caption) else 0,
                     is_available=True,
