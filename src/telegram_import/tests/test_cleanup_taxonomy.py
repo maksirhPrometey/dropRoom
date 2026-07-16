@@ -1,10 +1,11 @@
 from decimal import Decimal
 from io import StringIO
 
+from django.conf import settings
 from django.core.management import call_command
 from django.test import TestCase
 
-from src.catalog.models import Brand, Category, Product
+from src.catalog.models import Brand, Category, Product, ProductVariant
 from src.telegram_import.models import TelegramImport
 from src.telegram_import.services.parser import _match_category
 
@@ -73,19 +74,28 @@ class CleanupTelegramTaxonomyTests(TestCase):
         self.assertIn("переміщено", out.getvalue())
 
     def test_deactivate_only_junk_names(self):
+        default_price = Decimal(settings.TELEGRAM_DEFAULT_PRICE)
         junk = Product.objects.create(
             brand=self.crocs,
             category=self.bags,
             name="Товар з Telegram",
             slug="junk-tg",
-            base_price=Decimal("100"),
+            base_price=default_price,
             gender="U",
             is_active=True,
+        )
+        ProductVariant.objects.create(
+            product=junk,
+            size="ONE SIZE",
+            sku="junk-tg-one-size",
+            price=default_price,
+            stock_qty=0,
+            is_available=True,
         )
         TelegramImport.objects.create(
             channel_id=-1,
             message_id=2,
-            raw_caption="Товар з Telegram\n🏷️100",
+            raw_caption="термін орієнтовний 14 днів",
             status=TelegramImport.STATUS_IMPORTED,
             product=junk,
         )
@@ -97,6 +107,14 @@ class CleanupTelegramTaxonomyTests(TestCase):
             base_price=Decimal("5000"),
             gender="U",
             is_active=True,
+        )
+        ProductVariant.objects.create(
+            product=good,
+            size="ONE SIZE",
+            sku="ysl-sl-553-one-size",
+            price=Decimal("5000"),
+            stock_qty=1,
+            is_available=True,
         )
         TelegramImport.objects.create(
             channel_id=-1,
@@ -110,3 +128,47 @@ class CleanupTelegramTaxonomyTests(TestCase):
         good.refresh_from_db()
         self.assertFalse(junk.is_active)
         self.assertTrue(good.is_active)
+
+    def test_deactivate_skips_product_with_real_order(self):
+        default_price = Decimal(settings.TELEGRAM_DEFAULT_PRICE)
+        junk = Product.objects.create(
+            brand=self.crocs,
+            category=self.bags,
+            name="2 в наявності",
+            slug="junk-ordered",
+            base_price=default_price,
+            gender="U",
+            is_active=True,
+        )
+        variant = ProductVariant.objects.create(
+            product=junk,
+            size="ONE SIZE",
+            sku="junk-ordered-one-size",
+            price=default_price,
+            stock_qty=0,
+            is_available=True,
+        )
+        TelegramImport.objects.create(
+            channel_id=-1,
+            message_id=4,
+            raw_caption="2 в наявності",
+            status=TelegramImport.STATUS_IMPORTED,
+            product=junk,
+        )
+        from src.orders.models import Order, OrderItem
+
+        order = Order.objects.create(
+            subtotal=default_price,
+            total=default_price,
+        )
+        OrderItem.objects.create(
+            order=order,
+            variant=variant,
+            name_snapshot=junk.name,
+            brand_snapshot=self.crocs.name,
+            price_snapshot=default_price,
+            quantity=1,
+        )
+        call_command("cleanup_telegram_taxonomy", "--deactivate-no-brand")
+        junk.refresh_from_db()
+        self.assertTrue(junk.is_active)

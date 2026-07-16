@@ -12,6 +12,9 @@ class ParsedVariant:
     is_available: bool = True
     color: str | None = None
     note: str = ""
+    # Стара ціна («🏷️ 4510 (замість 8200)») — заповнюється лише коли в
+    # тексті явно вказані ОБИДВІ суми, інакше None.
+    compare_price: Decimal | None = None
 
 
 @dataclass
@@ -38,3 +41,14 @@ class ParsedProduct:
             v.price for v in self.variants if v.price is not None and v.price > 0
         ]
         return min(priced) if priced else None
+
+    @property
+    def compare_price(self) -> Decimal | None:
+        """Стара ціна, прив'язана саме до варіанта з `base_price`."""
+        base = self.base_price
+        if base is None:
+            return None
+        for variant in self.variants:
+            if variant.price == base and variant.compare_price and variant.compare_price > base:
+                return variant.compare_price
+        return None

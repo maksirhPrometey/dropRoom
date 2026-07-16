@@ -117,3 +117,37 @@ class SyncVariantsTests(TestCase):
         self.assertEqual(by_color["Коричнева"].price, Decimal("4890"))
         self.product.refresh_from_db()
         self.assertEqual(self.product.base_price, Decimal("4890"))
+
+    def test_sync_sets_compare_price_from_old_price(self):
+        _sync_variants(
+            self.product,
+            channel_id=-5566899151,
+            message_id=444,
+            parsed_variants=[
+                ParsedVariant(
+                    size="ONE SIZE",
+                    price=Decimal("4510"),
+                    compare_price=Decimal("8200"),
+                    stock_qty=0,
+                ),
+            ],
+            default_price=Decimal("1000"),
+        )
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.base_price, Decimal("4510"))
+        self.assertEqual(self.product.compare_price, Decimal("8200"))
+
+    def test_sync_clears_compare_price_when_no_longer_discounted(self):
+        self.product.compare_price = Decimal("8200")
+        self.product.save(update_fields=["compare_price"])
+        _sync_variants(
+            self.product,
+            channel_id=-5566899151,
+            message_id=444,
+            parsed_variants=[
+                ParsedVariant(size="ONE SIZE", price=Decimal("4510"), stock_qty=0),
+            ],
+            default_price=Decimal("1000"),
+        )
+        self.product.refresh_from_db()
+        self.assertIsNone(self.product.compare_price)

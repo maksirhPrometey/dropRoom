@@ -1,12 +1,14 @@
 """Очищення taxonomy після помилкового імпорту Telegram."""
 
-import re
+from decimal import Decimal
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.db.models import Count
 
 from src.catalog.models import Brand, Category, Product
+from src.orders.models import CartItem, OrderItem
 from src.telegram_import.models import TelegramImport
 from src.telegram_import.services.parser import _match_category, resolve_brand
 
@@ -57,6 +59,31 @@ def _fallback_category() -> Category | None:
 
 def _bogus_slugs() -> set[str]:
     return {(c.slug or "").lower() for c in _bogus_brand_categories()}
+
+
+def _is_junk_stub_product(product: Product) -> bool:
+    """
+    Службові репліки продавця в Telegram-групі («термін орієнтовний 14
+    днів», «1 в наявності») імпортер іноді перетворював на «товар» —
+    завжди рівно один варіант ONE SIZE за дефолтною TELEGRAM_DEFAULT_PRICE
+    (бо в тексті взагалі не було ціни). Реальний товар без бренду
+    («Стильний нейлоновий рюкзак…») завжди має свою фактичну ціну з
+    caption, тож цей маркер не плутає їх.
+    """
+    variants = list(product.variants.all())
+    if len(variants) != 1:
+        return False
+    variant = variants[0]
+    if variant.size != "ONE SIZE":
+        return False
+    if variant.price != Decimal(settings.TELEGRAM_DEFAULT_PRICE):
+        return False
+    # Ніколи не чіпати товар, який хтось реально замовив чи додав у кошик.
+    if OrderItem.objects.filter(variant=variant).exists():
+        return False
+    if CartItem.objects.filter(variant=variant).exists():
+        return False
+    return True
 
 
 class Command(BaseCommand):
@@ -143,26 +170,17 @@ class Command(BaseCommand):
             crocs = Brand.objects.filter(slug="crocs").first()
             first = Brand.objects.filter(is_active=True).order_by("id").first()
             suspect_ids = {b.pk for b in (crocs, first) if b}
-            junk_name = re.compile(
-                r"(?i)^(?:товар\s+з\s+telegram|.*"
-                r"sold\s*out.*|"
-                r"\d{2}\s*[❌🏷️])",
-            )
             qs = Product.objects.filter(
                 brand_id__in=suspect_ids, is_active=True
-            ).select_related("brand")
-            for product in qs.iterator():
+            ).select_related("brand").prefetch_related("variants")
+            for product in qs:
+                if not _is_junk_stub_product(product):
+                    continue
                 caption = _best_caption(product)
                 # Не чіпати, якщо caption/назва вже резолвиться в бренд
                 if resolve_brand(caption) is not None:
                     continue
                 if resolve_brand(product.name or "") is not None:
-                    continue
-                # Лише явний junk / повна відсутність змістовного title
-                name = (product.name or "").strip()
-                if not junk_name.search(name) and len(name) > 12:
-                    # Є нормальна назва, але бренду немає в БД —
-                    # лишаємо активним для ручного/пізнішого fix
                     continue
                 deactivated += 1
                 preview = (

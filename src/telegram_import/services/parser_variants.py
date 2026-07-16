@@ -53,9 +53,29 @@ _STOCK_NOTE_GENERIC_RE = re.compile(
     re.IGNORECASE,
 )
 _VARIANT_SECTION_RE = re.compile(
-    r"^(?:📏\s*)?(?:розміри\s*(?:та\s*ціни)?|розмірна\s*сітка|"
+    # «Розміри:» саме собою — майже завжди фізичні виміри товару (сумки),
+    # не таблиця розмір↔ціна; вимагаємо «та ціни» щоб не зрізати опис.
+    r"^(?:📏\s*)?(?:розміри\s+та\s*ціни|розмірна\s*сітка|"
     r"кольор(?:и|ів)?\s*(?:та\s*ціни)?)\s*:?\s*$",
     re.IGNORECASE,
+)
+# «В наявності» / «Під замовлення» голим окремим рядком — перемикач
+# контексту наявності для розмірів, які йдуть далі (до наступного такого
+# перемикача), коли в одному капшені є ОБИДВА блоки з однаковою ціною.
+_AVAILABILITY_CONTEXT_RE = re.compile(r"^(?:у|в)\s+наявності\s*$", re.IGNORECASE)
+_PREORDER_CONTEXT_RE = re.compile(r"^під\s+замовленн\w*\s*$", re.IGNORECASE)
+# «зелена лінза 4 штуки» / «коричнева 2 штуки» — колір із кількістю на
+# власному рядку, без ціни; ціна на два (і більше) таких кольори одразу —
+# окремим рядком нижче («…одна ціна 🏷️4550»).
+_COLOR_STOCK_LINE_RE = re.compile(
+    r"^(?:(?:у|в)\s+наявності\s+)?(?P<color>[а-яіїєґ'’]+)(?:\s+\S+)?\s+"
+    r"(?P<qty>\d+)\s*(?:штук[аи]?|пар[аи]?)\s*$",
+    re.IGNORECASE,
+)
+# «чорні , рожеві та білі в одну ціну» — розміри/ціни вже розібрані вище
+# без кольору; тут лише перелік кольорів, доступних за тією ж сіткою цін.
+_NAMED_COLORS_SHARED_PRICE_RE = re.compile(
+    r"(?im)^(?P<colors>[а-яіїєґ'’\s,]+?)\s+в\s+одну\s+ціну\s*$"
 )
 _BULLET_CLASS = "•\\-\\s🔹📏▫▪◦\uFE0F"
 _COLOR_EMOJI_PREFIX_RE = re.compile(
@@ -111,6 +131,22 @@ _CAPTION_WIDE_FOOT_LENGTH_SIZE_RE = re.compile(
     r"(\d{2}(?:[,.]\d)?)\s*\((?:устілка\s*)?[\d,.]+\s*см\)",
     re.IGNORECASE,
 )
+# «1 в наявності 38 розмір ( 24 см )» — розмір названо просто в реченні про
+# наявність, а не в окремому рядку-варіанті; ціна — окремим бланком рядком
+# нижче («5499»), тож звичний pending_size_line її не підхоплює.
+_CAPTION_WIDE_SIZE_MENTION_RE = re.compile(
+    r"(\d{2}(?:[,.]\d)?)\s*розмір",
+    re.IGNORECASE,
+)
+
+def _wide_size_from_caption(caption: str) -> str | None:
+    foot_length_match = _CAPTION_WIDE_FOOT_LENGTH_SIZE_RE.search(caption)
+    if foot_length_match:
+        return _normalize_size(foot_length_match.group(1))
+    size_mention_match = _CAPTION_WIDE_SIZE_MENTION_RE.search(caption)
+    if size_mention_match:
+        return _normalize_size(size_mention_match.group(1))
+    return None
 _TRAILING_PRICE_RE = re.compile(
     rf"{_DASH}\s*(\d[\d\s]*)\s*(?:UAH|грн|₴|гр\b)?\s*$",
     re.IGNORECASE,
@@ -136,6 +172,9 @@ _COLOR_ALL_SIZES_PRICE_RE = re.compile(
 )
 _MIN_BARE_PRICE = Decimal("100")
 _OLD_PRICE_PAREN_RE = re.compile(r"(?i)\(\s*замість\b[^)]*\)?")
+_OLD_PRICE_VALUE_RE = re.compile(
+    r"(?i)замість\s*(\d[\d\s]*)|було\s*(\d[\d\s]*)\s*(?:грн|UAH|₴)?"
+)
 
 def _to_decimal(raw: str) -> Decimal | None:
     cleaned = raw.replace(" ", "")
@@ -179,6 +218,15 @@ def _extract_price(text: str) -> Decimal | None:
             return price
     return None
 
+def _extract_old_price(text: str) -> Decimal | None:
+    """Стара ціна з явних форматів «замість N» / «було N» — тільки коли в
+    тексті названо ОБИДВІ суми, інакше не вигадуємо compare_price."""
+    match = _OLD_PRICE_VALUE_RE.search(text)
+    if not match:
+        return None
+    raw = next((group for group in match.groups() if group), None)
+    return _to_decimal(raw) if raw else None
+
 def _has_currency_marker(text: str) -> bool:
     return "🏷️" in text or bool(
         re.search(r"(?:UAH|грн|₴)|\bгр\b", text, re.IGNORECASE)
@@ -215,6 +263,7 @@ def _normalize_size(raw: str) -> str:
 _COLOR_SIZE_LABEL_SUFFIX_RE = re.compile(
     r"(?i)\s*розмір(?:и|на\s*сітка)\S*(?:\s*та\s*ціни)?\s*:?\s*$"
 )
+_COLOR_LABEL_PREFIX_RE = re.compile(r"(?i)^колір\S*(?:\s+\S+)?\s*:\s*")
 
 def _clean_color_header(raw: str) -> str:
     text = raw.lstrip("•▫▪◦").strip()
@@ -223,6 +272,9 @@ def _clean_color_header(raw: str) -> str:
     # «блакитна Розміри:» / «чорна Розмірна сітка:» — колір і мітка розділу
     # злиті в один рядок; лишаємо тільки назву кольору.
     text = _COLOR_SIZE_LABEL_SUFFIX_RE.sub("", text).strip()
+    # «Колір оправи: золотистий» / «Колір: чорний» — лейбл-префікс перед
+    # назвою кольору; лишаємо саме назву, а не весь підпис.
+    text = _COLOR_LABEL_PREFIX_RE.sub("", text).strip()
     text = text.strip(" -—–")
     return text
 
@@ -312,9 +364,11 @@ def _parse_variant_line(line: str, *, color: str | None) -> ParsedVariant | None
             note=stripped,
         )
 
+    old_price = _extract_old_price(stripped)
     return ParsedVariant(
         size=size,
         price=price,
+        compare_price=old_price if old_price and old_price > price else None,
         stock_qty=_extract_stock_qty(stripped, is_available=True),
         is_available=True,
         color=color,
@@ -332,6 +386,8 @@ def normalize_color_label(raw: str) -> str | None:
     if "цін" in lowered or "розмір" in lowered or "сітка" in lowered:
         return None
     if "під замовлення" in lowered:
+        return None
+    if lowered in {"one size", "onesize"}:
         return None
     # «передоплата», «акція», «знижка», «наявність» — статус/маркетингові
     # слова біля ціни, не назва кольору.
@@ -387,6 +443,11 @@ def is_color_price_line(line: str) -> bool:
 def _is_color_header(line: str, next_line: str | None) -> bool:
     from .parser_variant_extras import _CYR_SIZE_PREORDER_PRICE_RE
 
+    # «коричнева 2 штуки» — колір із кількістю в наявності, а не заголовок
+    # кольору перед окремим блоком розмірів/цін.
+    if _COLOR_STOCK_LINE_RE.match(line.strip()):
+        return False
+
     stripped = _extract_color_header_name(line)
     if not stripped or len(stripped) > 40:
         return False
@@ -438,6 +499,40 @@ def _should_wait_for_price_line(line: str, next_line: str | None) -> bool:
         return True
     return bool(_SIZE_LETTER_EU_RANGE_RE.match(line))
 
+def looks_like_variant_line(
+    line: str, *, caption: str, color: str | None = None
+) -> bool:
+    """
+    Єдине джерело правди про те, чи рядок капшена є "варіантним"
+    (розмір/колір/ціна) — щоб такий рядок не лишався продубльованим
+    текстом у `description`. Використовує ті самі перевірки, що й
+    `extract_variants`, тож description і variants завжди узгоджені.
+    """
+    from .parser_variant_extras import try_parse_extra_variant_line
+
+    stripped = line.strip()
+    if not stripped:
+        return False
+    if _VARIANT_SECTION_RE.match(stripped):
+        return True
+    if is_color_price_line(stripped):
+        return True
+    if _SIZE_LINE_RE.match(stripped) or _SIZE_MEASUREMENT_RE.match(stripped):
+        return True
+    if _SIZE_FOOT_LENGTH_ONLY_RE.match(stripped):
+        return True
+    if _BARE_LETTER_ONLY_RE.match(stripped) or _BARE_LETTER_LIST_RE.match(stripped):
+        return True
+    if try_parse_extra_variant_line(stripped, caption=caption, color=color):
+        return True
+    # Гола ціна («під замовлення 🏷️6550», «2 в наявності 🏷️7550») без
+    # прив'язки до конкретного розміру — це той самий рядок, який
+    # `extract_variants` перетворює на фолбековий ONE SIZE-варіант; не
+    # повинен лишатись ще й текстом в описі.
+    if _has_currency_marker(stripped) and _extract_price(stripped) is not None:
+        return True
+    return False
+
 def extract_variants(caption: str) -> list[ParsedVariant]:
     from .parser_list_formats import extract_list_format_variants
     from .parser_variant_extras import try_parse_extra_variant_line
@@ -449,12 +544,23 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
     lines = caption.splitlines()
     variants: list[ParsedVariant] = []
     current_color: str | None = None
+    current_availability: bool | None = None
     pending_size_line: str | None = None
     measurement_sizes: list[str] = []
+    pending_colors: list[tuple[str, int]] = []
 
     for index, line in enumerate(lines):
         stripped = line.strip()
         if not stripped:
+            continue
+
+        if _AVAILABILITY_CONTEXT_RE.match(stripped):
+            current_availability = True
+            pending_size_line = None
+            continue
+        if _PREORDER_CONTEXT_RE.match(stripped):
+            current_availability = False
+            pending_size_line = None
             continue
 
         next_line = _next_nonempty_line(lines, index)
@@ -487,7 +593,28 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
 
         measurement_match = _SIZE_MEASUREMENT_RE.match(stripped)
         if measurement_match:
-            measurement_sizes.append(_normalize_size(measurement_match.group(1)))
+            # «XS — ОГ 82–86 см — 🏷️ 2950 грн» — рядок несе власну ціну, тож
+            # це вже готовий варіант, а не запис для спільної ціни в кінці
+            # капшена (інакше всі розміри отримають ОДНУ й ту саму ціну).
+            own_price = _extract_price(stripped)
+            if own_price is not None:
+                sold_out = _is_sold_out(stripped)
+                size = _normalize_size(measurement_match.group(1))
+                stock_qty = 0
+                if not sold_out:
+                    stock_qty = _extract_stock_qty(stripped, is_available=True) or 1
+                variants.append(
+                    ParsedVariant(
+                        size=size,
+                        price=own_price,
+                        stock_qty=stock_qty,
+                        is_available=not sold_out,
+                        color=current_color,
+                        note=stripped,
+                    )
+                )
+            else:
+                measurement_sizes.append(_normalize_size(measurement_match.group(1)))
             pending_size_line = None
             continue
 
@@ -496,6 +623,14 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
             measurement_sizes.append(_normalize_size(us_eu_cm_match.group("size")))
             pending_size_line = None
             continue
+
+        color_stock_match = _COLOR_STOCK_LINE_RE.match(stripped)
+        if color_stock_match:
+            color_name = normalize_color_label(color_stock_match.group("color"))
+            if color_name and _COLOR_HEADER_RE.match(color_stock_match.group("color")):
+                pending_colors.append((color_name, int(color_stock_match.group("qty"))))
+                pending_size_line = None
+                continue
 
         if pending_size_line and ("🏷️" in stripped or _extract_price(stripped)):
             sold_out = _is_sold_out(pending_size_line) or _is_sold_out(stripped)
@@ -510,6 +645,7 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
             )
             if is_foot_length:
                 size_match = _SIZE_FOOT_LENGTH_ONLY_RE.match(pending_size_line)
+            pending_line = pending_size_line
             pending_size_line = None
             if size_match and price is not None:
                 size = _normalize_size(size_match.group(1))
@@ -518,10 +654,14 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
                     stock_qty = _extract_stock_qty(stripped, is_available=True)
                     if not stock_qty and is_foot_length:
                         stock_qty = 1
+                old_price = _extract_old_price(stripped) or _extract_old_price(
+                    pending_line or ""
+                )
                 variants.append(
                     ParsedVariant(
                         size=size,
                         price=price,
+                        compare_price=old_price if old_price and old_price > price else None,
                         stock_qty=stock_qty,
                         is_available=not sold_out,
                         color=current_color,
@@ -584,13 +724,23 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
         if "🏷️" in stripped or _extract_price(stripped):
             price = _extract_price(stripped)
             if price is not None and measurement_sizes:
-                stock_default = 0 if "під замовлення" in caption.lower() else 1
-                stock_qty = (
-                    1
-                    if caption_signals_in_stock(caption)
-                    else stock_default
-                )
+                if current_availability is not None:
+                    stock_qty = 1 if current_availability else 0
+                else:
+                    stock_default = 0 if "під замовлення" in caption.lower() else 1
+                    stock_qty = (
+                        1 if caption_signals_in_stock(caption) else stock_default
+                    )
                 for size in measurement_sizes:
+                    # «М» уже підтверджений «в наявності» в попередньому
+                    # блоці цього ж капшена — пізніший загальний список
+                    # «під замовлення» не повинен понижувати його до 0.
+                    already_in_stock = any(
+                        v.size == size and v.color == current_color and v.stock_qty > 0
+                        for v in variants
+                    )
+                    if already_in_stock and stock_qty == 0:
+                        continue
                     variants.append(
                         ParsedVariant(
                             size=size,
@@ -601,6 +751,23 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
                         )
                     )
                 measurement_sizes.clear()
+                continue
+
+            if price is not None and pending_colors:
+                # «зелена лінза 4 штуки» / «коричнева 2 штуки» — кольори з
+                # кількістю на власних рядках, а спільна ціна для обох —
+                # рядком нижче («…на два кольори одна ціна 🏷️4550»).
+                for color_name, qty in pending_colors:
+                    variants.append(
+                        ParsedVariant(
+                            size="ONE SIZE",
+                            price=price,
+                            stock_qty=qty,
+                            is_available=True,
+                            color=color_name,
+                        )
+                    )
+                pending_colors = []
                 continue
 
             if price is not None:
@@ -627,15 +794,13 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
                     continue
                 size = "ONE SIZE"
                 if not variants:
-                    foot_length_match = _CAPTION_WIDE_FOOT_LENGTH_SIZE_RE.search(
-                        caption
-                    )
-                    if foot_length_match:
-                        size = _normalize_size(foot_length_match.group(1))
+                    size = _wide_size_from_caption(caption) or size
+                old_price = _extract_old_price(stripped)
                 variants.append(
                     ParsedVariant(
                         size=size,
                         price=price,
+                        compare_price=old_price if old_price and old_price > price else None,
                         stock_qty=1 if caption_signals_in_stock(caption) else 0,
                         is_available=True,
                         color=current_color,
@@ -645,8 +810,11 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
     if measurement_sizes:
         price = _extract_price(caption)
         if price is not None:
-            stock_default = 0 if "під замовлення" in caption.lower() else 1
-            stock_qty = 1 if caption_signals_in_stock(caption) else stock_default
+            if current_availability is not None:
+                stock_qty = 1 if current_availability else 0
+            else:
+                stock_default = 0 if "під замовлення" in caption.lower() else 1
+                stock_qty = 1 if caption_signals_in_stock(caption) else stock_default
             for size in measurement_sizes:
                 variants.append(
                     ParsedVariant(
@@ -661,20 +829,57 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
     if not variants:
         price = _extract_price(caption)
         if price is not None:
-            size = "ONE SIZE"
-            foot_length_match = _CAPTION_WIDE_FOOT_LENGTH_SIZE_RE.search(caption)
-            if foot_length_match:
-                size = _normalize_size(foot_length_match.group(1))
+            size = _wide_size_from_caption(caption) or "ONE SIZE"
+            old_price = _extract_old_price(caption)
             variants.append(
                 ParsedVariant(
                     size=size,
                     price=price,
+                    compare_price=old_price if old_price and old_price > price else None,
                     stock_qty=1 if caption_signals_in_stock(caption) else 0,
                     is_available=True,
                 )
             )
 
+    variants = _apply_named_colors_without_own_price(variants, caption)
     return _backfill_missing_prices(variants)
+
+
+def _apply_named_colors_without_own_price(
+    variants: list[ParsedVariant], caption: str
+) -> list[ParsedVariant]:
+    """
+    «чорні , рожеві та білі в одну ціну» — розміри/ціни вже розібрані вище
+    без кольору (кожен колір коштує однаково); множимо вже знайдені
+    безколірні варіанти на кожен названий колір, інакше на сайті колір
+    товару неможливо обрати взагалі.
+    """
+    match = _NAMED_COLORS_SHARED_PRICE_RE.search(caption)
+    if not match:
+        return variants
+    colorless = [v for v in variants if v.color is None]
+    if not colorless:
+        return variants
+    parts = re.split(r"\s*,\s*|\s+(?:та|і)\s+", match.group("colors").strip())
+    colors = [normalize_color_label(part) for part in parts if part.strip()]
+    colors = [c for c in colors if c]
+    if len(colors) < 2:
+        return variants
+    with_color = [v for v in variants if v.color is not None]
+    multiplied = [
+        ParsedVariant(
+            size=variant.size,
+            price=variant.price,
+            stock_qty=variant.stock_qty,
+            is_available=variant.is_available,
+            color=color_name,
+            note=variant.note,
+            compare_price=variant.compare_price,
+        )
+        for color_name in colors
+        for variant in colorless
+    ]
+    return with_color + multiplied
 
 
 def _backfill_missing_prices(

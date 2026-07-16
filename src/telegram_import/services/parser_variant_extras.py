@@ -319,6 +319,82 @@ def parse_size_foot_length_price_line(
     )
 
 
+_SIZE_PAREN_NOTE_PRICE_RE = re.compile(
+    rf"^[•▫▪◦\-\s🔹📏\uFE0F]*(?:✅|❌)?\s*(?P<size>{_SIZE_TOKEN_CAPTURE})\s*"
+    r"\([^)]*\)\s*"
+    rf"(?:{_DASH}\s*)?"
+    r"(?:🏷️\s*(?P<price1>\d[\d\s]*)|(?P<price2>\d[\d\s]*)\s*(?:грн|UAH|₴|гр\b)?)\s*$",
+    re.IGNORECASE,
+)
+
+
+def parse_size_paren_note_price_line(
+    line: str, *, color: str | None = None
+) -> ParsedVariant | None:
+    """
+    «S (ПОГ 56см, довжина 69см, рукав 67см) 🏷️5250» — розмір-літера з
+    приміткою-заміром у дужках і ціною одразу після (з тире чи без нього).
+    На відміну від `_SIZE_WITH_NOTE_PRICE_RE`/`_SIZE_FOOT_LENGTH_PRICE_RE`
+    (лише цифрові розміри й обов'язкове тире) тут розмір може бути літерою
+    (S/M/L), а тире — необов'язкове.
+    """
+    stripped = line.strip()
+    match = _SIZE_PAREN_NOTE_PRICE_RE.match(stripped)
+    if not match:
+        return None
+    raw_price = match.group("price1") or match.group("price2")
+    price = _to_decimal(raw_price) if raw_price else None
+    if price is None:
+        return None
+    sold_out = _is_sold_out(stripped)
+    stock = 0
+    if not sold_out:
+        stock = _extract_stock_qty(stripped, is_available=True) or 1
+    return ParsedVariant(
+        size=_normalize_size(match.group("size")),
+        price=price,
+        stock_qty=stock,
+        is_available=not sold_out,
+        color=color,
+        note=stripped,
+    )
+
+
+_BARE_SOLD_OUT_SIZE_RE = re.compile(
+    rf"^[•▫▪◦\-\s🔹📏\uFE0F]*(?P<size>{_SIZE_TOKEN_CAPTURE})\s*(?P<tail>.*)$",
+    re.IGNORECASE,
+)
+
+
+def parse_bare_sold_out_size_line(
+    line: str, *, color: str | None = None
+) -> ParsedVariant | None:
+    """
+    «L ❌Sold out» / «XL Sold Out» — розмір без тире й без ціни, лише
+    позначка «немає в наявності». Ціну добере `_backfill_missing_prices`
+    наприкінці `extract_variants` із сусіднього доступного варіанта.
+    """
+    stripped = line.strip()
+    match = _BARE_SOLD_OUT_SIZE_RE.match(stripped)
+    if not match:
+        return None
+    tail = match.group("tail").strip()
+    # Хвіст має бути лише позначкою «немає» — жодних цифр (інакше це вже
+    # рядок з розміром-заміром/ціною, який мають розібрати інші парсери).
+    if not tail or any(ch.isdigit() for ch in tail) or len(tail) > 20:
+        return None
+    if not _is_sold_out(tail):
+        return None
+    return ParsedVariant(
+        size=_normalize_size(match.group("size")),
+        price=Decimal("0"),
+        stock_qty=0,
+        is_available=False,
+        color=color,
+        note=stripped,
+    )
+
+
 _COLOR_COLON_SIZE_LIST_PRICE_RE = re.compile(
     r"^(?P<color>[а-яіїєґ'’\s]+?)\s*:\s*"
     r"(?P<sizes>(?:хс|хл|ххл|[смл])(?:\s*(?:,|та|і)\s*(?:хс|хл|ххл|[смл]))*)\s+"
@@ -490,6 +566,9 @@ def try_parse_extra_variant_line(
     size_note = parse_size_with_note_price_line(line, color=color)
     if size_note:
         return [size_note]
+    paren_note_price = parse_size_paren_note_price_line(line, color=color)
+    if paren_note_price:
+        return [paren_note_price]
     color_size = parse_color_size_price_line(line, fallback_color=color)
     if color_size:
         return [color_size]
@@ -502,4 +581,10 @@ def try_parse_extra_variant_line(
     ruler = parse_ruler_stock_line(line, caption=caption, color=color)
     if ruler:
         return [ruler]
+    # Максимально загальний фолбек — лише «SIZE ❌Sold out» без жодних
+    # цифр у хвості, тож пробуємо його останнім, щоб не перехопити рядки,
+    # які мали розібрати точніші парсери вище.
+    bare_sold_out = parse_bare_sold_out_size_line(line, color=color)
+    if bare_sold_out:
+        return [bare_sold_out]
     return []

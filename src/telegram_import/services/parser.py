@@ -8,10 +8,13 @@ from .parser_types import ParsedProduct
 from .parser_variants import (
     extract_variants,
     is_color_price_line,
+    looks_like_variant_line,
 )
 
 _VARIANT_SECTION_RE = re.compile(
-    r"^(?:📏\s*)?(?:розміри\s*(?:та\s*ціни)?|розмірна\s*сітка|"
+    # «Розміри:» саме собою — майже завжди фізичні виміри товару (сумки),
+    # не таблиця розмір↔ціна; вимагаємо «та ціни» щоб не зрізати опис.
+    r"^(?:📏\s*)?(?:розміри\s+та\s*ціни|розмірна\s*сітка|"
     r"кольор(?:и|ів)?\s*(?:та\s*ціни)?)\s*:?\s*$",
     re.IGNORECASE,
 )
@@ -293,6 +296,14 @@ def _extract_description(caption: str, title: str) -> str:
             break
         if _is_probable_color_header(stripped) and not _PHYSICAL_SIZE_RE.match(stripped):
             break
+        # Будь-який рядок, який `extract_variants` уже розпізнає як
+        # розмір/колір/ціну (в т.ч. розширені формати з
+        # parser_variant_extras) — не повинен лишатись продубльованим
+        # текстом в описі. Спрацьовує навіть на першому рядку після
+        # заголовка — інакше опис лишиться порожнім і впаде у фолбек
+        # «весь caption цілком» (рядок нижче: `description or caption`).
+        if looks_like_variant_line(stripped, caption=caption):
+            break
 
         description_lines.append(stripped)
 
@@ -302,7 +313,14 @@ def _extract_description(caption: str, title: str) -> str:
         if line and not _BRAND_LINE_RE.match(line)
     ]
     description = "\n".join(cleaned_lines).strip()
-    return description or caption.strip()
+    if description:
+        return description
+    if title_found:
+        # Заголовок знайшли, а все, що йде після нього — розміри/ціни
+        # (жодного вільного тексту немає). Порожній опис тут коректніший,
+        # ніж дублювати всю таблицю розмірів/цін ще раз текстом.
+        return ""
+    return caption.strip()
 
 
 def _is_probable_color_header(line: str) -> bool:

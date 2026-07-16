@@ -86,6 +86,8 @@ class Command(BaseCommand):
                 and product.base_price != parsed.base_price
             ):
                 updates["base_price"] = parsed.base_price
+            if product.compare_price != parsed.compare_price:
+                updates["compare_price"] = parsed.compare_price
 
             will_sync_variants = False
             if not skip_variants and parsed.variants:
@@ -134,6 +136,11 @@ class Command(BaseCommand):
             if "base_price" in updates:
                 preview += (
                     f"\n  base_price: {product.base_price} → {updates['base_price']}"
+                )
+            if "compare_price" in updates:
+                preview += (
+                    f"\n  compare_price: {product.compare_price} → "
+                    f"{updates['compare_price']}"
                 )
             if will_sync_variants:
                 preview += (

@@ -254,6 +254,22 @@ def _find_existing_variant(
     return None
 
 
+def _compute_compare_price(
+    parsed_variants: list[ParsedVariant], base_price: Decimal
+) -> Decimal | None:
+    """Стара ціна, прив'язана саме до варіанта з `base_price` (мін. ціна
+    серед variants) — щоб закреслена ціна на сайті відповідала саме тій
+    сумі знижки, яку продавець вказав у Telegram."""
+    for variant in parsed_variants:
+        if (
+            variant.price == base_price
+            and variant.compare_price
+            and variant.compare_price > base_price
+        ):
+            return variant.compare_price
+    return None
+
+
 def _sync_variants(
     product: Product,
     *,
@@ -336,7 +352,10 @@ def _sync_variants(
         ]
     if prices:
         product.base_price = min(prices)
-        product.save(update_fields=["base_price"])
+        product.compare_price = _compute_compare_price(
+            parsed_variants, product.base_price
+        )
+        product.save(update_fields=["base_price", "compare_price"])
 
 
 def _find_duplicate_product(
@@ -517,6 +536,7 @@ def import_telegram_message(
 
     default_price = Decimal(settings.TELEGRAM_DEFAULT_PRICE)
     base_price = parsed.base_price or default_price
+    compare_price = parsed.compare_price
 
     # Атомарний блок лише навколо самого запису товару: якщо тут щось
     # впаде, не хочемо ні напів-створеного Product, ні втраченого
@@ -531,6 +551,7 @@ def import_telegram_message(
                 description=parsed.description,
                 gender=parsed.gender,
                 base_price=base_price,
+                compare_price=compare_price,
                 is_active=settings.TELEGRAM_IMPORT_AS_ACTIVE,
             )
             record.product = product
@@ -542,6 +563,7 @@ def import_telegram_message(
             product.description = parsed.description
             product.gender = parsed.gender
             product.base_price = base_price
+            product.compare_price = compare_price
             product.save()
 
         _sync_variants(
