@@ -166,6 +166,8 @@ _BRAND_ALIASES: dict[str, str] = {
     "левіс": "Levi's",
     "maison margiela": "Maison Margiela",
     "margiela": "Maison Margiela",
+    "totême": "Toteme",
+    "toteme": "Toteme",
 }
 
 

@@ -52,6 +52,8 @@ BRANDS = [
     ("Elisabetta Franchi", "elisabetta-franchi", "Italy"),
     ("Maison Margiela", "maison-margiela", "Italy"),
     ("Levi's", "levis", "USA"),
+    ("Toteme", "toteme", "Sweden"),
+    ("Mulberry", "mulberry", "UK"),
     ("Без бренду", "unbranded", ""),
 ]
 
