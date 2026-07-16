@@ -137,6 +137,17 @@ TELEGRAM_SESSION_STRING = config("TELEGRAM_SESSION_STRING", default="")
 # @username публічного каналу або invite-link slug (якщо CHANNEL_ID ще невідомий)
 TELEGRAM_CHANNEL_USERNAME = config("TELEGRAM_CHANNEL_USERNAME", default="")
 
+# Додаткові канали/групи (напр. після migration з basic group у supergroup,
+# або паралельні джерела товарів), яким також дозволено імпортувати товари.
+# Формат: "-100123,-100456". TELEGRAM_CHANNEL_ID завжди дозволений автоматично.
+TELEGRAM_ALLOWED_CHANNEL_IDS = {
+    int(value.strip())
+    for value in config("TELEGRAM_ALLOWED_CHANNEL_IDS", default="").split(",")
+    if value.strip()
+}
+if TELEGRAM_CHANNEL_ID:
+    TELEGRAM_ALLOWED_CHANNEL_IDS.add(TELEGRAM_CHANNEL_ID)
+
 CONTENT_SECURITY_POLICY = {
     "EXCLUDE_URL_PREFIXES": ("/admin/",),
     "DIRECTIVES": {

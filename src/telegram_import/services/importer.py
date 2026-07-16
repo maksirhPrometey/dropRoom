@@ -426,15 +426,18 @@ def import_telegram_message(
     media_group_id: str = "",
     photo_files: list[tuple[str, bytes]] | None = None,
 ) -> TelegramImport:
-    if settings.TELEGRAM_CHANNEL_ID and channel_id != settings.TELEGRAM_CHANNEL_ID:
-        record = TelegramImport.objects.create(
+    allowed_channel_ids = settings.TELEGRAM_ALLOWED_CHANNEL_IDS
+    if allowed_channel_ids and channel_id not in allowed_channel_ids:
+        record, _created = TelegramImport.objects.get_or_create(
             channel_id=channel_id,
             message_id=message_id,
-            media_group_id=media_group_id,
-            raw_caption=caption,
-            photo_file_ids=photo_file_ids,
-            status=TelegramImport.STATUS_SKIPPED,
-            error="Канал не в whitelist",
+            defaults={
+                "media_group_id": media_group_id,
+                "raw_caption": caption,
+                "photo_file_ids": photo_file_ids,
+                "status": TelegramImport.STATUS_SKIPPED,
+                "error": "Канал не в whitelist",
+            },
         )
         return record
 
