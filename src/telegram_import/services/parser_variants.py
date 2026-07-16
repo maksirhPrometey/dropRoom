@@ -89,6 +89,13 @@ _SIZE_MEASUREMENT_RE = re.compile(
     rf"^[{_BULLET_CLASS}]*(?:✅|❌)?\s*({_SIZE_LETTER})\s*{_DASH}\s*(?:груди|ог|обхват)",
     re.IGNORECASE,
 )
+# «6,5US - 37 - 23,5 см» — розмір взуття у трьох системах (US - EU - см
+# стопи); беремо середнє (EU) значення як канонічний розмір.
+_SIZE_US_EU_CM_RE = re.compile(
+    rf"^\d+(?:[,.]\d+)?\s*US\s*{_DASH}\s*(?P<size>\d{{2}}(?:[,.]\d)?)\s*{_DASH}\s*"
+    r"[\d,.]+\s*см\s*$",
+    re.IGNORECASE,
+)
 _SIZE_RANGE_AFTER_DASH_RE = re.compile(
     rf"^{_DASH}\s*\d{{2}}(?:[,.]\d)?\s*{_DASH}\s*\d{{2}}",
 )
@@ -219,6 +226,22 @@ def _clean_color_header(raw: str) -> str:
     text = text.strip(" -—–")
     return text
 
+_TRAILING_PAREN_RE = re.compile(r"\(([^)]+)\)\s*$")
+
+def _extract_color_header_name(raw: str) -> str:
+    """
+    «🤎 Espresso (коричневий)» — англійська назва кольору з українським
+    перекладом у дужках; emoji-префікс зрізаємо, а якщо в дужках лежить
+    справжнє українське слово-колір — довіряємо саме йому, а не англійській
+    назві перед ним.
+    """
+    de_emojified = _COLOR_EMOJI_PREFIX_RE.sub("", raw.strip()).strip()
+    cleaned = _clean_color_header(de_emojified.lstrip("•▫▪◦").strip())
+    paren_match = _TRAILING_PAREN_RE.search(cleaned)
+    if paren_match and _COLOR_HEADER_RE.match(paren_match.group(1).strip()):
+        return paren_match.group(1).strip()
+    return cleaned
+
 def _next_nonempty_line(lines: list[str], index: int) -> str | None:
     for line in lines[index + 1 :]:
         stripped = line.strip()
@@ -310,6 +333,13 @@ def normalize_color_label(raw: str) -> str | None:
         return None
     if "під замовлення" in lowered:
         return None
+    # «передоплата», «акція», «знижка», «наявність» — статус/маркетингові
+    # слова біля ціни, не назва кольору.
+    if any(
+        marker in lowered
+        for marker in ("передоплат", "акці", "знижк", "наявност", "замовленн")
+    ):
+        return None
     if _SIZE_TOKEN_ONLY_RE.match(text) or re.search(r"\d", text):
         return None
     if "," in text:
@@ -357,7 +387,7 @@ def is_color_price_line(line: str) -> bool:
 def _is_color_header(line: str, next_line: str | None) -> bool:
     from .parser_variant_extras import _CYR_SIZE_PREORDER_PRICE_RE
 
-    stripped = _clean_color_header(line.strip().lstrip("•▫▪◦").strip())
+    stripped = _extract_color_header_name(line)
     if not stripped or len(stripped) > 40:
         return False
     lowered = stripped.lower()
@@ -429,7 +459,7 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
 
         next_line = _next_nonempty_line(lines, index)
         if _is_color_header(stripped, next_line):
-            current_color = _clean_color_header(stripped.lstrip("•▫▪◦").strip()) or None
+            current_color = _extract_color_header_name(stripped) or None
             pending_size_line = None
             continue
 
@@ -446,6 +476,12 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
         )
         if extras:
             variants.extend(extras)
+            # Розмір уже отримав власну ціну тут — прибираємо його з
+            # measurement_sizes, інакше наприкінці капшена спрацює
+            # запасний механізм і додасть ще один (неправильний) варіант.
+            for extra_variant in extras:
+                if extra_variant.size in measurement_sizes:
+                    measurement_sizes.remove(extra_variant.size)
             pending_size_line = None
             continue
 
@@ -455,27 +491,45 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
             pending_size_line = None
             continue
 
+        us_eu_cm_match = _SIZE_US_EU_CM_RE.match(stripped)
+        if us_eu_cm_match:
+            measurement_sizes.append(_normalize_size(us_eu_cm_match.group("size")))
+            pending_size_line = None
+            continue
+
         if pending_size_line and ("🏷️" in stripped or _extract_price(stripped)):
             sold_out = _is_sold_out(pending_size_line) or _is_sold_out(stripped)
             price = _extract_price(stripped) or _extract_price(pending_size_line)
-            size_match = _SIZE_LINE_RE.match(
-                pending_size_line
-            ) or _SIZE_FOOT_LENGTH_ONLY_RE.match(pending_size_line)
+            size_match = _SIZE_LINE_RE.match(pending_size_line)
+            # «SIZE (X см)» без тире — ціна на іншому рядку, без явного
+            # маркера наявності поруч; беремо той самий дефолт «1», що й
+            # односрядковий формат («🔹 35 (22 см) — 🏷️ …»), а не залишаємо
+            # 0, як для звичного pending-розв'язання нижче.
+            is_foot_length = size_match is None and bool(
+                _SIZE_FOOT_LENGTH_ONLY_RE.match(pending_size_line)
+            )
+            if is_foot_length:
+                size_match = _SIZE_FOOT_LENGTH_ONLY_RE.match(pending_size_line)
             pending_size_line = None
             if size_match and price is not None:
                 size = _normalize_size(size_match.group(1))
+                stock_qty = 0
+                if not sold_out:
+                    stock_qty = _extract_stock_qty(stripped, is_available=True)
+                    if not stock_qty and is_foot_length:
+                        stock_qty = 1
                 variants.append(
                     ParsedVariant(
                         size=size,
                         price=price,
-                        stock_qty=0
-                        if sold_out
-                        else (_extract_stock_qty(stripped, is_available=True) or 1),
+                        stock_qty=stock_qty,
                         is_available=not sold_out,
                         color=current_color,
                         note=stripped,
                     )
                 )
+                if size in measurement_sizes:
+                    measurement_sizes.remove(size)
             continue
 
         if _should_wait_for_price_line(stripped, next_line):
@@ -497,6 +551,8 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
         variant = _parse_variant_line(stripped, color=current_color)
         if variant:
             variants.append(variant)
+            if variant.size in measurement_sizes:
+                measurement_sizes.remove(variant.size)
             pending_size_line = None
             continue
 
@@ -548,6 +604,20 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
                 continue
 
             if price is not None:
+                # «передоплата 🏷️350 UAH» / «акція 🏷️1150 (за дві)» —
+                # депозит або ціна за кілька штук, коли базова ціна вже
+                # знайдена; не підмінюємо нею основний варіант.
+                bulk_tier_markers = (
+                    "передоплат",
+                    "за дві",
+                    "за три",
+                    "за набір",
+                    "акці",
+                )
+                if variants and any(
+                    marker in stripped.lower() for marker in bulk_tier_markers
+                ):
+                    continue
                 pure_price = re.fullmatch(
                     r"🏷️?\s*\d[\d\s]*(?:\s*(?:UAH|грн|₴))?\s*$",
                     stripped,

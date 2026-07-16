@@ -64,7 +64,7 @@ _BARE_SIZE_PRICE_TAG_RE = re.compile(
     re.IGNORECASE,
 )
 _BARE_COLOR_LIST_PRICE_RE = re.compile(
-    r"^(?P<colors>[а-яіїєґ'’\s]+?)\s+(?P<price>\d{3,6})\s*$",
+    r"^(?P<colors>[а-яіїєґ'’\s]+?)\s+(?:🏷️\s*)?(?P<price>\d{3,6})\s*(?:грн|UAH|₴)?\s*$",
     re.IGNORECASE,
 )
 
