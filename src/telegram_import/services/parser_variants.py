@@ -190,7 +190,11 @@ _COLOR_ALL_SIZES_PRICE_RE = re.compile(
 _MIN_BARE_PRICE = Decimal("100")
 _OLD_PRICE_PAREN_RE = re.compile(r"(?i)\(\s*замість\b[^)]*\)?")
 _OLD_PRICE_VALUE_RE = re.compile(
-    r"(?i)замість\s*(\d[\d\s]*)|було\s*(\d[\d\s]*)\s*(?:грн|UAH|₴)?"
+    r"(?i)замість\s*(\d[\d\s]*)|було\s*(\d[\d\s]*)\s*(?:грн|UAH|₴)?|"
+    # «₴17,400.00 🏷️7950» — старий формат каналу DropGoods: стара ціна з
+    # «₴»-префіксом (кома-тисячні, крапка-десяткові) одразу перед новою
+    # ціною з «🏷️», без слова «замість»/«було».
+    r"₴\s*([\d,]+(?:\.\d+)?)\s*🏷️"
 )
 
 def _to_decimal(raw: str) -> Decimal | None:

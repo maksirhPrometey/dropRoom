@@ -326,6 +326,15 @@ TOTEME_SCARF_BARE_OLD_PRICE = """Toteme Monogram Jacquard Wool Scarf Dark Beige
 7450 ( замість 12300 )"""
 
 
+SAINT_LAURENT_SUNGLASSES_DROPGOODS_PRICE = (
+    "Saint Laurent Shade Black SL 557\n"
+    "\xa0\n"
+    "Сонцезахисні окуляри Saint Laurent Shade Black SL 557 у вузькій "
+    'подовженій оправі "котяче око"   100% захист від uva/uvb\n'
+    "₴17,400.00 🏷️7950"
+)
+
+
 PINKO_BAG_BARE_DIMENSIONS = """Сумка Pinko
 
 Бренд : pinko
@@ -401,6 +410,9 @@ class ChannelCaptionParserTests(TestCase):
         Brand.objects.get_or_create(name="Miu Miu", defaults={"slug": "miu-miu"})
         Brand.objects.get_or_create(name="Pinko", defaults={"slug": "pinko"})
         Brand.objects.get_or_create(name="Toteme", defaults={"slug": "toteme"})
+        Brand.objects.get_or_create(
+            name="Saint Laurent", defaults={"slug": "saint-laurent"}
+        )
         Category.objects.get_or_create(slug="loungewear", defaults={"name": "Loungewear"})
         Category.objects.get_or_create(slug="tops", defaults={"name": "Tops"})
         Category.objects.get_or_create(slug="outerwear", defaults={"name": "Outerwear"})
@@ -751,6 +763,17 @@ class ChannelCaptionParserTests(TestCase):
         self.assertNotIn("7450", parsed.description)
         self.assertNotIn("12300", parsed.description)
         self.assertIn("елегантний дизайн", parsed.description)
+
+    def test_dropgoods_old_price_currency_prefix_format(self):
+        """«₴17,400.00 🏷️7950» — стара ціна з «₴»-префіксом (кома-тисячні,
+        крапка-десяткові) одразу перед новою «🏷️»-ціною, без слова
+        «замість»/«було» (формат каналу DropGoods)."""
+        parsed = self._parse(SAINT_LAURENT_SUNGLASSES_DROPGOODS_PRICE)
+        self.assertEqual(parsed.base_price, Decimal("7950"))
+        self.assertEqual(parsed.compare_price, Decimal("17400.00"))
+        self.assertNotIn("17,400", parsed.description)
+        self.assertNotIn("7950", parsed.description)
+        self.assertIn("котяче око", parsed.description)
 
     def test_pinko_bag_bare_size_header_keeps_description(self):
         """Голе «Розміри:» (без «та ціни») — фізичні виміри сумки, не
