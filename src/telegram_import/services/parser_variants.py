@@ -95,6 +95,11 @@ _COLOR_EMOJI_PREFIX_RE = re.compile(
     r"^[•\-▫▪◦\s]*(?:[\U0001F300-\U0001FAFF\u2600-\u27BF"
     r"🤍🖤💛💚💙🧡❤️🤎💜🟡⚪🔴🔵🟢\uFE0F]+\s*)+",
 )
+# «Молочний 🤍» — той самий емодзі-набір, але в кінці назви кольору.
+_COLOR_EMOJI_SUFFIX_RE = re.compile(
+    r"\s*(?:[\U0001F300-\U0001FAFF\u2600-\u27BF"
+    r"🤍🖤💛💚💙🧡❤️🤎💜🟡⚪🔴🔵🟢\uFE0F]+\s*)+$",
+)
 _SIZE_TOKEN_ONLY_RE = re.compile(
     rf"^(?:{_SIZE_LETTER}|\d{{2}}(?:[,.]\d)?)$",
     re.IGNORECASE,
@@ -288,6 +293,7 @@ _COLOR_LABEL_PREFIX_RE = re.compile(r"(?i)^колір\S*(?:\s+\S+)?\s*:\s*")
 
 def _clean_color_header(raw: str) -> str:
     text = raw.lstrip("•▫▪◦").strip()
+    text = _COLOR_EMOJI_SUFFIX_RE.sub("", text).strip()
     text = re.sub(r"(?i)\s*[—–\-]?\s*під\s*замовлення\s*$", "", text).strip()
     text = re.sub(r"(?i)\s+під\s*замовлення\s*$", "", text).strip()
     # «блакитна Розміри:» / «чорна Розмірна сітка:» — колір і мітка розділу
@@ -306,13 +312,17 @@ def _extract_color_header_name(raw: str) -> str:
     «🤎 Espresso (коричневий)» — англійська назва кольору з українським
     перекладом у дужках; emoji-префікс зрізаємо, а якщо в дужках лежить
     справжнє українське слово-колір — довіряємо саме йому, а не англійській
-    назві перед ним.
+    назві перед ним. «Темно-синій (Navy)» — навпаки, назва вже українська,
+    а дужки — лише зайва позначка мовою оригіналу; тоді просто відкидаємо
+    дужки, а не замінюємо ними основну назву.
     """
     de_emojified = _COLOR_EMOJI_PREFIX_RE.sub("", raw.strip()).strip()
     cleaned = _clean_color_header(de_emojified.lstrip("•▫▪◦").strip())
     paren_match = _TRAILING_PAREN_RE.search(cleaned)
-    if paren_match and _COLOR_HEADER_RE.match(paren_match.group(1).strip()):
-        return paren_match.group(1).strip()
+    if paren_match:
+        if _COLOR_HEADER_RE.match(paren_match.group(1).strip()):
+            return paren_match.group(1).strip()
+        return cleaned[: paren_match.start()].strip()
     return cleaned
 
 def _next_nonempty_line(lines: list[str], index: int) -> str | None:

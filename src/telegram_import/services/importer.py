@@ -1,4 +1,5 @@
 import logging
+import re
 from decimal import Decimal
 
 from django.conf import settings
@@ -42,46 +43,85 @@ def _default_category() -> Category | None:
 # важливий там, де один корінь є підрядком іншого («золот» vs «золотист»).
 COLOR_HEX_BY_STEM: list[tuple[str, str]] = [
     ("чорн", "#1a1a1a"),
+    ("black", "#1a1a1a"),
     ("білі", "#f5f5f0"),
     ("біл", "#f5f5f0"),
+    ("white", "#f5f5f0"),
     ("молочн", "#f2ead6"),
     ("кремов", "#f2ead6"),
+    ("cream", "#f2ead6"),
     ("пісочн", "#e0c9a6"),
+    ("sand", "#e0c9a6"),
     ("бежев", "#d8c3a5"),
+    ("beige", "#d8c3a5"),
+    ("camel", "#c19a6b"),
     ("коричнев", "#6b4226"),
     ("шоколад", "#4a2c20"),
+    ("chocolate", "#4a2c20"),
+    ("brown", "#6b4226"),
+    ("espresso", "#4a2c20"),
     ("леопард", "#a9793a"),
+    ("leopard", "#a9793a"),
+    ("черепахов", "#8b5a2b"),
+    ("tortoise", "#8b5a2b"),
     ("хакі", "#6b6b47"),
+    ("khaki", "#6b6b47"),
     ("оливков", "#6b6b47"),
+    ("olive", "#6b6b47"),
+    ("салатов", "#8bc34a"),
     ("зелен", "#3f6b4a"),
+    ("green", "#3f6b4a"),
     ("м'ятн", "#a8d5ba"),
     ("м’ятн", "#a8d5ba"),
+    ("mint", "#a8d5ba"),
+    ("темно-син", "#1c2f4f"),
+    ("navy", "#1c2f4f"),
     ("син", "#2b4c7e"),
+    ("blue", "#2b4c7e"),
     ("блакитн", "#7ec8e3"),
     ("бірюзов", "#3fb8af"),
+    ("turquoise", "#3fb8af"),
     ("сірий", "#8c8c8c"),
     ("сір", "#8c8c8c"),
+    ("gr[ae]y", "#8c8c8c"),
     ("графіт", "#3a3a3a"),
+    ("graphite", "#3a3a3a"),
     ("срібн", "#c0c0c0"),
+    ("silver", "#c0c0c0"),
     ("золотист", "#c9a227"),
     ("золот", "#c9a227"),
+    ("gold", "#c9a227"),
     ("пудров", "#e8c4c4"),
+    ("powder", "#e8c4c4"),
     ("рожев", "#e8a1b8"),
+    ("pink", "#e8a1b8"),
     ("бордо", "#5e2129"),
+    ("burgundy", "#5e2129"),
     ("червон", "#b23b3b"),
+    ("red", "#b23b3b"),
     ("жовт", "#e0c341"),
+    ("yellow", "#e0c341"),
     ("оранжев", "#d97b3f"),
+    ("orange", "#d97b3f"),
     ("фіолетов", "#6a4c93"),
+    ("purple", "#6a4c93"),
+    ("violet", "#6a4c93"),
     ("лавандов", "#c8b6e2"),
+    ("lavender", "#c8b6e2"),
     ("бузков", "#b89bc9"),
 ]
 _DEFAULT_COLOR_HEX = "#cccccc"
+_HEX_COLOR_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
+
+
+def is_valid_hex_color(value: str) -> bool:
+    return bool(_HEX_COLOR_RE.match(value or ""))
 
 
 def _guess_hex_code(name: str) -> str:
     lowered = name.lower()
     for stem, hex_code in COLOR_HEX_BY_STEM:
-        if stem in lowered:
+        if re.search(stem, lowered):
             return hex_code
     return _DEFAULT_COLOR_HEX
 
