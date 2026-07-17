@@ -123,7 +123,7 @@ class TelegramExportImportTests(TestCase):
             photos_dir = export_dir / "photos"
             photos_dir.mkdir()
             for name in ("lacoste-main.jpg", "lacoste-brown.jpg", "lacoste-extra.jpg"):
-                (photos_dir / name).write_bytes(b"fake-image")
+                (photos_dir / name).write_bytes(f"fake-image-{name}".encode())
 
             (export_dir / "result.json").write_text(
                 json.dumps(export),
@@ -198,7 +198,7 @@ class TelegramExportImportTests(TestCase):
             photos_dir = export_dir / "photos"
             photos_dir.mkdir()
             for name in ("a1.jpg", "a2.jpg", "n1.jpg", "n2.jpg"):
-                (photos_dir / name).write_bytes(b"fake-image")
+                (photos_dir / name).write_bytes(f"fake-image-{name}".encode())
             (export_dir / "result.json").write_text(
                 json.dumps(export),
                 encoding="utf-8",

@@ -404,6 +404,12 @@ def _sync_images(
         if not combined:
             return
 
+        # .delete() на QuerySet прибирає лише записи в БД — сам файл на
+        # диску лишається "осиротілим" назавжди. На сервері з обмеженим
+        # диском це непомітно накопичується; видаляємо явно по одному.
+        for image in product.images.all():
+            if image.image:
+                image.image.delete(save=False)
         product.images.all().delete()
         for sort_order, (filename, content) in enumerate(combined):
             ProductImage.objects.create(

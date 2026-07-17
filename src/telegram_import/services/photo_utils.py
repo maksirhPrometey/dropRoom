@@ -1,3 +1,4 @@
+import hashlib
 import io
 import logging
 from typing import BinaryIO
@@ -181,6 +182,28 @@ def photo_score(
     return score
 
 
+def _deduplicate_indices_by_content(photos: list[tuple[str, bytes]]) -> list[int]:
+    """
+    Той самий пост товару часто ресинхронізується кілька разів (повторний
+    допис із тим самим caption, повторний прихід медіа-групи тощо) — і
+    щоразу «merge_existing» перечитує вже збережені фото поруч із новими.
+    Без дедуплікації за вмістом однакові байти накопичуються знову й знову
+    під новими випадковими іменами файлів. MD5 тут — лише швидкий і
+    достатньо надійний спосіб виявити побайтово ідентичні копії, а не
+    криптографічний захист. Повертає індекси, які треба лишити (щоб
+    паралельний список `sizes` можна було відфільтрувати так само).
+    """
+    seen: set[str] = set()
+    keep: list[int] = []
+    for index, (_filename, content) in enumerate(photos):
+        digest = hashlib.md5(content).hexdigest()
+        if digest in seen:
+            continue
+        seen.add(digest)
+        keep.append(index)
+    return keep
+
+
 def rank_photo_files(
     photos: list[tuple[str, bytes]],
     *,
@@ -188,6 +211,12 @@ def rank_photo_files(
 ) -> list[tuple[str, bytes]]:
     if not photos:
         return []
+
+    keep_indices = _deduplicate_indices_by_content(photos)
+    if len(keep_indices) != len(photos):
+        photos = [photos[i] for i in keep_indices]
+        if sizes:
+            sizes = [sizes[i] for i in keep_indices if i < len(sizes)]
 
     ranked: list[tuple[int, str, bytes]] = []
     for index, (filename, content) in enumerate(photos):

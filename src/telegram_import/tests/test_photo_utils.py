@@ -80,6 +80,36 @@ class PhotoRankingTests(TestCase):
         self.assertEqual(ranked[0][0], "product.jpg")
         self.assertEqual(len(ranked), 1)
 
+    def test_duplicate_content_collapsed_to_one_copy(self):
+        """Той самий пост часто ресинхронізується кілька разів (повторний
+        caption, повторний прихід медіа-групи) — щоразу «merge_existing»
+        перечитує вже збережені фото поруч із новими; без дедуплікації за
+        вмістом однакові байти накопичуються знову й знову під новими
+        випадковими іменами файлів."""
+        photo = _jpeg_bytes(1200, 800)
+        ranked = rank_photo_files(
+            [
+                ("product_v1.jpg", photo),
+                ("product_v1_copy.jpg", photo),
+                ("product_v1_copy2.jpg", photo),
+            ]
+        )
+        self.assertEqual(len(ranked), 1)
+
+    def test_duplicate_content_with_sizes_keeps_alignment(self):
+        chart = _jpeg_bytes(1320, 666)
+        product = _jpeg_bytes(1200, 800)
+        ranked = rank_photo_files(
+            [
+                ("chart.jpg", chart),
+                ("chart_dup.jpg", chart),
+                ("product.jpg", product),
+            ],
+            sizes=[(1320, 666), (1320, 666), (1200, 800)],
+        )
+        self.assertEqual(len(ranked), 1)
+        self.assertEqual(ranked[0][0], "product.jpg")
+
     def test_phone_screenshot_detected_with_real_seed_photo(self):
         photo_path = (
             Path(__file__).resolve().parents[3]
