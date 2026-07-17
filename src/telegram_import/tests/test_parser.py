@@ -335,6 +335,18 @@ SAINT_LAURENT_SUNGLASSES_DROPGOODS_PRICE = (
 )
 
 
+AMI_PARIS_HOODIE_BARE_PRICES_HEADER = """✨ Худі Ami Paris
+
+Мінімалістичне худі преміумкласу з вишитим логотипом Ami de Coeur.
+
+💰 Ціни:
+
+XS — 5450 грн ( 1 в наявності 🏷️5600 )
+S — 5650 грн
+M — 5850 грн ( 1 в наявності 6100 )
+L — 6050 грн"""
+
+
 PINKO_BAG_BARE_DIMENSIONS = """Сумка Pinko
 
 Бренд : pinko
@@ -413,6 +425,7 @@ class ChannelCaptionParserTests(TestCase):
         Brand.objects.get_or_create(
             name="Saint Laurent", defaults={"slug": "saint-laurent"}
         )
+        Brand.objects.get_or_create(name="Ami Paris", defaults={"slug": "ami-paris"})
         Category.objects.get_or_create(slug="loungewear", defaults={"name": "Loungewear"})
         Category.objects.get_or_create(slug="tops", defaults={"name": "Tops"})
         Category.objects.get_or_create(slug="outerwear", defaults={"name": "Outerwear"})
@@ -774,6 +787,17 @@ class ChannelCaptionParserTests(TestCase):
         self.assertNotIn("17,400", parsed.description)
         self.assertNotIn("7950", parsed.description)
         self.assertIn("котяче око", parsed.description)
+
+    def test_ami_paris_hoodie_bare_prices_header_stripped(self):
+        """«💰 Ціни:» (без «розміри»/«кольори» попереду, з emoji-префіксом)
+        — самодостатній заголовок секції розмір↔ціна, не має лишатись
+        текстом в описі перед реальною таблицею розмірів."""
+        parsed = self._parse(AMI_PARIS_HOODIE_BARE_PRICES_HEADER)
+        self.assertNotIn("Ціни", parsed.description)
+        by_size = {v.size: v.price for v in parsed.variants}
+        self.assertEqual(set(by_size), {"XS", "S", "M", "L"})
+        self.assertEqual(by_size["XS"], Decimal("5600"))
+        self.assertEqual(by_size["L"], Decimal("6050"))
 
     def test_pinko_bag_bare_size_header_keeps_description(self):
         """Голе «Розміри:» (без «та ціни») — фізичні виміри сумки, не
