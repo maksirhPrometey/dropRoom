@@ -1,3 +1,4 @@
+import hashlib
 import logging
 import re
 from decimal import Decimal
@@ -276,6 +277,7 @@ def _attach_record_to_group_product(
     leader: TelegramImport,
     channel_id: int,
     media_group_id: str,
+    photo_files: list[tuple[str, bytes]] | None = None,
 ) -> None:
     product = leader.product
     if not product:
@@ -294,6 +296,18 @@ def _attach_record_to_group_product(
         media_group_id=media_group_id,
         alt_text=product.name,
     )
+    if photo_files:
+        # Telethon-синхронізація (на відміну від webhook) передає вже
+        # завантажені байти через `photo_files`, а не `photo_file_ids`.
+        # `_sync_group_images` вище вміє лише другий механізм — тож коли
+        # фото альбому приходять окремим прогоном синхронізації (лідер-пост
+        # і товар вже створені раніше), ці байти інакше просто губляться.
+        _sync_images(
+            product,
+            record,
+            product.name,
+            photo_files=photo_files,
+        )
 
 
 def _build_variant_sku(
@@ -480,37 +494,52 @@ def _find_duplicate_product(
     return existing.product if existing else None
 
 
+def _existing_image_hashes(product: Product) -> set[str]:
+    hashes: set[str] = set()
+    for image in product.images.all():
+        if not image.image:
+            continue
+        try:
+            with image.image.open("rb") as handle:
+                hashes.add(hashlib.md5(handle.read()).hexdigest())
+        except (OSError, ValueError):
+            continue
+    return hashes
+
+
 def _sync_images(
     product: Product,
     record: TelegramImport,
     alt_text: str,
     photo_files: list[tuple[str, bytes]] | None = None,
-    *,
-    merge_existing: bool = False,
 ) -> None:
     existing_count = product.images.count()
 
     if photo_files:
-        combined = list(photo_files)
-        if merge_existing and product.images.exists():
-            for image in product.images.order_by("sort_order"):
-                if not image.image:
-                    continue
-                with image.image.open("rb") as handle:
-                    combined.append((image.image.name.rsplit("/", 1)[-1], handle.read()))
-
-        combined = rank_photo_files(combined)
-        if not combined:
+        ranked = rank_photo_files(photo_files)
+        if not ranked:
             return
 
-        # .delete() на QuerySet прибирає лише записи в БД — сам файл на
-        # диску лишається "осиротілим" назавжди. На сервері з обмеженим
-        # диском це непомітно накопичується; видаляємо явно по одному.
-        for image in product.images.all():
-            if image.image:
-                image.image.delete(save=False)
-        product.images.all().delete()
-        for sort_order, (filename, content) in enumerate(combined):
+        # НІКОЛИ не видаляємо й не перевпорядковуємо вже наявні фото — це
+        # б скидало ручне сортування/вибір головного фото в адмінці щоразу,
+        # коли той самий пост обробляється повторно (напр. повний ресинк
+        # каналу). Додаємо лише те, чого за вмістом (MD5) ще немає; коли
+        # такого немає — команда взагалі нічого не змінює.
+        existing_hashes = _existing_image_hashes(product)
+        new_photos = [
+            (filename, content)
+            for filename, content in ranked
+            if hashlib.md5(content).hexdigest() not in existing_hashes
+        ]
+        if not new_photos:
+            return
+
+        has_primary = product.images.filter(is_primary=True).exists()
+        current_max_sort = (
+            product.images.order_by("-sort_order").values_list("sort_order", flat=True).first()
+        )
+        next_sort_order = 0 if current_max_sort is None else current_max_sort + 1
+        for offset, (filename, content) in enumerate(new_photos):
             ProductImage.objects.create(
                 product=product,
                 image=ContentFile(
@@ -518,8 +547,8 @@ def _sync_images(
                     name=filename,
                 ),
                 alt=alt_text,
-                is_primary=(sort_order == 0),
-                sort_order=sort_order,
+                is_primary=(not has_primary and offset == 0),
+                sort_order=next_sort_order + offset,
             )
         return
 
@@ -580,6 +609,7 @@ def import_telegram_message(
                 leader=leader,
                 channel_id=channel_id,
                 media_group_id=media_group_id,
+                photo_files=photo_files,
             )
             return record
 
@@ -683,7 +713,6 @@ def import_telegram_message(
             record,
             parsed.name,
             photo_files=photo_files,
-            merge_existing=bool(duplicate_product and photo_files),
         )
 
     record.status = TelegramImport.STATUS_IMPORTED

@@ -71,6 +71,85 @@ class MediaGroupImportTests(TestCase):
             3,
         )
 
+    def test_resync_with_same_photos_preserves_manual_order_and_primary(self):
+        """Повторна синхронізація того самого поста (напр. `--full` ресинк)
+        з ТИМИ САМИМИ фото не повинна скидати ручне перевпорядкування чи
+        вибір головного фото в адмінці — лише додавати справді НОВІ фото."""
+        leader = import_telegram_message(
+            channel_id=self.channel_id,
+            message_id=910,
+            caption=self.caption,
+            photo_file_ids=[],
+            media_group_id="",
+            photo_files=[
+                ("tg-910-a.jpg", b"photo-a-bytes"),
+                ("tg-910-b.jpg", b"photo-b-bytes"),
+            ],
+        )
+        product = Product.objects.get(pk=leader.product_id)
+        images = list(product.images.order_by("sort_order"))
+        self.assertEqual(len(images), 2)
+
+        # Імітуємо ручне редагування в адмінці: інвертуємо порядок і
+        # обираємо друге фото головним.
+        images[0].sort_order, images[1].sort_order = images[1].sort_order, images[0].sort_order
+        images[0].is_primary, images[1].is_primary = False, True
+        images[0].save(update_fields=["sort_order", "is_primary"])
+        images[1].save(update_fields=["sort_order", "is_primary"])
+        manual_state = {
+            img.pk: (img.sort_order, img.is_primary)
+            for img in product.images.all()
+        }
+
+        # Повторний імпорт того самого поста (той самий caption і ФОТО).
+        import_telegram_message(
+            channel_id=self.channel_id,
+            message_id=910,
+            caption=self.caption,
+            photo_file_ids=[],
+            media_group_id="",
+            photo_files=[
+                ("tg-910-a.jpg", b"photo-a-bytes"),
+                ("tg-910-b.jpg", b"photo-b-bytes"),
+            ],
+        )
+
+        product.refresh_from_db()
+        self.assertEqual(product.images.count(), 2)
+        for img in product.images.all():
+            self.assertEqual(
+                (img.sort_order, img.is_primary), manual_state[img.pk]
+            )
+
+    def test_telethon_follower_photo_bytes_synced_after_product_exists(self):
+        """Telethon-синхронізація передає вже завантажені байти через
+        `photo_files` (а не `photo_file_ids`, як вебхук). Коли фото
+        альбому приходить окремим прогоном ПІСЛЯ того, як лідер-пост уже
+        створив товар, ці байти раніше просто губились."""
+        leader = import_telegram_message(
+            channel_id=self.channel_id,
+            message_id=900,
+            caption=self.caption,
+            photo_file_ids=[],
+            media_group_id="album-3",
+            photo_files=[("tg-900.jpg", b"leader-photo-bytes")],
+        )
+        product = Product.objects.get(pk=leader.product_id)
+        self.assertEqual(product.images.count(), 1)
+
+        follower = import_telegram_message(
+            channel_id=self.channel_id,
+            message_id=901,
+            caption="",
+            photo_file_ids=[],
+            media_group_id="album-3",
+            photo_files=[("tg-901.jpg", b"follower-photo-bytes")],
+        )
+        follower.refresh_from_db()
+        self.assertEqual(follower.product_id, product.pk)
+        product.refresh_from_db()
+        self.assertEqual(product.images.count(), 2)
+
     @patch("src.telegram_import.services.importer.download_photo")
     def test_follower_before_leader_waits_without_product(self, download_photo_mock):
         download_photo_mock.side_effect = lambda file_id: _fake_photo(file_id)
