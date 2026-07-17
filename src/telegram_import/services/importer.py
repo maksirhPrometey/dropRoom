@@ -37,18 +37,77 @@ def _default_category() -> Category | None:
     return Category.objects.filter(pk=category_id).first()
 
 
+# Основа слова (без урахування роду/числа: «чорна»/«чорне»/«чорний»/«чорні»
+# однаково містять «чорн») → приблизний hex для свотча кольору. Порядок
+# важливий там, де один корінь є підрядком іншого («золот» vs «золотист»).
+COLOR_HEX_BY_STEM: list[tuple[str, str]] = [
+    ("чорн", "#1a1a1a"),
+    ("білі", "#f5f5f0"),
+    ("біл", "#f5f5f0"),
+    ("молочн", "#f2ead6"),
+    ("кремов", "#f2ead6"),
+    ("пісочн", "#e0c9a6"),
+    ("бежев", "#d8c3a5"),
+    ("коричнев", "#6b4226"),
+    ("шоколад", "#4a2c20"),
+    ("леопард", "#a9793a"),
+    ("хакі", "#6b6b47"),
+    ("оливков", "#6b6b47"),
+    ("зелен", "#3f6b4a"),
+    ("м'ятн", "#a8d5ba"),
+    ("м’ятн", "#a8d5ba"),
+    ("син", "#2b4c7e"),
+    ("блакитн", "#7ec8e3"),
+    ("бірюзов", "#3fb8af"),
+    ("сірий", "#8c8c8c"),
+    ("сір", "#8c8c8c"),
+    ("графіт", "#3a3a3a"),
+    ("срібн", "#c0c0c0"),
+    ("золотист", "#c9a227"),
+    ("золот", "#c9a227"),
+    ("пудров", "#e8c4c4"),
+    ("рожев", "#e8a1b8"),
+    ("бордо", "#5e2129"),
+    ("червон", "#b23b3b"),
+    ("жовт", "#e0c341"),
+    ("оранжев", "#d97b3f"),
+    ("фіолетов", "#6a4c93"),
+    ("лавандов", "#c8b6e2"),
+    ("бузков", "#b89bc9"),
+]
+_DEFAULT_COLOR_HEX = "#cccccc"
+
+
+def _guess_hex_code(name: str) -> str:
+    lowered = name.lower()
+    for stem, hex_code in COLOR_HEX_BY_STEM:
+        if stem in lowered:
+            return hex_code
+    return _DEFAULT_COLOR_HEX
+
+
 def _get_or_create_color(name: str | None) -> Color | None:
     if not name:
         return None
+    name = name[:80]
+    # Спершу шукаємо без урахування регістру — інакше «Коричневий» і
+    # «коричневий» щоразу перетворюються на два різні записи в довіднику.
+    # Порівнюємо в Python (а не SQL `__iexact`), бо SQLite (dev/test) не
+    # вміє коректно згортати регістр кирилиці — лише Postgres на проді.
+    lowered = name.strip().lower()
+    for existing in Color.objects.all():
+        if existing.name.strip().lower() == lowered:
+            return existing
     slug_base = slugify(name) or "color"
     slug = slug_base
     counter = 1
-    while Color.objects.filter(slug=slug).exclude(name=name).exists():
+    while Color.objects.filter(slug=slug).exists():
         slug = f"{slug_base}-{counter}"
         counter += 1
-    color, _ = Color.objects.get_or_create(
-        name=name[:80],
-        defaults={"slug": slug, "hex_code": "#cccccc"},
+    color = Color.objects.create(
+        name=name,
+        slug=slug,
+        hex_code=_guess_hex_code(name),
     )
     return color
 

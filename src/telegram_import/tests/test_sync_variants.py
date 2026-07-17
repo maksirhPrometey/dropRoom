@@ -2,9 +2,38 @@ from decimal import Decimal
 
 from django.test import TestCase
 
-from src.catalog.models import Brand, Category, Product, ProductVariant
-from src.telegram_import.services.importer import _sync_variants
+from src.catalog.models import Brand, Category, Color, Product, ProductVariant
+from src.telegram_import.services.importer import (
+    _DEFAULT_COLOR_HEX,
+    _get_or_create_color,
+    _guess_hex_code,
+    _sync_variants,
+)
 from src.telegram_import.services.parser_types import ParsedVariant
+
+
+class GetOrCreateColorTests(TestCase):
+    def test_case_insensitive_match_reuses_existing_color(self):
+        """«Коричневий» і «коричневий» — той самий колір, не два записи.
+        Порівнюємо через .pk/.count(), а не SQL `__iexact`, бо SQLite
+        (тестова БД) не згортає регістр кирилиці на рівні запиту — лише
+        сам Python-код `_get_or_create_color` це гарантує."""
+        first = _get_or_create_color("Коричневий")
+        second = _get_or_create_color("коричневий")
+        self.assertEqual(first.pk, second.pk)
+        self.assertEqual(
+            Color.objects.filter(name__in=["Коричневий", "коричневий"]).count(), 1
+        )
+
+    def test_new_color_gets_guessed_hex_not_generic_gray(self):
+        color = _get_or_create_color("Чорна")
+        self.assertNotEqual(color.hex_code, _DEFAULT_COLOR_HEX)
+        self.assertEqual(color.hex_code, _guess_hex_code("Чорна"))
+
+    def test_guess_hex_code_matches_common_stems(self):
+        self.assertEqual(_guess_hex_code("Коричнева"), "#6b4226")
+        self.assertEqual(_guess_hex_code("білі"), "#f5f5f0")
+        self.assertEqual(_guess_hex_code("невідомий колір"), _DEFAULT_COLOR_HEX)
 
 
 class SyncVariantsTests(TestCase):
