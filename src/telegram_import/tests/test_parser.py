@@ -702,6 +702,26 @@ class ChannelCaptionParserTests(TestCase):
         self.assertIsNone(parsed.variants[0].color)
         self.assertEqual(parsed.variants[0].size, "ONE SIZE")
 
+    def test_lacoste_elite_preorder_size_range(self):
+        """«під замовлення від 39 до 45» + 🏷️4250 замість 6900 —
+        сім EU-розмірів під замовлення, compare_price зі «замість»."""
+        caption = (
+            "Кросівки Lacoste Elite Active\n\n"
+            "Стильні кросівки Lacoste Elite Active.\n\n"
+            "під замовлення від 39 до 45\n\n"
+            "🏷️4250 замість 6900"
+        )
+        parsed = self._parse(caption)
+        sizes = [v.size for v in parsed.variants]
+        self.assertEqual(sizes, ["39", "40", "41", "42", "43", "44", "45"])
+        self.assertTrue(all(v.price == Decimal("4250") for v in parsed.variants))
+        self.assertTrue(all(v.stock_qty == 0 for v in parsed.variants))
+        self.assertTrue(all(v.is_available for v in parsed.variants))
+        self.assertEqual(parsed.base_price, Decimal("4250"))
+        self.assertEqual(parsed.compare_price, Decimal("6900"))
+        self.assertNotIn("під замовлення", parsed.description.lower())
+        self.assertNotIn("39", parsed.description)
+
     def test_lacoste_cap_named_color_wins_over_unnamed_generic_price(self):
         """«Всі 5 кольорів 🏷️1780» не називає кольори — не повинно давати
         фантомний безколірний варіант; «1 рожева є в наявності 🏷️1820» —

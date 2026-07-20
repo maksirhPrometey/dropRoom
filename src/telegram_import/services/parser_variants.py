@@ -837,12 +837,31 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
                     marker in stripped.lower() for marker in bulk_tier_markers
                 ):
                     continue
-                pure_price = re.fullmatch(
-                    r"🏷️?\s*\d[\d\s]*(?:\s*(?:UAH|грн|₴))?\s*$",
+                # «🏷️4250» / «🏷️4250 замість 6900» — лише ціна (і опційно
+                # стара), коли розміри вже зібрані з попередніх рядків
+                # («від 39 до 45»). Не плодимо зайвий ONE SIZE.
+                price_carrier = re.fullmatch(
+                    r"🏷️?\s*\d[\d\s]*(?:\s*(?:UAH|грн|₴))?\s*"
+                    r"(?:\(?\s*(?:замість|було)\s*\d[\d\s]*"
+                    r"(?:\s*(?:UAH|грн|₴))?\s*\)?)?\s*$",
                     stripped,
                     re.IGNORECASE,
                 )
-                if pure_price and variants:
+                if price_carrier and variants:
+                    old_price = _extract_old_price(stripped)
+                    if old_price and old_price > price:
+                        variants = [
+                            ParsedVariant(
+                                size=variant.size,
+                                price=variant.price,
+                                stock_qty=variant.stock_qty,
+                                is_available=variant.is_available,
+                                color=variant.color,
+                                note=variant.note,
+                                compare_price=variant.compare_price or old_price,
+                            )
+                            for variant in variants
+                        ]
                     continue
                 size = "ONE SIZE"
                 if not variants:

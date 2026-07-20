@@ -10,6 +10,7 @@ from .parser_variants import (
     _COLOR_HEADER_RE,
     _CYR_SIZE_MAP,
     _DASH,
+    _extract_old_price,
     _extract_price,
     _extract_stock_qty,
     _is_sold_out,
@@ -43,6 +44,13 @@ _CYR_SIZES_BLOCK_RE = re.compile(
 )
 _RULER_STOCK_RE = re.compile(
     rf"^📏\s*(?P<size>\d{{2}}(?:[,.]\d)?)\s*{_DASH}\s*(?P<rest>.+)$",
+    re.IGNORECASE,
+)
+# «під замовлення від 39 до 45» / «від 40 до 44» — діапазон EU-розмірів
+# з однією спільною ціною з caption (окремим рядком 🏷️…).
+_PREORDER_SIZE_RANGE_RE = re.compile(
+    r"^(?:під\s+замовленн\w*\s+)?від\s+(?P<start>\d{2}(?:[,.]\d)?)"
+    r"\s+до\s+(?P<end>\d{2}(?:[,.]\d)?)\s*$",
     re.IGNORECASE,
 )
 _SIZE_WITH_NOTE_PRICE_RE = re.compile(
@@ -192,6 +200,68 @@ def parse_ruler_stock_line(
         color=color,
         note=stripped,
     )
+
+
+def _expand_numeric_size_range(start_raw: str, end_raw: str) -> list[str] | None:
+    """Розгорнути «39…45» / «39.5…42.5» у список нормалізованих розмірів."""
+    try:
+        start = Decimal(start_raw.replace(",", "."))
+        end = Decimal(end_raw.replace(",", "."))
+    except Exception:
+        return None
+    if start > end or (end - start) > 20:
+        return None
+    step = (
+        Decimal("0.5")
+        if (start % 1 != 0) or (end % 1 != 0)
+        else Decimal("1")
+    )
+    sizes: list[str] = []
+    current = start
+    while current <= end:
+        if current == current.to_integral_value():
+            sizes.append(str(int(current)))
+        else:
+            sizes.append(format(current.normalize(), "f"))
+        current += step
+    return sizes if len(sizes) >= 2 else None
+
+
+def parse_preorder_size_range_line(
+    line: str, *, caption: str, color: str | None = None
+) -> list[ParsedVariant] | None:
+    """
+    «під замовлення від 39 до 45» + окремо в caption «🏷️4250 замість 6900».
+    Усі розміри діапазону — одна ціна, stock=0 (під замовлення).
+    """
+    stripped = line.strip()
+    match = _PREORDER_SIZE_RANGE_RE.match(stripped)
+    if not match:
+        return None
+    sizes = _expand_numeric_size_range(match.group("start"), match.group("end"))
+    if not sizes:
+        return None
+    price = _extract_price(caption)
+    if price is None:
+        return None
+    lowered = stripped.lower()
+    is_preorder = "під замовлення" in lowered or "під замовлення" in caption.lower()
+    sold_out = _is_sold_out(stripped)
+    stock = 0 if (sold_out or is_preorder) else 1
+    old_price = _extract_old_price(caption)
+    compare = old_price if old_price and old_price > price else None
+    return [
+        ParsedVariant(
+            size=size,
+            price=price,
+            stock_qty=stock,
+            is_available=not sold_out,
+            color=color,
+            note=stripped,
+            compare_price=compare,
+        )
+        for size in sizes
+    ]
 
 
 def parse_size_with_note_price_line(
@@ -665,6 +735,9 @@ def try_parse_extra_variant_line(
     cyr_block = parse_cyrillic_sizes_preorder_block(line, caption=caption, color=color)
     if cyr_block:
         return cyr_block
+    size_range = parse_preorder_size_range_line(line, caption=caption, color=color)
+    if size_range:
+        return size_range
     ruler = parse_ruler_stock_line(line, caption=caption, color=color)
     if ruler:
         return [ruler]
