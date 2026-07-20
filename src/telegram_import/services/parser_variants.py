@@ -913,7 +913,35 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
             )
 
     variants = _apply_named_colors_without_own_price(variants, caption)
+    variants = _dedupe_variants_prefer_stock(variants)
     return _backfill_missing_prices(variants)
+
+
+def _dedupe_variants_prefer_stock(
+    variants: list[ParsedVariant],
+) -> list[ParsedVariant]:
+    """
+    Той самий розмір+колір може з’явитись двічі: «1 ХЛ 🏷️1999» (в наявності)
+    і пізніше «під замовлення … хл 🏷️1950». Лишаємо варіант з більшим stock.
+    """
+    best: dict[tuple[str, str], ParsedVariant] = {}
+    order: list[tuple[str, str]] = []
+    for variant in variants:
+        key = (variant.size, (variant.color or "").casefold())
+        current = best.get(key)
+        if current is None:
+            best[key] = variant
+            order.append(key)
+            continue
+        if variant.stock_qty > current.stock_qty:
+            best[key] = variant
+        elif (
+            variant.stock_qty == current.stock_qty
+            and variant.is_available
+            and not current.is_available
+        ):
+            best[key] = variant
+    return [best[key] for key in order]
 
 
 def _apply_named_colors_without_own_price(

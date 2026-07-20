@@ -75,8 +75,18 @@ _SIZE_MEASUREMENT_TRAILING_PRICE_RE = re.compile(
 )
 _LABELED_SIZE_LIST_PRICE_RE = re.compile(
     r"^(?:в|у)?\s*(?:наявності|під\s+замовлення)\s+"
-    rf"(?:📏\s*)?(?P<sizes>{_SIZE_TOKEN_CAPTURE}(?:\s*,\s*{_SIZE_TOKEN_CAPTURE})*)"
+    rf"(?:📏\s*)?(?P<sizes>{_SIZE_TOKEN_CAPTURE}"
+    rf"(?:\s*(?:,|та|і)\s*{_SIZE_TOKEN_CAPTURE})*)"
     rf"\s*(?:{_DASH}\s*)?(?P<rest>.+)$",
+    re.IGNORECASE,
+)
+# «в наявності 3 розміру S 🏷️2050» / «1 ХЛ 🏷️1999»
+_QTY_SIZE_PRICE_RE = re.compile(
+    rf"^(?:(?:у|в)\s+наявності\s+)?"
+    rf"(?P<qty>\d+)\s+"
+    rf"(?:розмір(?:у|и|а)?\s+)?"
+    rf"(?P<size>{_SIZE_TOKEN_CAPTURE})\s*"
+    r"(?:🏷️\s*(?P<price1>\d[\d\s]*)|(?P<price2>\d[\d\s]*)\s*(?:грн|UAH|₴)?)\s*$",
     re.IGNORECASE,
 )
 _BARE_SIZE_PRICE_TAG_RE = re.compile(
@@ -348,10 +358,19 @@ def parse_labeled_size_list_price_line(
     if price is None:
         return None
     sizes = [
-        _normalize_size(part.strip())
-        for part in re.split(r"\s*,\s*", match.group("sizes"))
+        _LETTER_SIZE_ALIASES.get(_normalize_size(part.strip()), _normalize_size(part.strip()))
+        for part in re.split(r"\s*(?:,|та|і)\s*", match.group("sizes"), flags=re.I)
         if part.strip()
     ]
+    # дедуп зі збереженням порядку
+    seen: set[str] = set()
+    unique_sizes: list[str] = []
+    for size in sizes:
+        if size in seen:
+            continue
+        seen.add(size)
+        unique_sizes.append(size)
+    sizes = unique_sizes
     if not sizes:
         return None
     preorder = "замовлення" in stripped.lower()
@@ -370,6 +389,35 @@ def parse_labeled_size_list_price_line(
         )
         for size in sizes
     ]
+
+
+def parse_qty_size_price_line(
+    line: str, *, color: str | None = None
+) -> ParsedVariant | None:
+    """
+    «в наявності 3 розміру S 🏷️2050» / «1 ХЛ 🏷️1999» —
+    кількість + (опційно слово «розмір/розміру») + літера/EU + ціна.
+    """
+    stripped = line.strip()
+    match = _QTY_SIZE_PRICE_RE.match(stripped)
+    if not match:
+        return None
+    raw_price = match.group("price1") or match.group("price2")
+    price = _to_decimal(raw_price) if raw_price else None
+    if price is None:
+        return None
+    size = _normalize_size(match.group("size"))
+    size = _LETTER_SIZE_ALIASES.get(size, size)
+    sold_out = _is_sold_out(stripped)
+    stock = 0 if sold_out else int(match.group("qty"))
+    return ParsedVariant(
+        size=size,
+        price=price,
+        stock_qty=stock,
+        is_available=not sold_out,
+        color=color,
+        note=stripped,
+    )
 
 
 def parse_bare_size_price_tag_line(
@@ -739,6 +787,9 @@ def try_parse_extra_variant_line(
     age_size = parse_age_size_price_line(line, color=color)
     if age_size:
         return [age_size]
+    qty_size = parse_qty_size_price_line(line, color=color)
+    if qty_size:
+        return [qty_size]
     measurement_trailing = parse_size_measurement_trailing_price_line(
         line, color=color
     )

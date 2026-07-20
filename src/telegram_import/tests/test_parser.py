@@ -738,6 +738,27 @@ class ChannelCaptionParserTests(TestCase):
         self.assertNotIn("під замовлення", parsed.description.lower())
         self.assertNotIn("Sold out", parsed.description)
 
+    def test_armani_longsleeve_qty_sizes_and_preorder(self):
+        """«в наявності 3 розміру S» + «1 ХЛ» + «під замовлення м , л та хл» —
+        без фантомного ONE SIZE; XL у наявності не перетирається preorder."""
+        caption = (
+            "Лонгслів Armani Exchange — стильна базова модель.\n\n"
+            "в наявності 3 розміру S 🏷️2050 \n"
+            "1 ХЛ 🏷️1999 \n\n"
+            "під замовлення м , л та хл 🏷️1950"
+        )
+        parsed = self._parse(caption)
+        by_size = {v.size: v for v in parsed.variants}
+        self.assertEqual(set(by_size), {"S", "M", "L", "XL"})
+        self.assertNotIn("ONE SIZE", by_size)
+        self.assertEqual(by_size["S"].price, Decimal("2050"))
+        self.assertEqual(by_size["S"].stock_qty, 3)
+        self.assertEqual(by_size["XL"].price, Decimal("1999"))
+        self.assertEqual(by_size["XL"].stock_qty, 1)
+        self.assertEqual(by_size["M"].price, Decimal("1950"))
+        self.assertEqual(by_size["M"].stock_qty, 0)
+        self.assertEqual(by_size["L"].stock_qty, 0)
+
     def test_lacoste_cap_named_color_wins_over_unnamed_generic_price(self):
         """«Всі 5 кольорів 🏷️1780» не називає кольори — не повинно давати
         фантомний безколірний варіант; «1 рожева є в наявності 🏷️1820» —
