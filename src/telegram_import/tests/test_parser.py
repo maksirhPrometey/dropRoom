@@ -722,6 +722,22 @@ class ChannelCaptionParserTests(TestCase):
         self.assertNotIn("під замовлення", parsed.description.lower())
         self.assertNotIn("39", parsed.description)
 
+    def test_lacoste_polo_letter_size_range(self):
+        """«під замовлення від м до 2 хл 🏷️1890» — M…XXL під замовлення."""
+        caption = (
+            "Класичне поло Lacoste — універсальна модель.\n\n"
+            "під замовлення від м до 2 хл 🏷️1890 \n\n"
+            "інщі розміри Sold out"
+        )
+        parsed = self._parse(caption)
+        sizes = [v.size for v in parsed.variants]
+        self.assertEqual(sizes, ["M", "L", "XL", "XXL"])
+        self.assertTrue(all(v.price == Decimal("1890") for v in parsed.variants))
+        self.assertTrue(all(v.stock_qty == 0 for v in parsed.variants))
+        self.assertTrue(all(v.is_available for v in parsed.variants))
+        self.assertNotIn("під замовлення", parsed.description.lower())
+        self.assertNotIn("Sold out", parsed.description)
+
     def test_lacoste_cap_named_color_wins_over_unnamed_generic_price(self):
         """«Всі 5 кольорів 🏷️1780» не називає кольори — не повинно давати
         фантомний безколірний варіант; «1 рожева є в наявності 🏷️1820» —

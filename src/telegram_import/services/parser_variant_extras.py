@@ -46,13 +46,25 @@ _RULER_STOCK_RE = re.compile(
     rf"^📏\s*(?P<size>\d{{2}}(?:[,.]\d)?)\s*{_DASH}\s*(?P<rest>.+)$",
     re.IGNORECASE,
 )
-# «під замовлення від 39 до 45» / «від 40 до 44» — діапазон EU-розмірів
-# з однією спільною ціною з caption (окремим рядком 🏷️…).
+# «під замовлення від 39 до 45» / «від 40 до 44 🏷️4250» — діапазон EU.
 _PREORDER_SIZE_RANGE_RE = re.compile(
     r"^(?:під\s+замовленн\w*\s+)?від\s+(?P<start>\d{2}(?:[,.]\d)?)"
-    r"\s+до\s+(?P<end>\d{2}(?:[,.]\d)?)\s*$",
+    r"\s+до\s+(?P<end>\d{2}(?:[,.]\d)?)"
+    r"(?:\s*(?:🏷️\s*)?(?P<price>\d[\d\s]*)\s*(?:грн|UAH|₴)?)?\s*$",
     re.IGNORECASE,
 )
+# «під замовлення від м до 2 хл 🏷️1890» — літерний діапазон (кирилиця/латиниця).
+_LETTER_SIZE_TOKEN = (
+    r"(?:3\s*хл|2\s*хл|ххл|хл|хс|[смл]|3\s*xl|2\s*xl|xxl|xl|xs|[sml])"
+)
+_PREORDER_LETTER_SIZE_RANGE_RE = re.compile(
+    rf"^(?:під\s+замовленн\w*\s+)?від\s+(?P<start>{_LETTER_SIZE_TOKEN})"
+    rf"\s+до\s+(?P<end>{_LETTER_SIZE_TOKEN})"
+    rf"(?:\s*(?:🏷️\s*)?(?P<price>\d[\d\s]*)\s*(?:грн|UAH|₴)?)?\s*$",
+    re.IGNORECASE,
+)
+_LETTER_SIZE_LADDER = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL"]
+_LETTER_SIZE_ALIASES = {"2XL": "XXL", "3XL": "XXXL"}
 _SIZE_WITH_NOTE_PRICE_RE = re.compile(
     rf"^(?P<size>\d{{2}}(?:[,.]\d)?)\s*\([^)]*\)\s*{_DASH}\s*(?P<rest>.+)$",
 )
@@ -227,28 +239,62 @@ def _expand_numeric_size_range(start_raw: str, end_raw: str) -> list[str] | None
     return sizes if len(sizes) >= 2 else None
 
 
+def _canonical_letter_size(raw: str) -> str | None:
+    compact = re.sub(r"\s+", "", raw.strip())
+    normalized = _normalize_size(compact)
+    canonical = _LETTER_SIZE_ALIASES.get(normalized, normalized)
+    if canonical in _LETTER_SIZE_LADDER:
+        return canonical
+    return None
+
+
+def _expand_letter_size_range(start_raw: str, end_raw: str) -> list[str] | None:
+    """Розгорнути «м…2 хл» → M, L, XL, XXL."""
+    start = _canonical_letter_size(start_raw)
+    end = _canonical_letter_size(end_raw)
+    if not start or not end:
+        return None
+    i = _LETTER_SIZE_LADDER.index(start)
+    j = _LETTER_SIZE_LADDER.index(end)
+    if i > j:
+        return None
+    sizes = _LETTER_SIZE_LADDER[i : j + 1]
+    return sizes if len(sizes) >= 2 else None
+
+
 def parse_preorder_size_range_line(
     line: str, *, caption: str, color: str | None = None
 ) -> list[ParsedVariant] | None:
     """
-    «під замовлення від 39 до 45» + окремо в caption «🏷️4250 замість 6900».
-    Усі розміри діапазону — одна ціна, stock=0 (під замовлення).
+    «під замовлення від 39 до 45» / «під замовлення від м до 2 хл 🏷️1890».
+    Усі розміри діапазону — одна ціна, stock=0 якщо під замовлення.
     """
     stripped = line.strip()
-    match = _PREORDER_SIZE_RANGE_RE.match(stripped)
-    if not match:
-        return None
-    sizes = _expand_numeric_size_range(match.group("start"), match.group("end"))
+    sizes: list[str] | None = None
+    inline_price: str | None = None
+
+    numeric = _PREORDER_SIZE_RANGE_RE.match(stripped)
+    if numeric:
+        sizes = _expand_numeric_size_range(numeric.group("start"), numeric.group("end"))
+        inline_price = numeric.group("price")
+    else:
+        letter = _PREORDER_LETTER_SIZE_RANGE_RE.match(stripped)
+        if letter:
+            sizes = _expand_letter_size_range(letter.group("start"), letter.group("end"))
+            inline_price = letter.group("price")
+
     if not sizes:
         return None
-    price = _extract_price(caption)
+    price = _to_decimal(inline_price) if inline_price else None
+    if price is None:
+        price = _extract_price(stripped) or _extract_price(caption)
     if price is None:
         return None
     lowered = stripped.lower()
     is_preorder = "під замовлення" in lowered or "під замовлення" in caption.lower()
     sold_out = _is_sold_out(stripped)
     stock = 0 if (sold_out or is_preorder) else 1
-    old_price = _extract_old_price(caption)
+    old_price = _extract_old_price(stripped) or _extract_old_price(caption)
     compare = old_price if old_price and old_price > price else None
     return [
         ParsedVariant(
