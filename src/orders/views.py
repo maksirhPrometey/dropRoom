@@ -4,6 +4,7 @@ import logging
 from django.contrib import messages
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -120,12 +121,14 @@ class CartUpdateView(View):
 
 class CartRemoveView(View):
     def post(self, request, item_id):
-        item = get_object_or_404(CartItem, pk=item_id)
-        cart = item.cart
+        cart = get_or_create_cart(request)
+        item = get_object_or_404(CartItem, pk=item_id, cart=cart)
         item.delete()
 
         if request.htmx:
-            return HttpResponse("")
+            response = HttpResponse("")
+            response["HX-Redirect"] = reverse("orders:cart")
+            return response
         return redirect("orders:cart")
 
     delete = post

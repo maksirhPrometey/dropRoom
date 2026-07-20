@@ -8,6 +8,20 @@ import { initCartModal } from './modules/cart-modal.js';
 
 import { initHeroSlider } from './modules/hero-slider.js';
 
+function getCsrfToken() {
+  const input = document.querySelector('[name=csrfmiddlewaretoken]');
+  if (input?.value) return input.value;
+  const match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : '';
+}
+
+document.body.addEventListener('htmx:configRequest', (event) => {
+  const token = getCsrfToken();
+  if (token) {
+    event.detail.headers['X-CSRFToken'] = token;
+  }
+});
+
 document.addEventListener('DOMContentLoaded', () => {
   initReveal();
   initCountdown();
