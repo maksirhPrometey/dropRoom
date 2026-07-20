@@ -871,6 +871,21 @@ class ChannelCaptionParserTests(TestCase):
         self.assertNotIn("7950", parsed.description)
         self.assertIn("котяче око", parsed.description)
 
+    def test_dropgoods_two_uah_prices_comma_thousands(self):
+        """«₴17,960.00 ₴8,050» — дві ₴-ціни; «8,050» це вісім тисяч,
+        не 8.05 (кома = тисячі)."""
+        caption = (
+            "Saint Laurent Black SL 538\n"
+            "Сонцезахисні окуляри з колекції Saint Laurent New Wave.\n"
+            "₴17,960.00 ₴8,050 \n\n"
+            "‼️там де знижки"
+        )
+        parsed = self._parse(caption)
+        self.assertEqual(parsed.base_price, Decimal("8050"))
+        self.assertEqual(parsed.compare_price, Decimal("17960.00"))
+        self.assertNotIn("8,050", parsed.description)
+        self.assertNotIn("17,960", parsed.description)
+
     def test_ami_paris_hoodie_bare_prices_header_stripped(self):
         """«💰 Ціни:» (без «розміри»/«кольори» попереду, з emoji-префіксом)
         — самодостатній заголовок секції розмір↔ціна, не має лишатись

@@ -201,14 +201,29 @@ _OLD_PRICE_VALUE_RE = re.compile(
     # «₴17,400.00 🏷️7950» — старий формат каналу DropGoods: стара ціна з
     # «₴»-префіксом (кома-тисячні, крапка-десяткові) одразу перед новою
     # ціною з «🏷️», без слова «замість»/«було».
-    r"₴\s*([\d,]+(?:\.\d+)?)\s*🏷️"
+    r"₴\s*([\d,]+(?:\.\d+)?)\s*🏷️|"
+    # «₴17,960.00 ₴8,050» — дві ₴-ціни підряд (стара → нова), без «🏷️».
+    r"₴\s*([\d,]+(?:\.\d+)?)\s*₴"
 )
 
 def _to_decimal(raw: str) -> Decimal | None:
     cleaned = raw.replace(" ", "")
     if "." in cleaned and "," in cleaned:
-        # «15,600.00» — кома тут розділювач тисяч, а не десяткових.
+        # «15,600.00» / «17,960.00» — кома = тисячі, крапка = десяткові.
         cleaned = cleaned.replace(",", "")
+    elif "," in cleaned and "." not in cleaned:
+        # «8,050» (тисячі) vs «8,05» (десяткові). Три цифри після коми
+        # без крапки — майже завжди тисячний роздільник (DropGoods / US).
+        parts = cleaned.split(",")
+        if (
+            len(parts) == 2
+            and parts[0].isdigit()
+            and parts[1].isdigit()
+            and len(parts[1]) == 3
+        ):
+            cleaned = "".join(parts)
+        else:
+            cleaned = cleaned.replace(",", ".")
     else:
         cleaned = cleaned.replace(",", ".")
     try:
