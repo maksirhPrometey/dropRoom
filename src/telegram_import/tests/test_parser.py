@@ -759,6 +759,32 @@ class ChannelCaptionParserTests(TestCase):
         self.assertEqual(by_size["M"].stock_qty, 0)
         self.assertEqual(by_size["L"].stock_qty, 0)
 
+    def test_karl_sweatshirt_xl_fit_note_keeps_params(self):
+        """«XL (комфортно підійде на L)» + параметри + 🏷️3050 —
+        варіант XL, службові рядки не в описі, заміри лишаються."""
+        caption = (
+            "Світшот Karl Lagerfeld — універсальна модель преміумкласу.\n\n"
+            "📏 Розмір в наявності \n"
+            "під замовлення Sold out\n\n"
+            "XL (комфортно підійде на L)\n\n"
+            "📏 Параметри (XL, комфортно на L):\n"
+            "• Груди: 100–104 см\n"
+            "• Талія: 82–86 см\n"
+            "• Стегна: 106–110 см\n\n"
+            "🏷️3050"
+        )
+        parsed = self._parse(caption)
+        self.assertEqual(len(parsed.variants), 1)
+        self.assertEqual(parsed.variants[0].size, "XL")
+        self.assertEqual(parsed.variants[0].price, Decimal("3050"))
+        self.assertEqual(parsed.variants[0].stock_qty, 1)
+        self.assertNotIn("ONE SIZE", [v.size for v in parsed.variants])
+        self.assertNotIn("Sold out", parsed.description)
+        self.assertNotIn("Розмір в наявності", parsed.description)
+        self.assertNotIn("комфортно підійде", parsed.description)
+        self.assertIn("Груди", parsed.description)
+        self.assertIn("Параметри", parsed.description)
+
     def test_lacoste_cap_named_color_wins_over_unnamed_generic_price(self):
         """«Всі 5 кольорів 🏷️1780» не називає кольори — не повинно давати
         фантомний безколірний варіант; «1 рожева є в наявності 🏷️1820» —

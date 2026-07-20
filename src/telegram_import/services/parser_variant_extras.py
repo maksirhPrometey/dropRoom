@@ -491,6 +491,12 @@ _SIZE_PAREN_NOTE_PRICE_RE = re.compile(
     r"(?:🏷️\s*(?P<price1>\d[\d\s]*)|(?P<price2>\d[\d\s]*)\s*(?:грн|UAH|₴|гр\b)?)\s*$",
     re.IGNORECASE,
 )
+# «XL (комфортно підійде на L)» — ціна окремим рядком 🏷️… нижче в caption.
+_SIZE_LETTER_FIT_NOTE_ONLY_RE = re.compile(
+    rf"^[•▫▪◦\-\s🔹📏\uFE0F]*(?:✅|❌)?\s*(?P<size>{_SIZE_TOKEN_CAPTURE})\s*"
+    r"\((?P<note>[^)]*(?:комфортн|підійд|сяде)[^)]*)\)\s*$",
+    re.IGNORECASE,
+)
 
 
 def parse_size_paren_note_price_line(
@@ -519,6 +525,33 @@ def parse_size_paren_note_price_line(
         size=_normalize_size(match.group("size")),
         price=price,
         stock_qty=stock,
+        is_available=not sold_out,
+        color=color,
+        note=stripped,
+    )
+
+
+def parse_size_letter_fit_note_line(
+    line: str, *, caption: str, color: str | None = None
+) -> ParsedVariant | None:
+    """
+    «XL (комфортно підійде на L)» + окремо в caption «🏷️3050».
+    Розмір у наявності з приміткою про посадку; ціна — спільна з caption.
+    """
+    stripped = line.strip()
+    match = _SIZE_LETTER_FIT_NOTE_ONLY_RE.match(stripped)
+    if not match:
+        return None
+    price = _extract_price(caption)
+    if price is None:
+        return None
+    size = _normalize_size(match.group("size"))
+    size = _LETTER_SIZE_ALIASES.get(size, size)
+    sold_out = _is_sold_out(stripped)
+    return ParsedVariant(
+        size=size,
+        price=price,
+        stock_qty=0 if sold_out else 1,
         is_available=not sold_out,
         color=color,
         note=stripped,
@@ -823,6 +856,9 @@ def try_parse_extra_variant_line(
     paren_note_price = parse_size_paren_note_price_line(line, color=color)
     if paren_note_price:
         return [paren_note_price]
+    fit_note = parse_size_letter_fit_note_line(line, caption=caption, color=color)
+    if fit_note:
+        return [fit_note]
     color_size = parse_color_size_price_line(line, fallback_color=color)
     if color_size:
         return [color_size]

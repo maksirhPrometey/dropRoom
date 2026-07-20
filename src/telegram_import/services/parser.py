@@ -36,6 +36,21 @@ _SIZE_LABEL_ONLY_RE = re.compile(
     r"^(?:📏\s*)?розмір(?:и)?\s*[:：]?\s*$",
     re.IGNORECASE,
 )
+# «📏 Розмір в наявності» / «під замовлення Sold out» — службові рядки
+# статусу, не частина опису товару.
+_STOCK_STATUS_META_RE = re.compile(
+    r"^(?:📏\s*)?розмір\s+в\s+наявності\s*$|"
+    r"^під\s+замовленн\w*\s+sold\s*out\s*$|"
+    r"^sold\s*out\s*$",
+    re.IGNORECASE,
+)
+# «XL (комфортно підійде на L)» — розмір піде у variants; далі в caption
+# часто ще є «Параметри…», тож рядок лише пропускаємо, а не обриваємо опис.
+_LETTER_SIZE_FIT_NOTE_RE = re.compile(
+    r"^(?:XXS|XXXL|XXL|XL|XS|2XL|3XL|[SML]|ХХЛ|ХЛ|ХС|[СМЛсмл])\s*"
+    r"\([^)]*(?:комфортн|підійд|сяде)[^)]*\)\s*$",
+    re.IGNORECASE,
+)
 _PHYSICAL_SIZE_RE = re.compile(
     r"^розмір\s*[:：]\s*\d",
     re.IGNORECASE,
@@ -302,6 +317,10 @@ def _extract_description(caption: str, title: str) -> str:
             continue
         if _SIZE_LABEL_ONLY_RE.match(stripped):
             continue
+        if _STOCK_STATUS_META_RE.match(stripped):
+            continue
+        if _LETTER_SIZE_FIT_NOTE_RE.match(stripped):
+            continue
         if _VARIANT_SECTION_RE.match(stripped):
             break
         if is_color_price_line(stripped):
@@ -332,6 +351,8 @@ def _extract_description(caption: str, title: str) -> str:
         and not _BRAND_LINE_RE.match(line)
         and not _DESCRIPTION_LABEL_RE.match(line)
         and not _SIZE_LABEL_ONLY_RE.match(line)
+        and not _STOCK_STATUS_META_RE.match(line)
+        and not _LETTER_SIZE_FIT_NOTE_RE.match(line)
     ]
     description = "\n".join(cleaned_lines).strip()
     if description:
