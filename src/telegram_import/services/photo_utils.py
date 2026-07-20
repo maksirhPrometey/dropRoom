@@ -147,9 +147,15 @@ def is_likely_spec_diagram(
         return False
     if white_ratio < SPEC_DIAGRAM_WHITE_RATIO:
         return False
+    # Студійні фото товарів часто квадратні ~700² на білому тлі
+    # (white ≈ 0.73–0.80). Не плутаємо їх із розмірними схемами /
+    # діаграмами, які зазвичай ширші або майже повністю білі.
+    ratio = width / height if height else 0
+    if 0.85 <= ratio <= 1.18:
+        return False
     max_side = max(width, height)
     min_side = min(width, height)
-    if max_side <= SPEC_DIAGRAM_MAX_SIDE:
+    if max_side <= SPEC_DIAGRAM_MAX_SIDE and white_ratio >= 0.88:
         return True
     if min_side <= 700 and white_ratio >= 0.8:
         return True

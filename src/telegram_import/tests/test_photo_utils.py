@@ -58,6 +58,17 @@ class PhotoRankingTests(TestCase):
             is_likely_spec_diagram(1024, 1280, white_ratio=0.62),
         )
 
+    def test_square_studio_product_photo_not_spec_diagram(self):
+        # DropGoods: Adidas Edge Runner тощо — 700² на білому тлі (~73% white)
+        # раніше помилково відсікались як «службові зображення».
+        self.assertFalse(
+            is_likely_spec_diagram(700, 700, white_ratio=0.75),
+        )
+        product = ("studio.jpg", _jpeg_bytes(700, 700, "white"))
+        ranked = rank_photo_files([product], sizes=[(700, 700)])
+        self.assertEqual(len(ranked), 1)
+        self.assertEqual(ranked[0][0], "studio.jpg")
+
     def test_normalize_trims_white_borders(self):
         buffer = BytesIO()
         image = Image.new("RGB", (400, 500), "white")

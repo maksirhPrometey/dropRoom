@@ -801,7 +801,36 @@ class ChannelCaptionParserTests(TestCase):
 
     def test_pinko_bag_bare_size_header_keeps_description(self):
         """Голе «Розміри:» (без «та ціни») — фізичні виміри сумки, не
-        таблиця розмір↔ціна; опис не повинен обриватись на ньому."""
+        таблиця розмір↔ціна; опис не повинен обриватись на ньому.
+        Саму мітку «Розмір:/Розміри:» в текст не пишемо."""
         parsed = self._parse(PINKO_BAG_BARE_DIMENSIONS)
         self.assertIn("Максимальна довжина ременя", parsed.description)
         self.assertIn("Кількість кишень", parsed.description)
+        self.assertIn("Не вміщує B5", parsed.description)
+        self.assertNotRegex(parsed.description, r"(?im)^розмір(?:и)?\s*:?\s*$")
+
+    def test_karl_striped_tee_bare_size_label_not_in_description(self):
+        """Після нормального абзацу опису йде голий «Розмір:» і рядок
+        «Розмір М - 🏷️…» — мітка не повинна лишатись хвостом в description."""
+        caption = (
+            "Футболка Karl Lagerfeld.\n\n"
+            "Бренд: Karl Lagerfeld\n\n"
+            "Футболка Karl Lagerfeld у смужку — стильна модель з м’якої "
+            "бавовни в чорно-білу смужку.\n\n"
+            "Розмір:\n"
+            "Розмір М - 🏷️1699 грн ( в наявності 1 штука) \n\n"
+            "Під замовлення ❌sold out"
+        )
+        parsed = self._parse(caption)
+        self.assertIn("чорно-білу смужку", parsed.description)
+        self.assertNotIn("Розмір", parsed.description)
+        self.assertNotIn("1699", parsed.description)
+        self.assertEqual(
+            [(v.size, v.price) for v in parsed.variants],
+            [("M", Decimal("1699"))],
+        )
+
+    def test_emporio_size_label_stripped_keeps_width(self):
+        parsed = self._parse(EMPORIO_ARMANI_BAG)
+        self.assertIn("Ширина: 33 см", parsed.description)
+        self.assertNotRegex(parsed.description, r"(?im)^📏?\s*розмір\s*:?\s*$")
