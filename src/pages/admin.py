@@ -36,7 +36,7 @@ class HeroSlideImageInline(StackedInline):
     fieldsets = [
         (
             None,
-            {"fields": ["sort_order", "image", "image_preview"]},
+            {"fields": ["sort_order", "image", "image_preview", "panel_theme"]},
         ),
         (
             "Текст на слайді",

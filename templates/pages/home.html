@@ -19,7 +19,7 @@
   <div class="hero-slider__viewport">
     <div class="hero-slider__track">
       {% for slide in hero_slides %}
-        <article class="hero-slider__slide{% if forloop.first %} is-active{% endif %}{% if slide.has_panel %} hero-slider__slide--has-panel{% endif %}"
+        <article class="hero-slider__slide{% if forloop.first %} is-active{% endif %}{% if slide.has_panel %} hero-slider__slide--has-panel{% endif %}{% if slide.is_dark %} hero-slider__slide--dark{% endif %}"
                  data-hero-slide
                  aria-hidden="{% if forloop.first %}false{% else %}true{% endif %}">
           <figure class="hero-slider__media">
@@ -40,7 +40,7 @@
               {% endif %}
 
               {% if slide.subtitle %}
-                <p class="hero-slider__subtitle">{{ slide.subtitle }}</p>
+                <p class="hero-slider__subtitle">{{ slide.subtitle|linebreaksbr }}</p>
               {% endif %}
 
               {% if slide.usp_text %}

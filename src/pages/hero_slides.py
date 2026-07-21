@@ -42,6 +42,7 @@ def build_hero_slides(hero_slides) -> list[dict[str, str]]:
                 "features": features,
                 "cta_text": slide.cta_text.strip() or "Перейти до каталогу",
                 "has_panel": has_panel,
+                "is_dark": slide.panel_theme == slide.THEME_DARK,
             }
         )
 

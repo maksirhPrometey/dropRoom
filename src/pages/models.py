@@ -94,6 +94,13 @@ class HomePage(SingletonModel):
 
 
 class HeroSlideImage(models.Model):
+    THEME_LIGHT = "light"
+    THEME_DARK = "dark"
+    THEME_CHOICES = [
+        (THEME_LIGHT, "Світла (стандартна)"),
+        (THEME_DARK, "Темна (акцентний воордмарк)"),
+    ]
+
     page = models.ForeignKey(
         HomePage,
         on_delete=models.CASCADE,
@@ -102,6 +109,16 @@ class HeroSlideImage(models.Model):
     image = models.ImageField(
         upload_to="pages/home/hero/",
         verbose_name="Фото",
+    )
+    panel_theme = models.CharField(
+        max_length=10,
+        choices=THEME_CHOICES,
+        default=THEME_LIGHT,
+        verbose_name="Тема панелі",
+        help_text=(
+            "Світла — стандартна панель зі слоганом. "
+            "Темна — темний фон, білий воордмарк-заголовок без CAPS."
+        ),
     )
     sort_order = models.PositiveSmallIntegerField(
         default=0,
