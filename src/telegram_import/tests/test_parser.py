@@ -760,6 +760,30 @@ class ChannelCaptionParserTests(TestCase):
         self.assertEqual(parsed.description, "Стильний жіночий пуховик.")
         self.assertNotIn("Колір:", parsed.description)
 
+    def test_birkenstock_in_stock_size_and_preorder_range(self):
+        """«Блакитні / 📏38 ; / 🏷️4390» + preorder 35–40 — без ONE SIZE і кривого опису."""
+        caption = (
+            "В наявності Birkenstock \n\n"
+            "Блакитні \n\n"
+            "📏38 ;\n\n"
+            "🏷️4390  UAH\n\n"
+            "під замовлення від 35 до 40 \n"
+            "🏷️4450"
+        )
+        parsed = self._parse(caption)
+        by_size = {v.size: v for v in parsed.variants}
+        self.assertNotIn("ONE SIZE", by_size)
+        self.assertEqual(set(by_size), {"35", "36", "37", "38", "39", "40"})
+        self.assertEqual(by_size["38"].price, Decimal("4390"))
+        self.assertEqual(by_size["38"].stock_qty, 1)
+        self.assertEqual(by_size["38"].color, "Блакитні")
+        self.assertEqual(by_size["35"].price, Decimal("4450"))
+        self.assertEqual(by_size["35"].stock_qty, 0)
+        # Немає прози в капшені — лише короткий синтетичний рядок про наявність.
+        self.assertEqual(parsed.description, "В наявності: Блакитні.")
+        self.assertNotIn("📏", parsed.description)
+        self.assertNotIn("38 ;", parsed.description)
+
     def test_armani_longsleeve_qty_sizes_and_preorder(self):
         """«в наявності 3 розміру S» + «1 ХЛ» + «під замовлення м , л та хл» —
         без фантомного ONE SIZE; XL у наявності не перетирається preorder."""

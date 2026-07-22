@@ -177,8 +177,12 @@ _TRAILING_PRICE_RE = re.compile(
 _COLOR_HEADER_RE = re.compile(
     r"^(?:темно-?\s*|світло-?\s*|яскраво-?\s*|ніжно-?\s*|насичено-?\s*|глибоко-?\s*)?"
     r"(?:коричнев|чорн|біл|бежев|син|зелен|рожев|червон|сірий|леопард|молочн|кремов|"
-    r"шоколад|бордо|хакі|оливков|пудров|м.ятн|лавандов|бузков|жовт|оранжев|фіолетов|"
-    r"срібн|золот|графіт|пісочн)",
+    r"блакитн|голуб|шоколад|бордо|хакі|оливков|пудров|м.ятн|лавандов|бузков|жовт|"
+    r"оранжев|фіолетов|срібн|золот|графіт|пісочн)",
+    re.IGNORECASE,
+)
+_RULER_SIZE_ONLY_RE = re.compile(
+    rf"^📏\s*(\d{{2}}(?:[,.]\d)?)\s*;?\s*$",
     re.IGNORECASE,
 )
 _BARE_LETTER_ONLY_RE = re.compile(
@@ -520,6 +524,7 @@ def _is_color_header(line: str, next_line: str | None) -> bool:
         return True
     if next_line and (
         _SIZE_LINE_RE.match(next_line.strip())
+        or _RULER_SIZE_ONLY_RE.match(next_line.strip())
         or "🏷️" in next_line
         or _CYR_SIZE_PREORDER_PRICE_RE.match(next_line.strip())
         or _SIZE_LIST_LABEL_RE.match(next_line.strip())
@@ -539,6 +544,9 @@ def _should_wait_for_price_line(line: str, next_line: str | None) -> bool:
     # «🔹 35 (22 см)» без тире й ціни на цьому ж рядку — ціна («🏷️ 8450 грн»)
     # може бути окремим рядком нижче, за порожнім рядком.
     if _SIZE_FOOT_LENGTH_ONLY_RE.match(line):
+        return bool("🏷️" in next_line or _extract_price(next_line))
+    # «📏38 ;» / «📏38» — розмір у наявності, ціна наступним рядком.
+    if _RULER_SIZE_ONLY_RE.match(line):
         return bool("🏷️" in next_line or _extract_price(next_line))
     if not _SIZE_LINE_RE.match(line):
         return False
@@ -569,6 +577,8 @@ def looks_like_variant_line(
     if _SIZE_LINE_RE.match(stripped) or _SIZE_MEASUREMENT_RE.match(stripped):
         return True
     if _SIZE_FOOT_LENGTH_ONLY_RE.match(stripped):
+        return True
+    if _RULER_SIZE_ONLY_RE.match(stripped):
         return True
     if _BARE_LETTER_ONLY_RE.match(stripped) or _BARE_LETTER_LIST_RE.match(stripped):
         return True
@@ -710,8 +720,13 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
             is_foot_length = size_match is None and bool(
                 _SIZE_FOOT_LENGTH_ONLY_RE.match(pending_size_line)
             )
+            is_ruler_only = size_match is None and bool(
+                _RULER_SIZE_ONLY_RE.match(pending_size_line)
+            )
             if is_foot_length:
                 size_match = _SIZE_FOOT_LENGTH_ONLY_RE.match(pending_size_line)
+            elif is_ruler_only:
+                size_match = _RULER_SIZE_ONLY_RE.match(pending_size_line)
             pending_line = pending_size_line
             pending_size_line = None
             if size_match and price is not None:
@@ -719,7 +734,15 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
                 stock_qty = 0
                 if not sold_out:
                     stock_qty = _extract_stock_qty(stripped, is_available=True)
-                    if not stock_qty and is_foot_length:
+                    if not stock_qty and (is_foot_length or is_ruler_only):
+                        stock_qty = 1
+                    # «В наявності …» на початку капшена + голий «📏38»
+                    # без явного qty — теж 1 в наявності.
+                    if (
+                        not stock_qty
+                        and is_ruler_only
+                        and caption_signals_in_stock(caption)
+                    ):
                         stock_qty = 1
                 old_price = _extract_old_price(stripped) or _extract_old_price(
                     pending_line or ""

@@ -418,6 +418,12 @@ def _is_probable_color_header(line: str) -> bool:
         "сині",
         "чорні",
         "коричневі",
+        "блакитн",
+        "голуб",
+        "рожев",
+        "зелен",
+        "сір",
+        "червон",
     )
     return any(word in lowered for word in color_words) and not stripped.startswith("•")
 
