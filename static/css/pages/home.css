@@ -24,8 +24,8 @@
   position: relative;
   width: 100%;
   max-width: 100%;
-  /* Банери 1915×821 → 2.333:1; без crop тексту в зображенні */
-  aspect-ratio: 1915 / 821;
+  /* Банери 1915×821; висота контейнера −30% → 1915 / (821 * 0.7) */
+  aspect-ratio: 1915 / 574.7;
   height: auto;
   background: var(--bg-2);
   overflow: hidden;
@@ -508,7 +508,7 @@
   }
 
   .hero-slider__viewport {
-    aspect-ratio: 1915 / 821;
+    aspect-ratio: 1915 / 574.7;
     height: auto;
     min-height: 0;
   }
