@@ -513,8 +513,6 @@ def _sync_images(
     alt_text: str,
     photo_files: list[tuple[str, bytes]] | None = None,
 ) -> None:
-    existing_count = product.images.count()
-
     if photo_files:
         ranked = rank_photo_files(photo_files)
         if not ranked:
@@ -552,21 +550,36 @@ def _sync_images(
             )
         return
 
-    for sort_order, file_id in enumerate(record.photo_file_ids):
-        if product.images.filter(image__icontains=file_id).exists():
+    # file_id у імені файлу часто обрізається storage — icontains(full id)
+    # не ловить дублі. Дедуп лише по MD5 вмісту (як для photo_files).
+    existing_hashes = _existing_image_hashes(product)
+    has_primary = product.images.filter(is_primary=True).exists()
+    current_max_sort = (
+        product.images.order_by("-sort_order").values_list("sort_order", flat=True).first()
+    )
+    next_sort_order = 0 if current_max_sort is None else current_max_sort + 1
+    added = 0
+    for file_id in record.photo_file_ids:
+        if not file_id:
             continue
         try:
             photo = download_photo(file_id)
         except (TelegramAPIError, OSError) as exc:
             logger.warning("Не вдалося завантажити фото %s: %s", file_id, exc)
             continue
+        content = normalize_product_image(photo.content)
+        digest = hashlib.md5(content).hexdigest()
+        if digest in existing_hashes:
+            continue
+        existing_hashes.add(digest)
         ProductImage.objects.create(
             product=product,
-            image=ContentFile(photo.content, name=photo.filename),
+            image=ContentFile(content, name=photo.filename),
             alt=alt_text,
-            is_primary=(existing_count == 0 and sort_order == 0),
-            sort_order=existing_count + sort_order,
+            is_primary=(not has_primary and added == 0),
+            sort_order=next_sort_order + added,
         )
+        added += 1
 
 
 def import_telegram_message(

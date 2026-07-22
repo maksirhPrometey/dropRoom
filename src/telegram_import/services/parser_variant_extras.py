@@ -63,6 +63,11 @@ _PREORDER_LETTER_SIZE_RANGE_RE = re.compile(
     rf"(?:\s*(?:🏷️\s*)?(?P<price>\d[\d\s]*)\s*(?:грн|UAH|₴)?)?\s*$",
     re.IGNORECASE,
 )
+# «S–XL» / «XS — XXL» — голий літерний діапазон без «від…до».
+_BARE_LETTER_SIZE_RANGE_RE = re.compile(
+    rf"^(?P<start>{_LETTER_SIZE_TOKEN})\s*{_DASH}\s*(?P<end>{_LETTER_SIZE_TOKEN})\s*$",
+    re.IGNORECASE,
+)
 _LETTER_SIZE_LADDER = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL"]
 _LETTER_SIZE_ALIASES = {"2XL": "XXL", "3XL": "XXXL"}
 _SIZE_WITH_NOTE_PRICE_RE = re.compile(
@@ -270,6 +275,42 @@ def _expand_letter_size_range(start_raw: str, end_raw: str) -> list[str] | None:
         return None
     sizes = _LETTER_SIZE_LADDER[i : j + 1]
     return sizes if len(sizes) >= 2 else None
+
+
+def parse_bare_letter_size_range_line(
+    line: str, *, caption: str, color: str | None = None
+) -> list[ParsedVariant] | None:
+    """
+    «S–XL» / «XS — XXL» окремим рядком; ціна часто на наступному
+    («🏷️ 6250–8050 UAH») — беремо з усього caption.
+    """
+    stripped = line.strip()
+    match = _BARE_LETTER_SIZE_RANGE_RE.match(stripped)
+    if not match:
+        return None
+    sizes = _expand_letter_size_range(match.group("start"), match.group("end"))
+    if not sizes:
+        return None
+    price = _extract_price(stripped) or _extract_price(caption)
+    if price is None:
+        return None
+    is_preorder = "під замовлення" in caption.lower()
+    sold_out = _is_sold_out(stripped) or _is_sold_out(caption)
+    stock = 0 if (sold_out or is_preorder) else 1
+    old_price = _extract_old_price(caption)
+    compare = old_price if old_price and old_price > price else None
+    return [
+        ParsedVariant(
+            size=size,
+            price=price,
+            stock_qty=stock,
+            is_available=not sold_out,
+            color=color,
+            note=stripped,
+            compare_price=compare,
+        )
+        for size in sizes
+    ]
 
 
 def parse_preorder_size_range_line(
@@ -868,6 +909,11 @@ def try_parse_extra_variant_line(
     cyr_block = parse_cyrillic_sizes_preorder_block(line, caption=caption, color=color)
     if cyr_block:
         return cyr_block
+    bare_letter_range = parse_bare_letter_size_range_line(
+        line, caption=caption, color=color
+    )
+    if bare_letter_range:
+        return bare_letter_range
     size_range = parse_preorder_size_range_line(line, caption=caption, color=color)
     if size_range:
         return size_range

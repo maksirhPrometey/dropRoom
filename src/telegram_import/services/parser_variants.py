@@ -856,7 +856,8 @@ def extract_variants(caption: str) -> list[ParsedVariant]:
                 # стара), коли розміри вже зібрані з попередніх рядків
                 # («від 39 до 45»). Не плодимо зайвий ONE SIZE.
                 price_carrier = re.fullmatch(
-                    r"🏷️?\s*\d[\d\s]*(?:\s*(?:UAH|грн|₴))?\s*"
+                    r"🏷️?\s*\d[\d\s]*(?:\s*[—–\-]\s*\d[\d\s]*)?"
+                    r"(?:\s*(?:UAH|грн|₴))?\s*"
                     r"(?:\(?\s*(?:замість|було)\s*\d[\d\s]*"
                     r"(?:\s*(?:UAH|грн|₴))?\s*\)?)?\s*$",
                     stripped,

@@ -738,6 +738,26 @@ class ChannelCaptionParserTests(TestCase):
         self.assertNotIn("під замовлення", parsed.description.lower())
         self.assertNotIn("Sold out", parsed.description)
 
+    def test_bare_letter_size_range_with_price_range(self):
+        """«S–XL» + «🏷️ 6250–8050 UAH» під замовлення — усі літерні розміри."""
+        caption = (
+            "Пуховик Polo Ralph Lauren\n\n"
+            "Бренд: Polo Ralph Lauren\n\n"
+            "Колір:\n\n"
+            "🖤 Чорний — під замовлення\n"
+            "S–XL\n"
+            "🏷️ 6250–8050 UAH\n\n"
+            "Опис\n\n"
+            "Стильний жіночий пуховик."
+        )
+        parsed = self._parse(caption)
+        sizes = [v.size for v in parsed.variants]
+        self.assertEqual(sizes, ["S", "M", "L", "XL"])
+        self.assertTrue(all(v.price == Decimal("8050") for v in parsed.variants))
+        self.assertTrue(all(v.stock_qty == 0 for v in parsed.variants))
+        self.assertTrue(all(v.color == "Чорний" for v in parsed.variants))
+        self.assertNotIn("ONE SIZE", sizes)
+
     def test_armani_longsleeve_qty_sizes_and_preorder(self):
         """«в наявності 3 розміру S» + «1 ХЛ» + «під замовлення м , л та хл» —
         без фантомного ONE SIZE; XL у наявності не перетирається preorder."""
