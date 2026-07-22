@@ -25,7 +25,12 @@ _BRAND_LINE_RE = re.compile(
     re.IGNORECASE,
 )
 _DESCRIPTION_LABEL_RE = re.compile(
-    r"^(?:опис|description)\s*[:：]\s*$",
+    r"^(?:опис|description)\s*[:：]?\s*$",
+    re.IGNORECASE,
+)
+# «Колір:» / «Color» — службова мітка перед таблицею кольорів, не опис.
+_COLOR_LABEL_ONLY_RE = re.compile(
+    r"^(?:колір|color)\s*[:：]?\s*$",
     re.IGNORECASE,
 )
 # Голий заголовок «Розмір:» / «📏 Розміри» без вимірів і без цін —
@@ -291,7 +296,38 @@ def _line_matches_title(stripped: str, title: str) -> tuple[bool, str]:
     return False, ""
 
 
+def _extract_opis_section(caption: str) -> str:
+    """
+    Явний блок «Опис» / «Description» (часто ПІСЛЯ розмірів/цін).
+    Якщо є — це пріоритетне джерело тексту опису.
+    """
+    lines = caption.splitlines()
+    collecting = False
+    out: list[str] = []
+    for line in lines:
+        stripped = line.strip()
+        if _DESCRIPTION_LABEL_RE.match(stripped):
+            collecting = True
+            continue
+        if not collecting:
+            continue
+        if not stripped:
+            if out:
+                out.append("")
+            continue
+        if _BRAND_LINE_RE.match(stripped) or _VARIANT_SECTION_RE.match(stripped):
+            break
+        if _COLOR_LABEL_ONLY_RE.match(stripped) or _SIZE_LABEL_ONLY_RE.match(stripped):
+            break
+        out.append(stripped)
+    return "\n".join(out).strip()
+
+
 def _extract_description(caption: str, title: str) -> str:
+    opis = _extract_opis_section(caption)
+    if opis:
+        return opis
+
     lines = caption.splitlines()
     description_lines: list[str] = []
     title_found = False
@@ -314,6 +350,8 @@ def _extract_description(caption: str, title: str) -> str:
         if _BRAND_LINE_RE.match(stripped):
             continue
         if _DESCRIPTION_LABEL_RE.match(stripped):
+            continue
+        if _COLOR_LABEL_ONLY_RE.match(stripped):
             continue
         if _SIZE_LABEL_ONLY_RE.match(stripped):
             continue
@@ -350,6 +388,7 @@ def _extract_description(caption: str, title: str) -> str:
         if line
         and not _BRAND_LINE_RE.match(line)
         and not _DESCRIPTION_LABEL_RE.match(line)
+        and not _COLOR_LABEL_ONLY_RE.match(line)
         and not _SIZE_LABEL_ONLY_RE.match(line)
         and not _STOCK_STATUS_META_RE.match(line)
         and not _LETTER_SIZE_FIT_NOTE_RE.match(line)

@@ -757,6 +757,8 @@ class ChannelCaptionParserTests(TestCase):
         self.assertTrue(all(v.stock_qty == 0 for v in parsed.variants))
         self.assertTrue(all(v.color == "Чорний" for v in parsed.variants))
         self.assertNotIn("ONE SIZE", sizes)
+        self.assertEqual(parsed.description, "Стильний жіночий пуховик.")
+        self.assertNotIn("Колір:", parsed.description)
 
     def test_armani_longsleeve_qty_sizes_and_preorder(self):
         """«в наявності 3 розміру S» + «1 ХЛ» + «під замовлення м , л та хл» —
