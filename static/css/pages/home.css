@@ -24,17 +24,9 @@
   position: relative;
   width: 100%;
   max-width: 100%;
-  height: clamp(
-    260px,
-    calc(
-      100svh
-      - var(--home-top-chrome)
-      - var(--home-promo-stack)
-      - var(--home-stock-stack)
-      - var(--home-product-peek)
-    ),
-    520px
-  );
+  /* Банери 1915×821 → 2.333:1; без crop тексту в зображенні */
+  aspect-ratio: 1915 / 821;
+  height: auto;
   background: var(--bg-2);
   overflow: hidden;
   overflow-x: clip;
@@ -91,20 +83,24 @@
 
 .hero-slider__media img {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  width: auto;
-  height: auto;
-  min-width: 100%;
-  min-height: 100%;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   max-width: none;
   object-fit: cover;
-  object-position: center right;
+  object-position: center center;
   display: block;
-  transform: translate(-50%, -50%);
   transition: transform 1.1s var(--ease);
   -webkit-user-drag: none;
   user-select: none;
+}
+
+.hero-slider__hit {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: block;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .hero-slider__panel {
@@ -512,28 +508,18 @@
   }
 
   .hero-slider__viewport {
-    height: clamp(
-      220px,
-      calc(
-        100svh
-        - var(--home-top-chrome)
-        - var(--home-promo-stack)
-        - var(--home-stock-stack)
-        - var(--home-product-peek)
-      ),
-      360px
-    );
+    aspect-ratio: 1915 / 821;
+    height: auto;
+    min-height: 0;
   }
 
   .hero-slider__media img {
     inset: 0;
-    top: 0;
-    left: 0;
     width: 100%;
     height: 100%;
     min-width: 0;
     min-height: 0;
-    max-width: 100%;
+    max-width: none;
     object-fit: cover;
     object-position: center center;
     transform: none;
