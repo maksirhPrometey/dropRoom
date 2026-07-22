@@ -508,9 +508,10 @@
   }
 
   .hero-slider__viewport {
-    aspect-ratio: 1915 / 574.7;
+    /* Мобіль: вищий блок (~2:1), як на референс-скріні; desktop лишає −30% */
+    aspect-ratio: 2 / 1;
     height: auto;
-    min-height: 0;
+    min-height: 168px;
   }
 
   .hero-slider__media img {
@@ -521,7 +522,8 @@
     min-height: 0;
     max-width: none;
     object-fit: cover;
-    object-position: center center;
+    /* Текст запечений зліва — тримаємо лівий край */
+    object-position: left center;
     transform: none;
   }
 
